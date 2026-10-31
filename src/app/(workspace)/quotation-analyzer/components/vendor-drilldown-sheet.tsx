@@ -613,9 +613,9 @@ export function VendorDrilldownSheet({
                             <p className="text-foreground/90 mt-0.5">{flag.message}</p>
                           </div>
                         </div>
-                        {flag.difference !== undefined && (
+                        {(flag as any).difference !== undefined && (
                           <span className="font-mono font-bold text-rose-600 shrink-0">
-                            Diff: {formatCurrency(flag.difference)}
+                            Diff: {formatCurrency((flag as any).difference)}
                           </span>
                         )}
                       </div>

@@ -825,26 +825,6 @@ export default function QuotationAnalyzerPage() {
             <>
               <Button
                 size="sm"
-                variant="outline"
-                onClick={extractAllUploaded}
-                disabled={isExtractingAll}
-                className="border-charcoal-300 text-charcoal-800 hover:bg-muted"
-              >
-                {isExtractingAll ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-1.5 animate-spin text-gold" />
-                    Extracting All...
-                  </>
-                ) : (
-                  <>
-                    <ScanText className="w-4 h-4 mr-1.5 text-blue-600" />
-                    Extract All Text ({uploadedCount})
-                  </>
-                )}
-              </Button>
-
-              <Button
-                size="sm"
                 onClick={analyzeAllWithAi}
                 disabled={isAnalyzingAll}
                 className="bg-gradient-to-r from-amber-500 via-gold to-amber-600 hover:from-amber-600 hover:to-amber-700 text-charcoal-950 font-bold shadow-xs border border-gold/40"

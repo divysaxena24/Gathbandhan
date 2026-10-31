@@ -153,7 +153,7 @@ function createMockAnalysis(params: {
       subtotalMatches: params.isMathValid ?? true,
       hasLineItemDiscrepancies: false,
       missingInformationFlags: [],
-      taxCalculations: [],
+      
       grandTotalMatches: params.isMathValid ?? true,
       calculatedGrandTotal: params.calculatedTotal ? params.calculatedTotal * 1.05 : (params.grandTotal ?? 100000) * 1.05,
       grandTotalDiscrepancy: params.isMathValid === false ? 5250 : 0,

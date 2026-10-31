@@ -18,7 +18,6 @@ import {
   AlertTriangle,
   AlertCircle,
   FileText,
-  Download,
   Loader2,
   Building2,
   Coins,
@@ -60,7 +59,6 @@ export function VendorComparisonDashboard({
   const [checkedClarifications, setCheckedClarifications] = useState<Record<string, boolean>>({});
   const [activeScenario, setActiveScenario] = useState<ComparisonScenarioType>("balanced");
   const [isExportingPdf, setIsExportingPdf] = useState(false);
-  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   const {
     vendors,
@@ -77,7 +75,7 @@ export function VendorComparisonDashboard({
     : null;
 
   const drilldownQuotationResult = selectedDrilldownVendorId
-    ? analyzedQuotations.find((q) => q.uploadId === selectedDrilldownVendorId || q.meta?.uploadId === selectedDrilldownVendorId) || null
+    ? analyzedQuotations.find((q) => (q?.uploadId || q?.meta?.uploadId) === selectedDrilldownVendorId) || null
     : null;
 
   const drilldownVendorScore = selectedDrilldownVendorId
@@ -167,53 +165,6 @@ export function VendorComparisonDashboard({
     }
   };
 
-  // Export Excel Report
-  const handleDownloadExcel = async () => {
-    setIsExportingExcel(true);
-    try {
-      const res = await fetch("/api/quotation-analyzer/export/excel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          comparisonResult,
-          metadata: {
-            eventName: "Wedding Proposal Comparison",
-            generatedAt: new Date().toLocaleDateString(),
-            preparedBy: "Gathbandhan AI Quotation Analyzer",
-          },
-        }),
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || "Failed to generate Excel report.");
-      }
-
-      const blob = await res.blob();
-      const contentDisposition = res.headers.get("Content-Disposition");
-      let filename = "Gathbandhan_Vendor_Comparison.xlsx";
-      if (contentDisposition && contentDisposition.includes("filename=")) {
-        const match = contentDisposition.match(/filename="?([^"]+)"?/);
-        if (match && match[1]) filename = match[1];
-      }
-
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-
-      toast.success("Excel Workbook downloaded successfully!");
-    } catch (err: any) {
-      toast.error("Excel Export failed", { description: err.message });
-    } finally {
-      setIsExportingExcel(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Top Action Bar */}
@@ -252,21 +203,6 @@ export function VendorComparisonDashboard({
               <FileText className="w-3.5 h-3.5 mr-1.5 text-rose-500" />
             )}
             {isExportingPdf ? "Generating PDF..." : "Export PDF Report"}
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadExcel}
-            disabled={isExportingExcel}
-            className="text-xs h-8"
-          >
-            {isExportingExcel ? (
-              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-            ) : (
-              <Download className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
-            )}
-            {isExportingExcel ? "Generating Excel..." : "Export Excel (.xlsx)"}
           </Button>
 
           {onClose && (
