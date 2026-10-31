@@ -48,3 +48,4 @@ export const agreements = pgTable(
     index("agreements_status_idx").on(table.status),
   ]
 );
+

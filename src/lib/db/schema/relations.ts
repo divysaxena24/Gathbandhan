@@ -34,6 +34,7 @@ import {
   transportAssignments,
 } from "./guests";
 import { agreements } from "./agreements";
+import { notifications } from "./notifications";
 import { auditLogs } from "./audit-logs";
 
 // ── User Relations ──────────────────────────────────────────────
@@ -43,6 +44,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   auditLogs: many(auditLogs),
   leadActivities: many(leadActivities),
   assignedTasks: many(tasks),
+  notifications: many(notifications),
 }));
 
 // ── Lead Relations ──────────────────────────────────────────────
@@ -559,4 +561,16 @@ export const agreementsRelations = relations(agreements, ({ one }) => ({
     references: [clients.id],
   }),
 }));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+  wedding: one(weddings, {
+    fields: [notifications.weddingId],
+    references: [weddings.id],
+  }),
+}));
+
 

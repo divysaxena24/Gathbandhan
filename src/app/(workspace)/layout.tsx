@@ -20,13 +20,13 @@ import {
   Menu,
   X,
   ChevronRight,
-  Bell,
   Search,
   Sparkles,
   HeartHandshake,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { NotificationsDrawer } from "@/components/shared/notifications-drawer";
 
 interface NavItem {
   title: string;
@@ -225,10 +225,7 @@ export default function WorkspaceLayout({
               <span>Jaipur & Udaipur Season 2026-27</span>
             </div>
 
-            <Button variant="ghost" size="icon" className="relative text-charcoal hover:bg-gold/10">
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-status-critical" />
-            </Button>
+            <NotificationsDrawer />
           </div>
         </header>
 

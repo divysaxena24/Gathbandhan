@@ -121,4 +121,19 @@ Record material decisions here. Each entry should include date, status, context,
   5. Tamper-Evident Digital Agreements (`agreements`): Master service agreements store content SHA-256 hashes (`document_hash`). Electronic signatures log signer name, email, IP address, timestamp, and signature evidence payload, transitioning agreement status from `SENT` to `SIGNED`.
 - Consequences: Eliminates guest count discrepancies across multi-day destination itineraries, prevents catering over-expenditure, protects VIP and guest medical privacy, provides a luxury branded portal for couples, and ensures enforceable digital contract execution.
 
+### DEC-013 — Founder Season Analytics, Multi-Dimensional Vendor Scoring & Idempotent Notification Dispatch
+- Date: 2026-10-31
+- Status: Accepted
+- Context: Agency founders and executive directors need continuous, explainable visibility across the wedding season (contracted vs collected revenue, package profitability, liquidity horizons, operational risks, and team capacity). Additionally, vendor punctuality and budget overruns must be scored objectively without misleading metrics on sparse data, and platform notifications across multiple channels (In-App, WhatsApp, SMS) must be retry-safe and prevent duplicate alerts.
+- Decision:
+  1. Founder Season Analytics: Derives metrics from persisted operational and financial records. Distinguishes projected profit (contracted revenue minus committed vendor costs) from realized profit (collected receipts minus actual invoiced outlays). Every metric specifies an as-of timestamp and definition.
+  2. Package Margin Comparative Analysis: Groups projects by package type (`FULL_SERVICE`, `PARTIAL`, `DAY_OF`) to identify which package delivers the highest average margin percentage.
+  3. Liquidity Horizon & Cash Flow Forecasting: Partitions scheduled client receivables and vendor payables into 7, 30, 60, and 90-day windows as well as 8-week cashflow trajectories.
+  4. Multi-Dimensional Vendor Reliability Engine: Evaluates vendors with configurable component weighting: Punctuality (35%), Incident Freedom (30%), Budget Adherence (20%), and Quality Tier (15%). Explicitly flags `isSparseData` (< 3 samples) to prevent false certainty, while identifying repeat late arrivals (`>= 2`) and repeat cost overruns (`costVariancePaise > 0n`).
+  5. Operational Risk Index: Weights overdue tasks (10 pts), at-risk tasks (4 pts), late check-ins (15 pts), and unresolved/critical incidents (15-30 pts) into a composite risk score (0-100) and severity level (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`).
+  6. Idempotent Platform Notifications (`notifications`): Multi-channel notification pipeline (In-App, Email, WhatsApp, SMS) with deduplication keys (`dedupeKey`), simulator flags, and provider references (`mock-whatsapp-...`, `mock-sms-...`) ensuring safe retries without duplicate messaging.
+  7. RFC 4180 Report Generation: Server-side streaming CSV generator for Wedding P&L, Season P&L, Vendor Reliability, Cash Flow, and Team Capacity, enforcing agency RBAC.
+- Consequences: Gives agency founders and leadership real-time balance sheet control, eliminates cash flow surprises, prevents repeated hiring of unreliable vendors, and ensures safe multi-channel alerts.
+
+
 

@@ -124,3 +124,4 @@ describe("Client Portal Security Boundary & Electronic Agreements", () => {
     expect(tampered.documentHash).not.toBe(sig1.documentHash);
   });
 });
+

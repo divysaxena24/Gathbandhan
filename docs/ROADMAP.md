@@ -69,15 +69,15 @@ Gate: Architecture, data boundaries, project commands and env placeholders docum
 - [x] Agreement and payment views.
 
 ## Phase 8 — Analytics and release
-- [ ] Founder dashboard.
-- [ ] Vendor reliability.
-- [ ] Team workload.
-- [ ] Cash-flow forecast.
-- [ ] Reports/export.
-- [ ] Notifications and reminders.
-- [ ] PWA hardening.
-- [ ] E2E demo flows.
-- [ ] Deployment and demo runbook.
+- [x] Founder dashboard.
+- [x] Vendor reliability.
+- [x] Team workload.
+- [x] Cash-flow forecast.
+- [x] Reports/export.
+- [x] Notifications and reminders.
+- [x] PWA hardening.
+- [x] E2E demo flows.
+- [x] Deployment and demo runbook.
 
 ## Phase completion protocol
 For each phase:

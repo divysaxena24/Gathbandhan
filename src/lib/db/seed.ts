@@ -1609,6 +1609,68 @@ async function seed() {
     console.log(`  ✅ Seeded ${seededGuests.length} guests across 4 households, ${rsvpValues.length} event RSVPs, 3 palace room allocations, 3 airport transfers, and 1 signed Master Agreement`);
 
     // ============================================================
+    // 13. Notifications — Multi-channel platform alerts
+    // ============================================================
+    console.log("🔔 Creating demo notifications & reminders...");
+
+    await db.insert(schema.notifications).values([
+      {
+        userId: users[0].id, // Priya Rathore (Founder)
+        weddingId: sharmaWedding.id,
+        channel: "IN_APP",
+        template: "AGREEMENT_SIGNED",
+        title: "Master Wedding Agreement Executed",
+        body: "Dr. Vikram Sharma has signed the luxury full-service wedding agreement for Udaipur with verified SHA-256 digital stamp.",
+        status: "SENT",
+        providerReference: "mock-inapp-sig-001",
+        isSimulator: true,
+        dedupeKey: `agreement-signed-${sharmaWedding.id}`,
+        sentAt: new Date(),
+      },
+      {
+        userId: users[0].id,
+        weddingId: sharmaWedding.id,
+        channel: "WHATSAPP",
+        template: "CLIENT_PAYMENT_DUE",
+        title: "Upcoming Milestone: Second Tranche Due in 7 Days",
+        body: "Reminder: ₹60,00,000 milestone invoice scheduled for Sharma Wedding on 2026-11-15.",
+        status: "SENT",
+        providerReference: "mock-wa-pay-001",
+        isSimulator: true,
+        dedupeKey: `milestone-due-${sharmaWedding.id}-tranche2`,
+        sentAt: new Date(),
+      },
+      {
+        userId: users[1].id, // Rahul Sharma (Senior Planner)
+        weddingId: sharmaWedding.id,
+        channel: "IN_APP",
+        template: "TASK_DEADLINE",
+        title: "Critical Task Due: Sangeet Pyrotechnic Fire License",
+        body: "Local administration NOC for Jagmandir Island fireworks must be uploaded within 48 hours.",
+        status: "SENT",
+        providerReference: "mock-inapp-task-001",
+        isSimulator: true,
+        dedupeKey: `task-deadline-${sharmaWedding.id}-noc`,
+        sentAt: new Date(),
+      },
+      {
+        userId: users[3].id, // Vikram Meena (On-site Coordinator)
+        weddingId: sharmaWedding.id,
+        channel: "SMS",
+        template: "VENDOR_LATE",
+        title: "Gate Clearance Alert: Floral Decor Crew Arrived",
+        body: "Royal Flora truck RJ-14-GA-9912 verified arrival at Taj Lake Palace Jetty gate.",
+        status: "SENT",
+        providerReference: "mock-sms-gate-001",
+        isSimulator: true,
+        dedupeKey: `gate-alert-${sharmaWedding.id}-floral`,
+        sentAt: new Date(),
+      },
+    ]);
+
+    console.log("  ✅ Seeded 4 platform notifications across In-App, WhatsApp, and SMS channels");
+
+    // ============================================================
     // Done
     // ============================================================
     console.log("\n✨ Seed complete!");

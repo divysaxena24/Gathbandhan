@@ -20,6 +20,9 @@ export {
   mealPreferenceEnum,
   transportStatusEnum,
   agreementStatusEnum,
+  notificationChannelEnum,
+  notificationStatusEnum,
+  notificationTemplateEnum,
 } from "./enums";
 
 // Tables
@@ -58,6 +61,7 @@ export {
   transportAssignments,
 } from "./guests";
 export { agreements } from "./agreements";
+export { notifications } from "./notifications";
 export { auditLogs } from "./audit-logs";
 
 // Relations
@@ -93,5 +97,6 @@ export {
   accommodationBookingsRelations,
   transportAssignmentsRelations,
   agreementsRelations,
+  notificationsRelations,
   auditLogsRelations,
 } from "./relations";

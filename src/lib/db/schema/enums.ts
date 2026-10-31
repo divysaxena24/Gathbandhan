@@ -173,3 +173,53 @@ export const agreementStatusEnum = pgEnum("agreement_status", [
   "CANCELLED",
 ]);
 
+export const notificationChannelEnum = pgEnum("notification_channel", [
+  "IN_APP",
+  "EMAIL",
+  "WHATSAPP",
+  "SMS",
+]);
+
+export const notificationStatusEnum = pgEnum("notification_status", [
+  "PENDING",
+  "SENT",
+  "FAILED",
+  "READ",
+]);
+
+export const notificationTemplateEnum = pgEnum("notification_template", [
+  "LEAD_FOLLOW_UP",
+  "TASK_DEADLINE",
+  "CLIENT_PAYMENT_DUE",
+  "VENDOR_PAYMENT_DUE",
+  "VENDOR_LATE",
+  "INCIDENT_ALERT",
+  "AGREEMENT_SIGNED",
+]);
+
+export type UserRole = (typeof userRoleEnum.enumValues)[number];
+export type LeadStatus = (typeof leadStatusEnum.enumValues)[number];
+export type WeddingLifecycle = (typeof weddingLifecycleEnum.enumValues)[number];
+export type PackageType = (typeof packageTypeEnum.enumValues)[number];
+export type EventType = (typeof eventTypeEnum.enumValues)[number];
+export type EventStatus = (typeof eventStatusEnum.enumValues)[number];
+export type VendorCategory = (typeof vendorCategoryEnum.enumValues)[number];
+export type TaskStatus = (typeof taskStatusEnum.enumValues)[number];
+export type PaymentStatus = (typeof paymentStatusEnum.enumValues)[number];
+export type InvoiceStatus = (typeof invoiceStatusEnum.enumValues)[number];
+export type IncidentSeverity = (typeof incidentSeverityEnum.enumValues)[number];
+export type CheckInStatus = (typeof checkInStatusEnum.enumValues)[number];
+export type QuoteRequestStatus = (typeof quoteRequestStatusEnum.enumValues)[number];
+export type QuoteStatus = (typeof quoteStatusEnum.enumValues)[number];
+export type InclusionStatus = (typeof inclusionStatusEnum.enumValues)[number];
+export type GuestSide = (typeof guestSideEnum.enumValues)[number];
+export type RsvpStatus = (typeof rsvpStatusEnum.enumValues)[number];
+export type MealPreference = (typeof mealPreferenceEnum.enumValues)[number];
+export type TransportStatus = (typeof transportStatusEnum.enumValues)[number];
+export type AgreementStatus = (typeof agreementStatusEnum.enumValues)[number];
+export type NotificationChannel = (typeof notificationChannelEnum.enumValues)[number];
+export type NotificationStatus = (typeof notificationStatusEnum.enumValues)[number];
+export type NotificationTemplate = (typeof notificationTemplateEnum.enumValues)[number];
+
+
+

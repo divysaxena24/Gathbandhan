@@ -29,3 +29,7 @@ export function formatINRCompact(paise: bigint | number): string {
   if (rupees >= 1_000) return `₹${(rupees / 1_000).toFixed(1)}K`;
   return formatINR(paise);
 }
+
+/** Alias for formatINR */
+export const formatRupees = formatINR;
+

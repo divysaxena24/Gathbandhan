@@ -386,3 +386,4 @@ export async function submitGuestRsvp(
 
   return { success: true, count: data.rsvps.length };
 }
+

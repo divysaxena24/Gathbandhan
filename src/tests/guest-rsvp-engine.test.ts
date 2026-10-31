@@ -161,3 +161,4 @@ describe("Guest RSVP Engine & Per-Event Attendance", () => {
     expect(reception.totalAttending).toBe(9);
   });
 });
+

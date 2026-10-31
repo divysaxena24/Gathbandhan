@@ -161,3 +161,4 @@ export const transportAssignments = pgTable(
     index("transport_status_idx").on(table.status),
   ]
 );
+
