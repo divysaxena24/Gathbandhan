@@ -1,5 +1,5 @@
 /**
- * Seed script for Gathbandhan OS demo data.
+ * Seed script for Gathbandhan demo data.
  *
  * Run with: pnpm db:seed
  *
@@ -27,7 +27,7 @@ const client = postgres(DATABASE_URL, { prepare: false });
 const db = drizzle(client, { schema });
 
 async function seed() {
-  console.log("🌱 Seeding Gathbandhan OS demo data...\n");
+  console.log("🌱 Seeding Gathbandhan demo data...\n");
 
   try {
     // Clean old demo data so seed is completely idempotent

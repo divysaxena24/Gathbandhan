@@ -45,7 +45,7 @@ Record material decisions here. Each entry should include date, status, context,
 ### DEC-006 — Product Rebranding to Gathbandhan
 - Date: 2026-10-31
 - Status: Accepted
-- Context: Product identity was rebranded from "The Royal Knot" to "Gathbandhan" and "Gathbandhan OS".
+- Context: Product identity was rebranded from "The Royal Knot" to "Gathbandhan".
 - Decision: Rebranded all client-facing and internal documentation, metadata, landing pages, application shells, and seed fixtures across the codebase to Gathbandhan while preserving client/vendor identity records and historical migration identifiers.
 - Consequences: Unified product naming throughout all views, routes, and documentation.
 

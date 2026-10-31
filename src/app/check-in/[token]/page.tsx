@@ -118,7 +118,7 @@ export default function PublicVendorCheckInPage() {
         <div className="text-center space-y-1">
           <div className="font-serif text-xl font-bold text-charcoal tracking-wide flex items-center justify-center gap-1.5">
             <span className="text-gold">✦</span>
-            <span>GATHBANDHAN OS</span>
+            <span>GATHBANDHAN</span>
             <span className="text-gold">✦</span>
           </div>
           <p className="text-[11px] uppercase tracking-wider text-charcoal/60 font-semibold">

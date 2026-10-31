@@ -87,7 +87,7 @@ function WizardContent() {
                 href="/dashboard"
                 className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-gold/30 text-xs font-semibold text-maroon hover:bg-gold/10 transition-colors"
               >
-                <span>Organizer OS</span>
+                <span>Organizer Portal</span>
               </Link>
 
               {/* Step quick-nav (desktop) */}

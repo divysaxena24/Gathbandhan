@@ -87,7 +87,7 @@ export default function WorkspaceLayout({
                 Gathbandhan
               </span>
               <span className="text-[10px] uppercase font-semibold text-gold tracking-widest">
-                Operations OS
+                Operations
               </span>
             </div>
           </Link>

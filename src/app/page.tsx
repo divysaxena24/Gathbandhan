@@ -29,9 +29,6 @@ export default async function HomePage() {
               <span className="font-heading font-bold text-lg text-maroon-deep tracking-wide">
                 Gathbandhan
               </span>
-              <span className="ml-2 text-xs font-semibold px-1.5 py-0.5 rounded bg-gold/10 text-gold-600 border border-gold/20">
-                OS
-              </span>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -116,7 +113,7 @@ export default async function HomePage() {
                 <Building2 className="w-6 h-6" />
               </div>
               <span className="text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-charcoal text-white">
-                Admin OS
+                Organizer Portal
               </span>
             </div>
             <h3 className="font-heading font-bold text-xl text-charcoal mb-2">
@@ -173,7 +170,7 @@ export default async function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-gold/15 py-6 text-center text-xs text-warm-gray">
-        <p>© 2026 Gathbandhan — The Operating System & Client Platform for Luxury Weddings.</p>
+        <p>┬⌐ 2026 Gathbandhan ΓÇö The Operating System & Client Platform for Luxury Weddings.</p>
       </footer>
     </main>
   );

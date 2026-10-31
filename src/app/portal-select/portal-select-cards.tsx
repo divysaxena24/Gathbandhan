@@ -63,7 +63,7 @@ export function PortalSelectCards({
           </div>
 
           <h2 className="font-heading text-2xl font-bold text-charcoal mb-2">
-            Event Organizer OS
+            Event Organizer Portal
           </h2>
           <p className="text-xs text-charcoal-500 mb-6 leading-relaxed">
             For wedding planners, operational directors, coordinators, and agency team members.

@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Gathbandhan OS — Luxury Wedding Platform",
+    name: "Gathbandhan — Luxury Wedding Platform",
     short_name: "Gathbandhan",
     description: "Operating system for luxury destination wedding planning agencies in Rajasthan",
     start_url: "/dashboard",

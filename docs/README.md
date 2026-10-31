@@ -44,7 +44,7 @@ A unified planning and operations platform for luxury wedding agencies in India.
 
 ## Overview
 
-**Gathbandhan OS** is a full-stack wedding planning management platform built for luxury wedding agencies operating in India. The name comes from *Gathbandhan*, the ritual in which the couple's garments are tied together. The product does the same for an agency's operations: it ties together clients, vendors, tasks, schedules, guests, and money in one system of record.
+**Gathbandhan** is a full-stack wedding planning management platform built for luxury wedding agencies operating in India. The name comes from *Gathbandhan*, the ritual in which the couple's garments are tied together. The product does the same for an agency's operations: it ties together clients, vendors, tasks, schedules, guests, and money in one system of record.
 
 The platform covers the entire wedding lifecycle, from the first client enquiry through planning, vendor coordination, wedding-day execution, financial settlement, and post-wedding business analytics. It replaces fragmented workflows built on WhatsApp conversations, spreadsheets, PDFs, paper checklists, and disconnected financial records.
 
@@ -52,7 +52,7 @@ The platform covers the entire wedding lifecycle, from the first client enquiry 
 
 | Attribute | Description |
 |---|---|
-| Product name | Gathbandhan OS |
+| Product name | Gathbandhan |
 | Category | Wedding Planning Management System |
 | Target users | Couples planning weddings, wedding vendors, and wedding planning agencies |
 | Primary market | India |
@@ -883,6 +883,6 @@ Phase 0 and Phase 1 are complete. The remaining phases are planned and may be re
 
 ## License
 
-Copyright © Gathbandhan OS contributors. All rights reserved.
+Copyright © Gathbandhan contributors. All rights reserved.
 
 *Replace this section with the project's chosen license before public release.*

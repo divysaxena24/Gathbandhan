@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Gathbandhan OS",
+  title: "Gathbandhan",
   description: "Intelligent wedding operations platform for luxury weddings",
 };
 
