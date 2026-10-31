@@ -94,3 +94,4 @@ export const bookingRequestMessages = pgTable(
     index("booking_request_messages_created_at_idx").on(table.createdAt),
   ]
 );
+

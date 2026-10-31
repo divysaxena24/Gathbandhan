@@ -188,3 +188,4 @@ describe("Two-Sided Platform Integration & Booking Workflow", () => {
     expect(thread[1].senderRole).toBe("PLANNER");
   });
 });
+
