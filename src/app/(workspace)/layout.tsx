@@ -22,6 +22,7 @@ import {
   ChevronRight,
   Bell,
   Search,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
   { title: "Planning & Tasks", href: "/planning", icon: CheckSquare },
   { title: "Vendors", href: "/vendors", icon: Building2 },
   { title: "Quotations", href: "/quotations", icon: FileText },
+  { title: "AI Quotation Analyzer", href: "/quotation-analyzer", icon: Sparkles, badge: "AI" },
   { title: "Event Control Room", href: "/control-room", icon: Radio, badge: "Live" },
   { title: "Finance", href: "/finance", icon: IndianRupee },
   { title: "Guests & Logistics", href: "/guests", icon: UserCheck },
@@ -236,4 +238,5 @@ export default function WorkspaceLayout({
     </div>
   );
 }
+
 
