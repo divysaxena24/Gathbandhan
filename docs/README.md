@@ -1,4 +1,4 @@
-# Gathbandhan
+# GATHBANDHAN
 
 This folder is the product and engineering reference pack for building The Royal Knot OS.
 
