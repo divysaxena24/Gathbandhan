@@ -1,10 +1,10 @@
 # PRD 00 — Product Overview
 
 ## Product
-The Royal Knot OS — Wedding Operations & Financial Management Platform.
+Gathbandhan — Wedding Operations & Financial Management Platform.
 
 ## Problem
-The Royal Knot manages approximately 25 luxury weddings per season, each with 400+ guests, around 18 vendors and multi-crore budgets. Enquiries, vendor quotes, tasks, payments and profit data are fragmented across WhatsApp, PDFs, diaries and spreadsheets. This creates forgotten leads, manual quote comparisons, missed advances, event-day confusion and delayed profitability insight.
+Gathbandhan manages approximately 25 luxury weddings per season, each with 400+ guests, around 18 vendors and multi-crore budgets. Enquiries, vendor quotes, tasks, payments and profit data are fragmented across WhatsApp, PDFs, diaries and spreadsheets. This creates forgotten leads, manual quote comparisons, missed advances, event-day confusion and delayed profitability insight.
 
 ## Product goals
 1. Centralize the full wedding lifecycle.

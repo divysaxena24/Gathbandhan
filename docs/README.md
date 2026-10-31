@@ -1,6 +1,6 @@
 # GATHBANDHAN
 
-This folder is the product and engineering reference pack for building The Royal Knot OS.
+This folder is the product and engineering reference pack for building Gathbandhan.
 
 ## How to use in Antigravity
 

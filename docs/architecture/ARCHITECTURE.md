@@ -1,4 +1,4 @@
-# Architecture — The Royal Knot OS
+# Architecture — Gathbandhan
 
 ## Architecture style
 Use a modular monolith. One Next.js codebase and one PostgreSQL database, separated into business domains. Avoid premature microservices.

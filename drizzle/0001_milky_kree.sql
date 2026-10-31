@@ -1,0 +1,1 @@
+ALTER TABLE "leads" ALTER COLUMN "event_date" SET DATA TYPE date;
