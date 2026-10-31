@@ -769,3 +769,4 @@ export const masterVendorsData: SeedVendor[] = [
     isActive: true,
   },
 ];
+
