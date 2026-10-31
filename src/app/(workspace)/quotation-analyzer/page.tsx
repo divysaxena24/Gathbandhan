@@ -41,6 +41,7 @@ import {
   Globe,
   Info,
   Scale,
+  Award,
   CheckSquare,
   XSquare,
   Square,
@@ -746,6 +747,19 @@ export default function QuotationAnalyzerPage() {
     }
   };
 
+  const handleOpenPdfPage = (uploadId: string, pageNumber = 1) => {
+    const targetFile = fileQueue.find((f) => f.serverId === uploadId || f.localId === uploadId);
+    if (targetFile && targetFile.previewUrl) {
+      const baseUrl = targetFile.previewUrl.split("#")[0];
+      setPreviewFile({
+        ...targetFile,
+        previewUrl: `${baseUrl}#page=${pageNumber}`,
+      });
+    } else {
+      toast.info(`Viewing quotation at page ${pageNumber}`);
+    }
+  };
+
   // Copy text helper
   const handleCopyText = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -877,6 +891,17 @@ export default function QuotationAnalyzerPage() {
                   </>
                 )}
               </Button>
+
+              {comparisonResult && (
+                <Button
+                  size="sm"
+                  onClick={() => setIsComparisonModalOpen(true)}
+                  className="bg-gold hover:bg-gold-600 text-charcoal-950 font-bold shadow-xs border border-gold/40"
+                >
+                  <Sparkles className="w-4 h-4 mr-1.5 text-charcoal-950" />
+                  View Dashboard
+                </Button>
+              )}
             </>
           )}
 
@@ -2124,13 +2149,15 @@ export default function QuotationAnalyzerPage() {
         </div>
       )}
 
-      {/* Milestone 4: Multi-Vendor Comparison Modal */}
+      {/* Milestone 4 & 5: Multi-Vendor Comparison Modal & Interactive Dashboard */}
       <VendorComparisonModal
         isOpen={isComparisonModalOpen}
         onClose={() => setIsComparisonModalOpen(false)}
         comparisonResult={comparisonResult}
         onRecalculateWeights={handleRecalculateWeights}
         isRecalculating={isRecalculatingWeights}
+        analyzedQuotations={fileQueue.map((f) => f.aiResult).filter((r): r is QuotationAnalysisResult => !!r)}
+        onOpenPdfPreview={handleOpenPdfPage}
       />
     </div>
   );

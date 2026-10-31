@@ -9,6 +9,12 @@ import {
   ComparisonMatrixRow,
   VendorRecommendation,
   CriterionScore,
+  ScoreChartItem,
+  CostChartItem,
+  CoverageChartItem,
+  EvidenceDetailRecord,
+  ComparisonScenarioType,
+  SCENARIO_PRESETS,
 } from "./comparison-types";
 import { executeGroqJsonChat, GroqCompletionOptions } from "./groq-client";
 import { analyzeQuotationDocument, getCachedAnalysis } from "./quotation-analyzer-service";
@@ -130,7 +136,6 @@ export function calculateVendorScores(
     // --- A. Cost Competitiveness (Weight: default 30%) ---
     let costCriterion: CriterionScore;
     if (price && price > 0 && minPrice && minPrice > 0) {
-      // Linear ratio benchmarked to lowest price
       const ratio = minPrice / price;
       const normalizedScore = Math.max(10, Math.min(100, Math.round(ratio * 100)));
       costCriterion = {
@@ -140,7 +145,7 @@ export function calculateVendorScores(
         normalizedScore,
         weight: weights.costCompetitiveness,
         adjustedWeight: weights.costCompetitiveness,
-        weightedScore: 0, // calculated during re-normalization
+        weightedScore: 0,
         isAvailable: true,
         evidenceNotes: `Quoted Total: ${q.commercialDetails.currency || "INR"} ${price.toLocaleString()}. Lowest in group: ${
           q.commercialDetails.currency || "INR"
@@ -174,7 +179,6 @@ export function calculateVendorScores(
     if (deliverablesCount > 0) coverageRaw += 15;
     if (hasSetup || hasDismantle) coverageRaw += 10;
     if (hasHours) coverageRaw += 10;
-    // Deduct slightly for excessive exclusions (> 5)
     if (exclusionsCount > 5) coverageRaw -= 10;
     const coverageScore = Math.max(20, Math.min(100, coverageRaw));
 
@@ -200,7 +204,6 @@ export function calculateVendorScores(
     };
 
     // --- C. Quality & Portfolio Evidence (Weight: default 15%) ---
-    // Check if document mentions portfolio, sample menu, tasting, photo links, website
     const website = q.vendorDetails.website;
     const textHasPortfolio =
       Boolean(website) ||
@@ -257,11 +260,10 @@ export function calculateVendorScores(
     }
 
     // --- D. Past Performance (Weight: default 15%) ---
-    // Check if quotation document includes reviews, ratings, years of operation, client testimonials
     const allText = [
       q.vendorDetails.vendorName || "",
       ...q.serviceDetails.servicesIncluded.map((s) => s.text),
-      ...q.conflictsAndWarnings,
+      ...(q.conflictsAndWarnings || []),
       ...(q.commercialDetails.specialConditions || []),
     ].join(" ").toLowerCase();
 
@@ -310,23 +312,23 @@ export function calculateVendorScores(
     const cancellation = q.commercialDetails.cancellationTerms;
     const refund = q.commercialDetails.refundTerms;
 
-    let termsScore = 60; // baseline
+    let termsScore = 60;
     if (advPercent !== null && advPercent !== undefined) {
-      if (advPercent <= 25) termsScore += 25; // low advance risk
+      if (advPercent <= 25) termsScore += 25;
       else if (advPercent <= 40) termsScore += 15;
       else if (advPercent <= 50) termsScore += 5;
-      else termsScore -= 15; // high upfront advance required
+      else termsScore -= 15;
     }
     if (hasMilestones) termsScore += 10;
     if (cancellation || refund) {
       const cancelText = (cancellation || "") + " " + (refund || "");
       if (cancelText.toLowerCase().includes("non-refundable") && !cancelText.toLowerCase().includes("partial")) {
-        termsScore -= 10; // strict non-refundable
+        termsScore -= 10;
       } else {
-        termsScore += 10; // fair cancellation policy
+        termsScore += 10;
       }
     } else {
-      termsScore -= 10; // no cancellation policy specified
+      termsScore -= 10;
     }
     const normalizedTerms = Math.max(20, Math.min(100, termsScore));
 
@@ -354,7 +356,7 @@ export function calculateVendorScores(
     if (!q.financialAudit.isValid) {
       transparencyScore -= 20;
     }
-    if (q.missingFields.length > 3) {
+    if (q.missingFields && q.missingFields.length > 3) {
       transparencyScore -= 15;
     }
     const normalizedTransparency = Math.max(10, Math.min(100, transparencyScore));
@@ -374,7 +376,7 @@ export function calculateVendorScores(
       dataPoints: {
         isValid: q.financialAudit.isValid,
         discrepancyCount,
-        missingFieldsCount: q.missingFields.length,
+        missingFieldsCount: q.missingFields?.length || 0,
       },
     };
 
@@ -388,7 +390,6 @@ export function calculateVendorScores(
     };
 
     // --- Dynamic Re-Normalization ---
-    // Sum weights of available criteria
     const availableCriteria = Object.values(criteriaRecord).filter((c) => c.isAvailable);
     const availableWeightSum = availableCriteria.reduce((sum, c) => sum + c.weight, 0);
 
@@ -398,7 +399,6 @@ export function calculateVendorScores(
     for (const key of Object.keys(criteriaRecord) as Array<keyof ComparisonWeights>) {
       const criterion = criteriaRecord[key];
       if (criterion.isAvailable && availableWeightSum > 0) {
-        // Re-scale weight to sum to 100%
         criterion.adjustedWeight = parseFloat(((criterion.weight / availableWeightSum) * 100).toFixed(2));
         criterion.weightedScore = parseFloat(((criterion.normalizedScore * criterion.adjustedWeight) / 100).toFixed(2));
         totalScore += criterion.weightedScore;
@@ -414,7 +414,7 @@ export function calculateVendorScores(
       vendorName,
       criteria: criteriaRecord,
       totalScore: parseFloat(totalScore.toFixed(2)),
-      rank: 0, // determined after sorting
+      rank: 0,
       availableCriteriaCount: availableCriteria.length,
       effectiveWeightsSummary,
     };
@@ -460,14 +460,12 @@ export function buildDeterministicProsAndCons(
   const price = q.commercialDetails.statedGrandTotal ?? q.financialAudit.calculatedGrandTotal;
   const currency = q.commercialDetails.currency || "INR";
 
-  // Price pros/cons
   if (price && minPrice && price === minPrice) {
     pros.push(`Lowest overall quoted pricing at ${currency} ${price.toLocaleString()}`);
   } else if (price && minPrice && price > minPrice * 1.35) {
-    cons.push(`Premium price point: ${Math.round(((price - minPrice) / minPrice) * 100)}% higher than the lowest quote`);
+    cons.push(`Premium price point: ${Math.round(((price - minPrice) / minPrice) * 100)}% higher than lowest quote`);
   }
 
-  // Service coverage pros/cons
   const incCount = q.serviceDetails.servicesIncluded.length;
   if (incCount >= 8) {
     pros.push(`Comprehensive package with ${incCount} distinct service inclusions`);
@@ -479,19 +477,16 @@ export function buildDeterministicProsAndCons(
     pros.push(`Explicitly defines ${q.serviceDetails.deliverables.length} tangible deliverables`);
   }
 
-  // Exclusions
   if (q.serviceDetails.servicesExcluded.length > 3) {
-    cons.push(`Explicitly excludes ${q.serviceDetails.servicesExcluded.length} service components (e.g. ${q.serviceDetails.servicesExcluded.slice(0, 2).map((e) => e.text).join(", ")})`);
+    cons.push(`Explicitly excludes ${q.serviceDetails.servicesExcluded.length} service components`);
   }
 
-  // Financial Audit
   if (q.financialAudit.isValid) {
     pros.push("100% mathematically verified: line items, subtotals, and taxes strictly match");
   } else {
     cons.push(`Financial audit flagged ${q.financialAudit.discrepancyFlags.length} discrepancy warning(s) in totals`);
   }
 
-  // Commercial Terms
   const adv = q.commercialDetails.advancePayment;
   if (adv?.percentage !== null && adv?.percentage !== undefined) {
     if (adv.percentage <= 25) {
@@ -535,12 +530,10 @@ export async function generateVendorProsAndCons(
     .filter((p): p is number => typeof p === "number" && p > 0);
   const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : null;
 
-  // First populate deterministic fallback
   for (const q of quotations) {
     result[q.uploadId] = buildDeterministicProsAndCons(q, minPrice);
   }
 
-  // If in mock response or explicitly skipping AI call
   if (options.mockResponse) {
     try {
       const parsed = JSON.parse(options.mockResponse);
@@ -548,11 +541,10 @@ export async function generateVendorProsAndCons(
         return parsed.prosAndCons;
       }
     } catch {
-      // Use fallback
+      // Fallback
     }
   }
 
-  // Try calling Groq for enhanced phrasing if API key is present
   try {
     const summaryData = quotations.map((q) => ({
       uploadId: q.uploadId,
@@ -604,16 +596,15 @@ ${JSON.stringify(summaryData, null, 2)}`;
         }
       }
     }
-  } catch (err) {
-    // Graceful fallback to deterministic pros and cons
-    // (Logs omitted to prevent cluttering)
+  } catch {
+    // Graceful fallback
   }
 
   return result;
 }
 
 /**
- * Builds side-by-side comparison matrix rows across commercial, scope, terms, and audit dimensions.
+ * Builds side-by-side comparison matrix rows.
  */
 export function buildComparisonMatrix(
   quotations: QuotationAnalysisResult[],
@@ -621,7 +612,6 @@ export function buildComparisonMatrix(
 ): ComparisonMatrixRow[] {
   const rows: ComparisonMatrixRow[] = [];
 
-  // Helper to extract values
   const getValues = (fn: (q: QuotationAnalysisResult) => any) => {
     const res: Record<string, any> = {};
     for (const q of quotations) {
@@ -630,7 +620,6 @@ export function buildComparisonMatrix(
     return res;
   };
 
-  // 1. Quoted Grand Total
   const totalRow: ComparisonMatrixRow = {
     criterion: "Total Quoted Cost",
     category: "commercial",
@@ -648,7 +637,6 @@ export function buildComparisonMatrix(
   }
   rows.push(totalRow);
 
-  // 2. Line Items Count
   rows.push({
     criterion: "Line Items Itemized",
     category: "commercial",
@@ -656,7 +644,6 @@ export function buildComparisonMatrix(
     notes: "Granularity and transparency of itemized billing",
   });
 
-  // 3. Inclusions Count
   const maxInc = Math.max(...quotations.map((q) => q.serviceDetails.servicesIncluded.length));
   const incRow: ComparisonMatrixRow = {
     criterion: "Service Inclusions",
@@ -668,7 +655,6 @@ export function buildComparisonMatrix(
   if (bestIncVendor && maxInc > 0) incRow.highlightBest = bestIncVendor.uploadId;
   rows.push(incRow);
 
-  // 4. Stated Deliverables
   rows.push({
     criterion: "Tangible Deliverables",
     category: "scope",
@@ -680,7 +666,6 @@ export function buildComparisonMatrix(
     notes: "Tangible handover items, reports, or materials",
   });
 
-  // 5. Exclusions
   rows.push({
     criterion: "Service Exclusions",
     category: "scope",
@@ -692,7 +677,6 @@ export function buildComparisonMatrix(
     notes: "Scope boundaries and items requiring client arrangement",
   });
 
-  // 6. Advance Deposit Required
   rows.push({
     criterion: "Advance Deposit Terms",
     category: "terms",
@@ -704,7 +688,6 @@ export function buildComparisonMatrix(
     notes: "Upfront capital requirement prior to event execution",
   });
 
-  // 7. Payment Milestones
   rows.push({
     criterion: "Payment Schedule",
     category: "terms",
@@ -715,7 +698,6 @@ export function buildComparisonMatrix(
     notes: "Cash flow flexibility during wedding timeline",
   });
 
-  // 8. Cancellation Policy
   rows.push({
     criterion: "Cancellation & Refund Policy",
     category: "terms",
@@ -727,7 +709,6 @@ export function buildComparisonMatrix(
     notes: "Protection against force majeure, schedule shifts, or cancellation",
   });
 
-  // 9. Overtime Charges
   rows.push({
     criterion: "Overtime Rate Structure",
     category: "terms",
@@ -735,7 +716,6 @@ export function buildComparisonMatrix(
     notes: "Financial exposure if wedding programs exceed schedule",
   });
 
-  // 10. Financial Audit Integrity
   const auditRow: ComparisonMatrixRow = {
     criterion: "Deterministic Math Audit",
     category: "financial_audit",
@@ -770,7 +750,6 @@ export function generateFinalRecommendation(
   const topScores = vendorScores[top.uploadId];
   const topPC = prosAndCons[top.uploadId] || { pros: [], cons: [] };
 
-  // Check if provisional: score diff < 2.5 points or fewer than 4 available criteria
   const scoreDiff = second ? top.totalScore - second.totalScore : 100;
   const isCloseMatch = scoreDiff < 2.5;
   const isLowEvidence = topScores.availableCriteriaCount < 4;
@@ -796,20 +775,17 @@ export function generateFinalRecommendation(
     executiveSummary += ` Evidence for portfolio quality and past performance was absent from the quotation PDF, so weights were dynamically re-normalized across cost, coverage, and commercial terms.`;
   }
 
-  // Major advantages (up to 4)
   const majorAdvantages = topPC.pros.length > 0 ? topPC.pros : [
     `Strong balance of cost and deliverables (${formattedPrice})`,
     `${topQuotation.serviceDetails.servicesIncluded.length} explicit service inclusions`,
     topQuotation.financialAudit.isValid ? "Zero mathematical discrepancies in commercial audit" : "Itemized proposal structure",
   ];
 
-  // Commercial disadvantages & trade-offs (up to 3)
   const commercialDisadvantages = topPC.cons.length > 0 ? topPC.cons : [
     topQuotation.commercialDetails.cancellationTerms ? "Cancellation terms are restrictive" : "Cancellation policy not explicitly specified",
     "Overtime charges require written clarification",
   ];
 
-  // Financial audit assessment
   const financialAuditAssessment = {
     status: (topQuotation.financialAudit.isValid ? "VERIFIED" : "WARNING") as "VERIFIED" | "WARNING" | "UNCHECKED",
     details: topQuotation.financialAudit.isValid
@@ -817,7 +793,6 @@ export function generateFinalRecommendation(
       : `Audit flagged ${topQuotation.financialAudit.discrepancyFlags.length} discrepancy warning(s). Line items should be reconciled prior to execution.`,
   };
 
-  // Critical uncertainties
   const criticalUncertainties: string[] = [];
   if (!topQuotation.commercialDetails.cancellationTerms) {
     criticalUncertainties.push("No contractual cancellation or refund schedule provided.");
@@ -832,7 +807,6 @@ export function generateFinalRecommendation(
     criticalUncertainties.push("Specific setup timings and load-in permits must be confirmed with venue.");
   }
 
-  // Actionable questions to clarify before signing
   const questionsToClarifyBeforeSigning: string[] = [
     `Can you provide written confirmation of the cancellation and refund schedule in case of date modifications?`,
     `What are the specific overtime charges per hour if the reception extends past scheduled hours?`,
@@ -876,29 +850,20 @@ export async function compareAnalyzedQuotations(
     throw new Error("Comparison requires at least two analyzed vendor quotations.");
   }
 
-  // 1. Compatibility Checks
   const categoryCompatibility = checkCategoryCompatibility(quotations);
   const currencyCompatibility = checkCurrencyCompatibility(quotations);
-
-  // 2. Deterministic Scoring
   const scoring = calculateVendorScores(quotations, customWeights);
 
-  // 3. Lowest price reference
   const validPrices = quotations
     .map((q) => q.commercialDetails.statedGrandTotal ?? q.financialAudit.calculatedGrandTotal)
     .filter((p): p is number => typeof p === "number" && p > 0);
   const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : null;
 
-  // 4. AI-Assisted / Deterministic Pros & Cons
   const prosAndCons = await generateVendorProsAndCons(quotations, options);
-
-  // 5. Side-by-Side Comparison Matrix
   const matrix = buildComparisonMatrix(quotations, minPrice);
 
-  // 6. Vendor Summaries
   const vendors: ComparedVendorSummary[] = quotations.map((q) => {
     const pc = prosAndCons[q.uploadId] || { pros: [], cons: [] };
-    const price = q.commercialDetails.statedGrandTotal ?? q.financialAudit.calculatedGrandTotal;
     const missingInfo: string[] = [];
     if (!q.commercialDetails.cancellationTerms) missingInfo.push("Cancellation terms");
     if (!q.serviceDetails.overtimeCharges) missingInfo.push("Overtime rates");
@@ -939,7 +904,6 @@ export async function compareAnalyzedQuotations(
     };
   });
 
-  // 7. Consolidate Alerts
   const financialDiscrepancies: Array<{ vendorName: string; message: string; severity: "critical" | "warning" }> = [];
   const hiddenChargesAlerts: Array<{ vendorName: string; description: string; amount: number | null }> = [];
   const missingCriticalInfo: Array<{ vendorName: string; missingItems: string[] }> = [];
@@ -973,7 +937,6 @@ export async function compareAnalyzedQuotations(
     }
   }
 
-  // 8. EXACTLY ONE Final Recommendation
   const recommendation = generateFinalRecommendation(
     scoring.rankings,
     scoring.vendorScores,
@@ -1017,7 +980,6 @@ export async function compareQuotationsByIds(
   for (const id of uploadIds) {
     let analysis = getCachedAnalysis(id);
     if (!analysis) {
-      // Analyze quotation on demand if not cached
       analysis = await analyzeQuotationDocument(id, options);
     }
 
@@ -1029,4 +991,266 @@ export async function compareQuotationsByIds(
   }
 
   return compareAnalyzedQuotations(analyzedList, customWeights, options);
+}
+
+// ==========================================
+// Milestone 5: Interactive Dashboard Data & Scenario Helpers
+// ==========================================
+
+/**
+ * Prepares chart data for Score Comparison and Weighted Breakdown.
+ */
+export function prepareScoreChartData(comparison: MultiVendorComparisonResult): ScoreChartItem[] {
+  if (!comparison?.scoring?.rankings) return [];
+  return comparison.scoring.rankings.map((r) => {
+    const breakdown = comparison.scoring.vendorScores[r.uploadId];
+    const crit = breakdown.criteria;
+    return {
+      vendorId: r.uploadId,
+      vendorName: r.vendorName,
+      totalScore: r.totalScore,
+      rank: r.rank,
+      isRecommended: r.uploadId === comparison.recommendation.recommendedVendorId,
+      costScore: crit.costCompetitiveness.normalizedScore,
+      coverageScore: crit.serviceCoverage.normalizedScore,
+      termsScore: crit.commercialTerms.normalizedScore,
+      auditScore: crit.transparency.normalizedScore,
+      qualityScore: crit.qualityAndPortfolio.isAvailable ? crit.qualityAndPortfolio.normalizedScore : 0,
+      pastPerfScore: crit.pastPerformance.isAvailable ? crit.pastPerformance.normalizedScore : 0,
+    };
+  });
+}
+
+/**
+ * Prepares chart data for Quoted Cost & Financial Breakdown.
+ */
+export function prepareCostChartData(
+  comparison: MultiVendorComparisonResult,
+  analyzedQuotations: QuotationAnalysisResult[] = []
+): CostChartItem[] {
+  if (!comparison?.vendors) return [];
+  const validPrices = comparison.vendors
+    .map((v) => v.statedGrandTotal ?? v.calculatedGrandTotal)
+    .filter((p): p is number => typeof p === "number" && p > 0);
+  const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0;
+
+  return comparison.vendors.map((v) => {
+    const rawQ = analyzedQuotations.find((q) => q.uploadId === v.uploadId);
+    const statedTotal = v.statedGrandTotal ?? v.calculatedGrandTotal ?? 0;
+    return {
+      vendorId: v.uploadId,
+      vendorName: v.vendorName,
+      statedTotal,
+      calculatedTotal: v.calculatedGrandTotal ?? statedTotal,
+      currency: v.currency || "INR",
+      isLowest: statedTotal > 0 && statedTotal === minPrice,
+      subtotal: rawQ?.commercialDetails.statedSubtotal ?? statedTotal,
+      taxes: rawQ?.commercialDetails.totalTax ?? 0,
+    };
+  });
+}
+
+/**
+ * Prepares chart data for Service Coverage Comparison.
+ */
+export function prepareCoverageChartData(
+  comparison: MultiVendorComparisonResult,
+  analyzedQuotations: QuotationAnalysisResult[] = []
+): CoverageChartItem[] {
+  if (!comparison?.vendors) return [];
+  return comparison.vendors.map((v) => {
+    const rawQ = analyzedQuotations.find((q) => q.uploadId === v.uploadId);
+    return {
+      vendorId: v.uploadId,
+      vendorName: v.vendorName,
+      inclusionsCount: v.inclusionsCount,
+      exclusionsCount: v.exclusionsCount,
+      deliverablesCount: rawQ?.serviceDetails.deliverables.length ?? (v.qualityEvidence ? 2 : 1),
+    };
+  });
+}
+
+/**
+ * Extracts all itemized evidence records across analyzed quotations.
+ */
+export function extractAllEvidenceRecords(
+  analyzedQuotations: QuotationAnalysisResult[]
+): EvidenceDetailRecord[] {
+  const records: EvidenceDetailRecord[] = [];
+
+  for (const q of analyzedQuotations) {
+    const vName = q.vendorDetails.vendorName || q.originalName;
+    const vId = q.uploadId;
+    const fileName = q.originalName;
+
+    // Line items
+    for (const item of q.commercialDetails.lineItems) {
+      records.push({
+        vendorId: vId,
+        vendorName: vName,
+        originalFileName: fileName,
+        sourcePage: item.sourcePage || 1,
+        category: "line_item",
+        field: `Line Item: ${item.description}`,
+        extractedValue: `${item.quantity ?? 1} x Rs. ${item.unitPrice ?? item.statedAmount ?? "—"} = Rs. ${item.statedAmount ?? "—"}`,
+        evidenceSnippet: item.evidenceSnippet || item.description,
+        isExplicit: item.isExplicit,
+      });
+    }
+
+    // Inclusions
+    for (const inc of q.serviceDetails.servicesIncluded) {
+      records.push({
+        vendorId: vId,
+        vendorName: vName,
+        originalFileName: fileName,
+        sourcePage: inc.sourcePage || 1,
+        category: "inclusion",
+        field: "Service Inclusion",
+        extractedValue: inc.text,
+        evidenceSnippet: inc.evidence || inc.text,
+        isExplicit: true,
+      });
+    }
+
+    // Exclusions
+    for (const exc of q.serviceDetails.servicesExcluded) {
+      records.push({
+        vendorId: vId,
+        vendorName: vName,
+        originalFileName: fileName,
+        sourcePage: exc.sourcePage || 1,
+        category: "exclusion",
+        field: "Service Exclusion",
+        extractedValue: exc.text,
+        evidenceSnippet: exc.evidence || exc.text,
+        isExplicit: true,
+      });
+    }
+
+    // Payment Milestones
+    for (const p of q.commercialDetails.paymentSchedule) {
+      records.push({
+        vendorId: vId,
+        vendorName: vName,
+        originalFileName: fileName,
+        sourcePage: p.sourcePage || 1,
+        category: "payment",
+        field: `Milestone: ${p.milestone}`,
+        extractedValue: `${p.milestone}: ${p.percentage ? `${p.percentage}%` : ""} (Rs. ${p.statedAmount || "—"}) due ${p.dueDate || "per agreement"}`,
+        evidenceSnippet: p.evidenceSnippet || p.milestone,
+        isExplicit: true,
+      });
+    }
+
+    // Cancellation
+    if (q.commercialDetails.cancellationTerms) {
+      records.push({
+        vendorId: vId,
+        vendorName: vName,
+        originalFileName: fileName,
+        sourcePage: 2,
+        category: "cancellation",
+        field: "Cancellation & Refund Terms",
+        extractedValue: q.commercialDetails.cancellationTerms,
+        evidenceSnippet: q.commercialDetails.cancellationTerms,
+        isExplicit: true,
+      });
+    }
+
+    // Math Discrepancies
+    if (!q.financialAudit.isValid) {
+      for (const flag of q.financialAudit.discrepancyFlags) {
+        records.push({
+          vendorId: vId,
+          vendorName: vName,
+          originalFileName: fileName,
+          sourcePage: 1,
+          category: "math_audit",
+          field: `Audit Flag: ${flag.type}`,
+          extractedValue: flag.message,
+          evidenceSnippet: flag.message,
+          isExplicit: true,
+          auditStatus: "DISCREPANCY",
+        });
+      }
+    }
+  }
+
+  return records;
+}
+
+/**
+ * Filters extracted evidence records by vendorId or category.
+ */
+export function findEvidenceRecords(
+  records: EvidenceDetailRecord[],
+  filter: {
+    vendorId?: string;
+    category?: EvidenceDetailRecord["category"];
+  }
+): EvidenceDetailRecord[] {
+  return records.filter((r) => {
+    if (filter.vendorId && r.vendorId !== filter.vendorId) return false;
+    if (filter.category && r.category !== filter.category) return false;
+    return true;
+  });
+}
+
+/**
+ * Deterministically simulates a comparison scenario with new weights,
+ * detecting whether the top recommendation shifts.
+ */
+export function simulateComparisonScenario(
+  quotations: QuotationAnalysisResult[],
+  scenarioId: ComparisonScenarioType,
+  customWeights?: Partial<ComparisonWeights>
+): {
+  scenarioId: ComparisonScenarioType;
+  weightsUsed: ComparisonWeights;
+  scoring: ReturnType<typeof calculateVendorScores>;
+  recommendation: VendorRecommendation;
+  didWinnerChange: boolean;
+  baselineWinnerId: string;
+  scenarioWinnerId: string;
+} {
+  const targetWeights: ComparisonWeights =
+    scenarioId === "custom" && customWeights
+      ? { ...DEFAULT_COMPARISON_WEIGHTS, ...customWeights }
+      : SCENARIO_PRESETS[scenarioId]?.weights || DEFAULT_COMPARISON_WEIGHTS;
+
+  // Baseline ranking
+  const baselineScoring = calculateVendorScores(quotations, DEFAULT_COMPARISON_WEIGHTS);
+  const baselineWinnerId = baselineScoring.rankings[0]?.uploadId;
+
+  // Scenario ranking
+  const scenarioScoring = calculateVendorScores(quotations, targetWeights);
+  const scenarioWinnerId = scenarioScoring.rankings[0]?.uploadId;
+
+  const validPrices = quotations
+    .map((q) => q.commercialDetails.statedGrandTotal ?? q.financialAudit.calculatedGrandTotal)
+    .filter((p): p is number => typeof p === "number" && p > 0);
+  const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : null;
+
+  const prosAndCons: Record<string, { pros: string[]; cons: string[] }> = {};
+  for (const q of quotations) {
+    prosAndCons[q.uploadId] = buildDeterministicProsAndCons(q, minPrice);
+  }
+
+  const recommendation = generateFinalRecommendation(
+    scenarioScoring.rankings,
+    scenarioScoring.vendorScores,
+    quotations,
+    prosAndCons
+  );
+
+  return {
+    scenarioId,
+    weightsUsed: targetWeights,
+    scoring: scenarioScoring,
+    recommendation,
+    didWinnerChange: baselineWinnerId !== scenarioWinnerId,
+    baselineWinnerId,
+    scenarioWinnerId,
+  };
 }
