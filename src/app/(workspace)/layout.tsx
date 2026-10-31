@@ -18,7 +18,6 @@ import {
   Menu,
   X,
   ChevronRight,
-  Search,
   Sparkles,
   HeartHandshake,
 } from "lucide-react";
@@ -248,24 +247,8 @@ export default function WorkspaceLayout({
       {/* Main Content Area */}
       <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
         {/* Top Operational Status Bar */}
-        <header className="hidden lg:flex h-16 bg-white/70 backdrop-blur-md border-b border-border/60 sticky top-0 z-30 items-center justify-between px-8">
+        <header className="hidden lg:flex h-16 bg-white/70 backdrop-blur-md border-b border-border/60 sticky top-0 z-30 items-center justify-end px-8">
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search weddings, leads, vendors (Ctrl+K)..."
-                className="pl-9 pr-4 py-1.5 text-xs rounded-full border border-border/80 bg-background/50 focus:outline-none focus:ring-1 focus:ring-gold w-72"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 px-3 py-1.5 rounded-full border border-border/50">
-              <span className="w-2 h-2 rounded-full bg-status-success animate-pulse" />
-              <span>Jaipur & Udaipur Season 2026-27</span>
-            </div>
-
             <NotificationsDrawer />
           </div>
         </header>

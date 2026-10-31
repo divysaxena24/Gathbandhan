@@ -26,6 +26,12 @@ import {
   vendorPaymentTransactions,
   expenses,
   approvedExtras,
+  clientBills,
+  clientBillItems,
+  clientBillInstallments,
+  virtualPaymentSessions,
+  virtualPaymentTransactions,
+  virtualPaymentAllocations,
 } from "./finance";
 import {
   guests,
@@ -572,5 +578,90 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
     references: [weddings.id],
   }),
 }));
+
+export const clientBillsRelations = relations(clientBills, ({ one, many }) => ({
+  wedding: one(weddings, {
+    fields: [clientBills.weddingId],
+    references: [weddings.id],
+  }),
+  client: one(clients, {
+    fields: [clientBills.clientId],
+    references: [clients.id],
+  }),
+  createdByUser: one(users, {
+    fields: [clientBills.createdBy],
+    references: [users.id],
+  }),
+  items: many(clientBillItems),
+  installments: many(clientBillInstallments),
+  sessions: many(virtualPaymentSessions),
+  transactions: many(virtualPaymentTransactions),
+}));
+
+export const clientBillItemsRelations = relations(clientBillItems, ({ one }) => ({
+  bill: one(clientBills, {
+    fields: [clientBillItems.billId],
+    references: [clientBills.id],
+  }),
+}));
+
+export const clientBillInstallmentsRelations = relations(
+  clientBillInstallments,
+  ({ one, many }) => ({
+    bill: one(clientBills, {
+      fields: [clientBillInstallments.billId],
+      references: [clientBills.id],
+    }),
+    linkedMilestone: one(clientPaymentMilestones, {
+      fields: [clientBillInstallments.linkedMilestoneId],
+      references: [clientPaymentMilestones.id],
+    }),
+    allocations: many(virtualPaymentAllocations),
+  })
+);
+
+export const virtualPaymentSessionsRelations = relations(
+  virtualPaymentSessions,
+  ({ one }) => ({
+    bill: one(clientBills, {
+      fields: [virtualPaymentSessions.billId],
+      references: [clientBills.id],
+    }),
+    installment: one(clientBillInstallments, {
+      fields: [virtualPaymentSessions.installmentId],
+      references: [clientBillInstallments.id],
+    }),
+  })
+);
+
+export const virtualPaymentTransactionsRelations = relations(
+  virtualPaymentTransactions,
+  ({ one, many }) => ({
+    bill: one(clientBills, {
+      fields: [virtualPaymentTransactions.billId],
+      references: [clientBills.id],
+    }),
+    session: one(virtualPaymentSessions, {
+      fields: [virtualPaymentTransactions.sessionId],
+      references: [virtualPaymentSessions.id],
+    }),
+    allocations: many(virtualPaymentAllocations),
+  })
+);
+
+export const virtualPaymentAllocationsRelations = relations(
+  virtualPaymentAllocations,
+  ({ one }) => ({
+    transaction: one(virtualPaymentTransactions, {
+      fields: [virtualPaymentAllocations.transactionId],
+      references: [virtualPaymentTransactions.id],
+    }),
+    installment: one(clientBillInstallments, {
+      fields: [virtualPaymentAllocations.installmentId],
+      references: [clientBillInstallments.id],
+    }),
+  })
+);
+
 
 

@@ -15,6 +15,7 @@ import crypto from "crypto";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
+import { masterVendorsData } from "./seed-data/vendors";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -83,6 +84,13 @@ async function seed() {
           name: "Priya Rathore",
           email: "priya@gathbandhan.com",
           phone: "+919876543210",
+          role: "FOUNDER_ADMIN",
+        },
+        {
+          authProviderId: "clerk_demo_karan",
+          name: "Karan Mani Tripathi",
+          email: "karanstmt.tripathi@gmail.com",
+          phone: "+919876543200",
           role: "FOUNDER_ADMIN",
         },
         {
@@ -438,33 +446,12 @@ async function seed() {
     // ============================================================
     console.log("🏢 Creating vendors...");
 
-    const vendorData = [
-      { name: "Royal Rajasthani Caterers", category: "CATERING" as const, contactName: "Suresh Kumar", email: "suresh@royalcatering.com", phone: "+919812345101", city: "Udaipur" },
-      { name: "Maharaja Feast Co.", category: "CATERING" as const, contactName: "Deepak Jain", email: "deepak@maharajafeast.com", phone: "+919812345102", city: "Udaipur" },
-      { name: "Palace Kitchen Catering", category: "CATERING" as const, contactName: "Rekha Agarwal", email: "rekha@palacekitchen.com", phone: "+919812345103", city: "Jaipur" },
-      { name: "Lakeside Decor Studio", category: "DECORATION" as const, contactName: "Meena Rathore", email: "meena@lakesidedecor.com", phone: "+919812345104", city: "Udaipur" },
-      { name: "ShutterStory Photography", category: "PHOTOGRAPHY" as const, contactName: "Amit Verma", email: "amit@shutterstory.com", phone: "+919812345105", city: "Jaipur" },
-      { name: "CinemaVows Films", category: "VIDEOGRAPHY" as const, contactName: "Ravi Kapoor", email: "ravi@cinemavows.com", phone: "+919812345106", city: "Mumbai" },
-      { name: "DJ Beats Rajasthan", category: "DJ_MUSIC" as const, contactName: "Karan Malhotra", email: "karan@djbeats.com", phone: "+919812345107", city: "Jaipur" },
-      { name: "Glamour Touch Makeup", category: "MAKEUP" as const, contactName: "Pooja Sharma", email: "pooja@glamourtouch.com", phone: "+919812345108", city: "Udaipur" },
-      { name: "Henna by Sunita", category: "MEHENDI_ARTIST" as const, contactName: "Sunita Devi", email: "sunita@hennabysunita.com", phone: "+919812345109", city: "Udaipur" },
-      { name: "Radiance Lighting Co.", category: "LIGHTING" as const, contactName: "Manish Gupta", email: "manish@radiance.com", phone: "+919812345110", city: "Jaipur" },
-      { name: "Star Entertainment Group", category: "ENTERTAINMENT" as const, contactName: "Nikhil Saxena", email: "nikhil@starentertain.com", phone: "+919812345111", city: "Mumbai" },
-      { name: "Royal Rides Transport", category: "TRANSPORT" as const, contactName: "Ajay Singh", email: "ajay@royalrides.com", phone: "+919812345112", city: "Udaipur" },
-      { name: "Taj Lake Palace", category: "VENUE" as const, contactName: "Hotel Events Team", email: "events@tajlakepalace.com", phone: "+919812345113", city: "Udaipur" },
-      { name: "Regal Invitations", category: "INVITATION" as const, contactName: "Nandini Reddy", email: "nandini@regalinvite.com", phone: "+919812345114", city: "Hyderabad" },
-      { name: "Precious Gifts & Favors", category: "GIFTING" as const, contactName: "Sanjay Mittal", email: "sanjay@preciousgifts.com", phone: "+919812345115", city: "Delhi" },
-      { name: "Pandit Rameshwar Shastri", category: "PANDIT" as const, contactName: "Pt. Rameshwar Shastri", email: "panditji@email.com", phone: "+919812345116", city: "Udaipur" },
-      { name: "ShieldGuard Security", category: "SECURITY" as const, contactName: "Major (Retd.) Chauhan", email: "chauhan@shieldguard.com", phone: "+919812345117", city: "Udaipur" },
-      { name: "EventFlow Coordinators", category: "COORDINATION" as const, contactName: "Divya Nair", email: "divya@eventflow.com", phone: "+919812345118", city: "Jaipur" },
-    ];
-
     const vendors = await db
       .insert(schema.vendors)
-      .values(vendorData.map((v) => ({ ...v, serviceArea: [v.city], isActive: true })))
+      .values(masterVendorsData)
       .returning();
 
-    console.log(`  ✅ Created ${vendors.length} vendors`);
+    console.log(`  ✅ Created ${vendors.length} vendors across all 18 categories`);
 
     // ============================================================
     // 7. Wedding Vendors — Assignments
@@ -474,7 +461,7 @@ async function seed() {
     const weddingVendors = await db
       .insert(schema.weddingVendors)
       .values(
-        vendors.map((v, i) => ({
+        vendors.slice(0, 18).map((v, i) => ({
           weddingId: sharmaWedding.id,
           vendorId: v.id,
           contractAmountPaise: BigInt([

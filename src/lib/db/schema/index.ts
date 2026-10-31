@@ -23,6 +23,9 @@ export {
   notificationChannelEnum,
   notificationStatusEnum,
   notificationTemplateEnum,
+  billStatusEnum,
+  virtualPaymentSessionStatusEnum,
+  virtualPaymentTypeEnum,
 } from "./enums";
 
 // Tables
@@ -53,6 +56,12 @@ export {
   vendorPaymentTransactions,
   expenses,
   approvedExtras,
+  clientBills,
+  clientBillItems,
+  clientBillInstallments,
+  virtualPaymentSessions,
+  virtualPaymentTransactions,
+  virtualPaymentAllocations,
 } from "./finance";
 export {
   guests,
@@ -100,4 +109,39 @@ export {
   agreementsRelations,
   notificationsRelations,
   auditLogsRelations,
+  clientBillsRelations,
+  clientBillItemsRelations,
+  clientBillInstallmentsRelations,
+  virtualPaymentSessionsRelations,
+  virtualPaymentTransactionsRelations,
+  virtualPaymentAllocationsRelations,
 } from "./relations";
+
+export type {
+  UserRole,
+  LeadStatus,
+  WeddingLifecycle,
+  PackageType,
+  EventType,
+  EventStatus,
+  VendorCategory,
+  TaskStatus,
+  PaymentStatus,
+  InvoiceStatus,
+  IncidentSeverity,
+  CheckInStatus,
+  QuoteRequestStatus,
+  QuoteStatus,
+  InclusionStatus,
+  GuestSide,
+  RsvpStatus,
+  MealPreference,
+  TransportStatus,
+  AgreementStatus,
+  NotificationChannel,
+  NotificationStatus,
+  NotificationTemplate,
+  BillStatus,
+  VirtualPaymentSessionStatus,
+  VirtualPaymentType,
+} from "./enums";

@@ -172,3 +172,130 @@ export interface WeddingProfitability {
   categoryBreakdown: CategoryFinancials[];
   asOf: string;
 }
+
+export type BillStatus =
+  | "DRAFT"
+  | "AWAITING_ACCEPTANCE"
+  | "ACCEPTED"
+  | "DECLINED"
+  | "DUE"
+  | "PARTIALLY_PAID"
+  | "PAID"
+  | "CANCELLED";
+
+export type VirtualPaymentSessionStatus =
+  | "PENDING"
+  | "COMPLETED"
+  | "EXPIRED"
+  | "FAILED";
+
+export type VirtualPaymentType = "INSTALLMENT" | "FULL_BALANCE";
+
+export interface ClientBillItemRecord {
+  id: string;
+  billId: string;
+  description: string;
+  quantity: number;
+  unitRatePaise: bigint;
+  totalPaise: bigint;
+  orderIndex: number;
+  createdAt: Date;
+}
+
+export interface ClientBillInstallmentRecord {
+  id: string;
+  billId: string;
+  title: string;
+  percentage: string;
+  amountPaise: bigint;
+  paidPaise: bigint;
+  remainingPaise: bigint;
+  dueAt: string;
+  status: MilestoneStatus;
+  orderIndex: number;
+  paidAt: Date | null;
+  linkedMilestoneId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ClientBillRecord {
+  id: string;
+  weddingId: string;
+  weddingTitle?: string | null;
+  clientId: string;
+  clientName?: string | null;
+  billNumber: string;
+  title: string;
+  issueDate: string;
+  dueDate: string;
+  subtotalPaise: bigint;
+  taxPaise: bigint;
+  totalPaise: bigint;
+  paidPaise: bigint;
+  outstandingPaise: bigint;
+  advancePercentage: string;
+  advanceAmountPaise: bigint;
+  remainingBalancePaise: bigint;
+  balanceDueAt: string | null;
+  status: BillStatus;
+  acceptedAt: Date | null;
+  declinedAt: Date | null;
+  declineReason: string | null;
+  publishedAt: Date | null;
+  notes: string | null;
+  createdBy: string | null;
+  createdByName?: string | null;
+  items?: ClientBillItemRecord[];
+  installments?: ClientBillInstallmentRecord[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface VirtualPaymentSessionRecord {
+  id: string;
+  sessionToken: string;
+  billId: string;
+  billTitle?: string | null;
+  billNumber?: string | null;
+  coupleName?: string | null;
+  paymentType: VirtualPaymentType;
+  installmentId: string | null;
+  installmentTitle?: string | null;
+  amountPaise: bigint;
+  status: VirtualPaymentSessionStatus;
+  qrPayload: string;
+  qrDataUrl?: string;
+  expiresAt: Date;
+  completedAt: Date | null;
+  metadata?: string | null;
+  createdAt: Date;
+}
+
+export interface VirtualPaymentAllocationRecord {
+  id: string;
+  transactionId: string;
+  installmentId: string;
+  installmentTitle?: string;
+  amountPaise: bigint;
+  previousInstallmentStatus: string;
+  newInstallmentStatus: string;
+  createdAt: Date;
+}
+
+export interface VirtualPaymentTransactionRecord {
+  id: string;
+  sessionId: string | null;
+  billId: string;
+  billNumber?: string;
+  virtualUtr: string;
+  amountPaise: bigint;
+  payerVpa: string;
+  payerName: string | null;
+  paymentType: VirtualPaymentType;
+  idempotencyKey: string;
+  isSimulation: boolean;
+  receiptUrl: string | null;
+  createdAt: Date;
+  allocations?: VirtualPaymentAllocationRecord[];
+}

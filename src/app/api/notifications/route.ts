@@ -32,8 +32,13 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const unreadOnly = searchParams.get("unread") === "true";
 
-    const notifications = await getUserNotifications(user.id, unreadOnly);
-    return successResponse(notifications);
+    try {
+      const notifications = await getUserNotifications(user.id, unreadOnly);
+      return successResponse(notifications);
+    } catch (dbErr: unknown) {
+      console.warn("Could not load notifications from DB (database may be offline or starting):", dbErr);
+      return successResponse([]);
+    }
   } catch (error) {
     return errorResponse(error);
   }

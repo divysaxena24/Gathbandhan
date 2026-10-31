@@ -197,6 +197,29 @@ export const notificationTemplateEnum = pgEnum("notification_template", [
   "AGREEMENT_SIGNED",
 ]);
 
+export const billStatusEnum = pgEnum("bill_status", [
+  "DRAFT",
+  "AWAITING_ACCEPTANCE",
+  "ACCEPTED",
+  "DECLINED",
+  "DUE",
+  "PARTIALLY_PAID",
+  "PAID",
+  "CANCELLED",
+]);
+
+export const virtualPaymentSessionStatusEnum = pgEnum("virtual_payment_session_status", [
+  "PENDING",
+  "COMPLETED",
+  "EXPIRED",
+  "FAILED",
+]);
+
+export const virtualPaymentTypeEnum = pgEnum("virtual_payment_type", [
+  "INSTALLMENT",
+  "FULL_BALANCE",
+]);
+
 export type UserRole = (typeof userRoleEnum.enumValues)[number];
 export type LeadStatus = (typeof leadStatusEnum.enumValues)[number];
 export type WeddingLifecycle = (typeof weddingLifecycleEnum.enumValues)[number];
@@ -220,6 +243,9 @@ export type AgreementStatus = (typeof agreementStatusEnum.enumValues)[number];
 export type NotificationChannel = (typeof notificationChannelEnum.enumValues)[number];
 export type NotificationStatus = (typeof notificationStatusEnum.enumValues)[number];
 export type NotificationTemplate = (typeof notificationTemplateEnum.enumValues)[number];
+export type BillStatus = (typeof billStatusEnum.enumValues)[number];
+export type VirtualPaymentSessionStatus = (typeof virtualPaymentSessionStatusEnum.enumValues)[number];
+export type VirtualPaymentType = (typeof virtualPaymentTypeEnum.enumValues)[number];
 
 
 

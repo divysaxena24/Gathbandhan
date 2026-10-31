@@ -27,6 +27,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatINR } from "@/lib/money";
+import { ClientBillsUpiView } from "@/components/finance/client-bills-upi-view";
 
 interface PortalData {
   wedding: {
@@ -316,6 +317,13 @@ export default function ClientPortalPage() {
           >
             <Calendar className="w-3.5 h-3.5 text-charcoal-600" />
             Ceremonies ({itinerary.length})
+          </TabsTrigger>
+          <TabsTrigger
+            value="bills-upi"
+            className="data-[state=active]:bg-white data-[state=active]:text-charcoal data-[state=active]:shadow-sm text-xs font-medium px-4 py-2 gap-1.5"
+          >
+            <CreditCard className="w-3.5 h-3.5 text-amber-600" />
+            Bills & Virtual UPI
           </TabsTrigger>
           <TabsTrigger
             value="guests"
@@ -699,6 +707,11 @@ export default function ClientPortalPage() {
               </div>
             </div>
           )}
+        </TabsContent>
+
+        {/* Tab 5: Bills & Virtual UPI */}
+        <TabsContent value="bills-upi" className="space-y-6">
+          <ClientBillsUpiView weddingId={selectedWeddingId} />
         </TabsContent>
       </Tabs>
 

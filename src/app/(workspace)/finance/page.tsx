@@ -18,6 +18,7 @@ import { ProfitabilitySummary } from "@/components/finance/profitability-summary
 import { ClientMilestonesView } from "@/components/finance/client-milestones-view";
 import { VendorSettlementView } from "@/components/finance/vendor-settlement-view";
 import { ExpensesExtrasView } from "@/components/finance/expenses-extras-view";
+import { AdminBillsManagementView } from "@/components/finance/admin-bills-management-view";
 import {
   WeddingProfitability,
   ClientPaymentMilestoneRecord,
@@ -227,6 +228,13 @@ export default function FinancePage() {
       <Tabs defaultValue="profitability" className="space-y-6">
         <TabsList className="bg-sand-100/60 p-1 border border-sand-200 rounded-xl">
           <TabsTrigger
+            value="bills"
+            className="data-[state=active]:bg-white data-[state=active]:text-charcoal data-[state=active]:shadow-sm text-xs font-medium px-4 py-2 gap-1.5"
+          >
+            <CreditCard className="w-3.5 h-3.5 text-amber-600" />
+            Bills & Advance UPI
+          </TabsTrigger>
+          <TabsTrigger
             value="profitability"
             className="data-[state=active]:bg-white data-[state=active]:text-charcoal data-[state=active]:shadow-sm text-xs font-medium px-4 py-2 gap-1.5"
           >
@@ -289,6 +297,10 @@ export default function FinancePage() {
             weddingId={selectedWeddingId}
             onRefresh={() => loadFinancialData(selectedWeddingId)}
           />
+        </TabsContent>
+        {/* Tab 5: Client Bills & Advance Virtual UPI */}
+        <TabsContent value="bills" className="space-y-6">
+          <AdminBillsManagementView weddingId={selectedWeddingId} />
         </TabsContent>
       </Tabs>
     </div>

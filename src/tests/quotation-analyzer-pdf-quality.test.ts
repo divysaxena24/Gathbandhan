@@ -189,8 +189,8 @@ function createMockVendor(params: {
     financialAudit: {
       isValid: params.isMathValid ?? true,
       statedSubtotal: params.grandTotal,
-      calculatedSubtotal: params.calculatedTotal || params.grandTotal,
       statedGrandTotal: params.grandTotal * 1.05,
+      calculatedSubtotal: params.calculatedTotal || params.grandTotal,
       subtotalDiscrepancy: params.isMathValid === false ? 5000 : 0,
       subtotalMatches: params.isMathValid ?? true,
       grandTotalMatches: params.isMathValid ?? true,

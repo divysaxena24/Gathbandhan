@@ -41,7 +41,16 @@ const CATEGORY_TABS = [
   { value: "DJ_MUSIC", label: "DJ & Sound" },
   { value: "LIGHTING", label: "Lighting" },
   { value: "ENTERTAINMENT", label: "Entertainment" },
-  { value: "TRANSPORT", label: "Transport" },
+  { value: "MAKEUP", label: "Makeup & Hair" },
+  { value: "MEHENDI_ARTIST", label: "Mehendi" },
+  { value: "TRANSPORT", label: "Transport & Fleet" },
+  { value: "ACCOMMODATION", label: "Accommodations" },
+  { value: "INVITATION", label: "Invitations" },
+  { value: "GIFTING", label: "Favors & Gifting" },
+  { value: "PANDIT", label: "Purohits & Officiants" },
+  { value: "SECURITY", label: "Security & Bouncers" },
+  { value: "COORDINATION", label: "Coordination" },
+  { value: "OTHER", label: "Other Specialties" },
 ];
 
 export default function VendorsPage() {
