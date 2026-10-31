@@ -1,0 +1,456 @@
+/* === Google Fonts Import === */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+/* ======================================================
+   GATHBANDHAN — Design System
+   Premium Indian Wedding Consultation Platform
+   ====================================================== */
+
+/* === Custom Theme === */
+@theme {
+  --color-ivory: #FBF7F0;
+  --color-cream: #F5EDE0;
+  --color-gold: #C9A84C;
+  --color-gold-light: #E8D48B;
+  --color-gold-dark: #A07D2B;
+  --color-maroon: #6B1D2A;
+  --color-maroon-deep: #4A0E1C;
+  --color-maroon-light: #8B3040;
+  --color-charcoal: #2D2D2D;
+  --color-warm-gray: #8B8178;
+  --color-warm-gray-light: #B8AFA6;
+  --color-soft-white: #FFFFFF;
+  --color-blush: #F5E6E0;
+  --color-sage: #A8B5A0;
+  --color-rose: #D4A0A0;
+
+  --font-heading: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --shadow-card: 0 2px 16px rgba(107, 29, 42, 0.06);
+  --shadow-card-hover: 0 8px 32px rgba(107, 29, 42, 0.12);
+  --shadow-elevated: 0 12px 48px rgba(107, 29, 42, 0.15);
+  --shadow-gold-glow: 0 0 24px rgba(201, 168, 76, 0.2);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+}
+
+/* === Base Styles === */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-ivory);
+  color: var(--color-charcoal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: var(--color-maroon-deep);
+}
+
+/* === Selection Card Component === */
+.selection-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  background: var(--color-soft-white);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.selection-card:hover {
+  border-color: var(--color-gold-light);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.selection-card.selected {
+  border-color: var(--color-gold);
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.05), rgba(245, 237, 224, 0.5));
+  box-shadow: var(--shadow-gold-glow);
+}
+
+.selection-card.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-gold);
+  color: white;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* === Chip Component === */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--color-warm-gray-light);
+  background: var(--color-soft-white);
+  color: var(--color-charcoal);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.chip:hover {
+  border-color: var(--color-gold);
+  background: rgba(201, 168, 76, 0.05);
+}
+
+.chip.selected {
+  border-color: var(--color-gold);
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dark));
+  color: white;
+}
+
+/* === Progress Bar === */
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--color-cream);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-gold-dark), var(--color-gold), var(--color-gold-light));
+  border-radius: var(--radius-full);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* === Button Styles === */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, var(--color-maroon), var(--color-maroon-deep));
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-maroon-light), var(--color-maroon));
+  box-shadow: 0 4px 20px rgba(107, 29, 42, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-maroon);
+  background: transparent;
+  border: 2px solid var(--color-maroon);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.btn-secondary:hover {
+  background: rgba(107, 29, 42, 0.05);
+  transform: translateY(-1px);
+}
+
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-maroon-deep);
+  background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold));
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.btn-gold:hover {
+  background: linear-gradient(135deg, var(--color-gold), var(--color-gold-dark));
+  color: white;
+  box-shadow: var(--shadow-gold-glow);
+  transform: translateY(-1px);
+}
+
+/* === Glassmorphism Panels === */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(201, 168, 76, 0.15);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+/* === Decorative Elements === */
+.gold-divider {
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+  margin: 1rem auto;
+}
+
+.gold-divider-wide {
+  width: 120px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+  margin: 1.5rem auto;
+}
+
+/* === Ornamental Dot Pattern === */
+.ornament-dots::before {
+  content: '· · ·';
+  display: block;
+  text-align: center;
+  color: var(--color-gold);
+  font-size: 1.5rem;
+  letter-spacing: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* === Step Container (Wizard) === */
+.step-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  animation: fadeInUp 0.4s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* === Info Card (Ceremony explanations) === */
+.info-card {
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(135deg, rgba(245, 237, 224, 0.5), rgba(251, 247, 240, 0.8));
+  border-left: 3px solid var(--color-gold);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  margin-bottom: 1rem;
+}
+
+.info-card h4 {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  color: var(--color-maroon);
+  margin-bottom: 0.375rem;
+}
+
+.info-card p {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-warm-gray);
+}
+
+/* === Expandable Card === */
+.expandable-card {
+  background: var(--color-soft-white);
+  border: 1px solid rgba(201, 168, 76, 0.15);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.expandable-card:hover {
+  border-color: var(--color-gold-light);
+}
+
+.expandable-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.expandable-card-content {
+  padding: 0 1.25rem 1rem;
+  animation: fadeIn 0.3s ease;
+}
+
+/* === Budget Table === */
+.budget-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.budget-table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-warm-gray);
+  border-bottom: 2px solid var(--color-cream);
+}
+
+.budget-table td {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid var(--color-cream);
+}
+
+.budget-table tr:last-child td {
+  border-bottom: none;
+}
+
+.budget-table .total-row {
+  font-weight: 700;
+  color: var(--color-maroon-deep);
+  background: rgba(245, 237, 224, 0.5);
+}
+
+/* === Form Controls === */
+.form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--color-charcoal);
+  background: var(--color-soft-white);
+  border: 1.5px solid var(--color-warm-gray-light);
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15);
+}
+
+.form-input::placeholder {
+  color: var(--color-warm-gray-light);
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-charcoal);
+  margin-bottom: 0.5rem;
+}
+
+/* === Slider === */
+input[type="range"].gathbandhan-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(90deg, var(--color-gold), var(--color-gold-light));
+  border-radius: var(--radius-full);
+  outline: none;
+}
+
+input[type="range"].gathbandhan-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(201, 168, 76, 0.4);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+input[type="range"].gathbandhan-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+  .step-container {
+    padding: 1.25rem 1rem;
+  }
+
+  .selection-card {
+    padding: 1rem;
+  }
+
+  .btn-primary, .btn-secondary, .btn-gold {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.875rem;
+  }
+}
