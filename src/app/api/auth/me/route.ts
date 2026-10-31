@@ -3,6 +3,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { users, bookingRequests, clients, weddings } from "@/lib/db/schema";
 import { eq, or, desc } from "drizzle-orm";
+import { getFallbackBookingRequests } from "@/lib/booking-requests-fallback";
 
 export async function GET(req: NextRequest) {
   try {
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
         const name =
           `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
           "Gathbandhan Member";
-        
+
         [dbUser] = await db
           .insert(users)
           .values({
@@ -59,6 +60,9 @@ export async function GET(req: NextRequest) {
 
     if (!dbUser) {
       const activeRole = cookieRole || "CLIENT";
+      const fallbackRequests = getFallbackBookingRequests();
+      const activeBookingRequestId = fallbackRequests.length > 0 ? fallbackRequests[0].id : null;
+
       return NextResponse.json({
         authenticated: true,
         user: {
@@ -68,7 +72,7 @@ export async function GET(req: NextRequest) {
           role: activeRole,
         },
         role: activeRole,
-        activeBookingRequestId: null,
+        activeBookingRequestId,
         activeWeddingId: null,
       });
     }
@@ -77,49 +81,60 @@ export async function GET(req: NextRequest) {
     let activeBookingRequestId: string | null = null;
     let activeWeddingId: string | null = null;
 
-    if (dbUser.role === "CLIENT") {
-      // Find latest booking request
-      const [latestRequest] = await db
-        .select({ id: bookingRequests.id, weddingId: bookingRequests.weddingId })
-        .from(bookingRequests)
-        .where(
-          or(
-            eq(bookingRequests.userId, dbUser.id),
-            eq(bookingRequests.contactEmail, dbUser.email)
-          )
-        )
-        .orderBy(desc(bookingRequests.createdAt))
-        .limit(1);
-
-      if (latestRequest) {
-        activeBookingRequestId = latestRequest.id;
-        activeWeddingId = latestRequest.weddingId || null;
-      }
-
-      // If no wedding from request, check clients table
-      if (!activeWeddingId) {
-        const [clientRecord] = await db
-          .select({ id: clients.id })
-          .from(clients)
+    try {
+      if (dbUser.role === "CLIENT") {
+        // Find latest booking request
+        const [latestRequest] = await db
+          .select({ id: bookingRequests.id, weddingId: bookingRequests.weddingId })
+          .from(bookingRequests)
           .where(
             or(
-              eq(clients.portalUserId, dbUser.id),
-              eq(clients.partnerOneEmail, dbUser.email)
+              eq(bookingRequests.userId, dbUser.id),
+              eq(bookingRequests.contactEmail, dbUser.email)
             )
           )
+          .orderBy(desc(bookingRequests.createdAt))
           .limit(1);
 
-        if (clientRecord) {
-          const [weddingRecord] = await db
-            .select({ id: weddings.id })
-            .from(weddings)
-            .where(eq(weddings.clientId, clientRecord.id))
+        if (latestRequest) {
+          activeBookingRequestId = latestRequest.id;
+          activeWeddingId = latestRequest.weddingId || null;
+        }
+
+        // If no wedding from request, check clients table
+        if (!activeWeddingId) {
+          const [clientRecord] = await db
+            .select({ id: clients.id })
+            .from(clients)
+            .where(
+              or(
+                eq(clients.portalUserId, dbUser.id),
+                eq(clients.partnerOneEmail, dbUser.email)
+              )
+            )
             .limit(1);
 
-          if (weddingRecord) {
-            activeWeddingId = weddingRecord.id;
+          if (clientRecord) {
+            const [weddingRecord] = await db
+              .select({ id: weddings.id })
+              .from(weddings)
+              .where(eq(weddings.clientId, clientRecord.id))
+              .limit(1);
+
+            if (weddingRecord) {
+              activeWeddingId = weddingRecord.id;
+            }
           }
         }
+      }
+    } catch (queryErr) {
+      console.warn("GET /api/auth/me: Error querying active booking or wedding:", queryErr);
+    }
+
+    if (!activeBookingRequestId) {
+      const fallbackRequests = getFallbackBookingRequests();
+      if (fallbackRequests.length > 0) {
+        activeBookingRequestId = fallbackRequests[0].id;
       }
     }
 
@@ -144,4 +159,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-
