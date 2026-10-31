@@ -48,3 +48,6 @@ drizzle/meta
 *.swp
 *.swo
 
+
+# scratch
+scratch/

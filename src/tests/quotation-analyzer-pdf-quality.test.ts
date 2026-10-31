@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { PDFDocument } from "pdf-lib";
+import zlib from "zlib";
 import fs from "fs";
 import path from "path";
 import {
@@ -10,6 +11,54 @@ import {
 } from "@/lib/reports/pdf-report-service";
 import { compareAnalyzedQuotations } from "@/lib/ai/vendor-comparison-service";
 import { QuotationAnalysisResult } from "@/lib/ai/types";
+
+function decodeHex(hexStr: string): string {
+  let str = "";
+  for (let i = 0; i < hexStr.length; i += 2) {
+    str += String.fromCharCode(parseInt(hexStr.substring(i, i + 2), 16));
+  }
+  return str;
+}
+
+function extractPdfText(loadedDoc: PDFDocument, pageIndex: number): string {
+  const page = loadedDoc.getPage(pageIndex);
+  const contentsRef = page.node.get(page.node.context.obj("Contents"));
+  const target = loadedDoc.context.lookup(contentsRef);
+  const streams: any[] = [];
+  const targetAny = target as any;
+  if (targetAny && typeof targetAny.size === "function") {
+    for (let i = 0; i < targetAny.size(); i++) {
+      streams.push(loadedDoc.context.lookup(targetAny.get(i)));
+    }
+  } else if (target) {
+    streams.push(target);
+  }
+
+  let fullText = "";
+  for (const s of streams) {
+    if (!s || !s.contents) continue;
+    let raw = Buffer.from(s.contents);
+    try {
+      raw = zlib.inflateSync(raw);
+    } catch {
+      // uncompressed
+    }
+    const str = raw.toString("latin1");
+    const hexMatches = str.match(/<([0-9a-fA-F]+)>/g);
+    if (hexMatches) {
+      for (const hm of hexMatches) {
+        fullText += " " + decodeHex(hm.slice(1, -1));
+      }
+    }
+    const litMatches = str.match(/\(([^)]+)\)/g);
+    if (litMatches) {
+      for (const lm of litMatches) {
+        fullText += " " + lm.slice(1, -1);
+      }
+    }
+  }
+  return fullText;
+}
 
 function createMockVendor(params: {
   uploadId: string;
@@ -142,6 +191,7 @@ function createMockVendor(params: {
       statedSubtotal: params.grandTotal,
       statedGrandTotal: params.grandTotal * 1.05,
       calculatedSubtotal: params.calculatedTotal || params.grandTotal,
+      statedGrandTotal: params.grandTotal * 1.05,
       subtotalDiscrepancy: params.isMathValid === false ? 5000 : 0,
       subtotalMatches: params.isMathValid ?? true,
       grandTotalMatches: params.isMathValid ?? true,
@@ -226,6 +276,27 @@ describe("Final PDF Polish Test Suite (2, 4, and 6 Vendors)", () => {
     const p3 = loadedPdf.getPage(2);
     expect(p3.getWidth()).toBeCloseTo(841.89, 1);
     expect(p3.getHeight()).toBeCloseTo(595.28, 1);
+
+    // Verify Page 4: Transparent Scoring Methodology & Common-Basis Calibrated Score
+    const p4Text = extractPdfText(loadedPdf, 3);
+    expect(p4Text).toContain("Transparent Weighted Scoring Methodology");
+    expect(p4Text).toContain("Common-Basis Calibrated Score");
+    expect(p4Text).toContain("SCORING COMPARABILITY");
+
+    // Verify Page 5: Deterministic Financial Audit guarantees rows for all evaluated vendors
+    const p5Text = extractPdfText(loadedPdf, 4);
+    expect(p5Text).toContain("Deterministic Financial Audit");
+    expect(p5Text).toContain("Grand Royal Heritage");
+    expect(p5Text).toContain("Bespoke Culinary");
+    expect(p5Text).toContain("Verified (100%)");
+
+    // Verify Page 6: Evidence provenance & citation snippets
+    const p6Text = extractPdfText(loadedPdf, 5);
+    expect(p6Text).toContain("Evidence Provenance");
+    expect(p6Text).toContain("Missing Information Alerts by Vendor Proposal");
+    expect(p6Text).toContain("Page-Level Quotation Citations");
+    expect(p6Text).toContain("Line Item");
+    expect(p6Text).toContain("FINAL COMMERCIAL ADVISORY STATEMENT");
   });
 
   it("test with 4 vendors, varying math validity, and complex terms produces exactly 6 pages", async () => {
@@ -286,6 +357,23 @@ describe("Final PDF Polish Test Suite (2, 4, and 6 Vendors)", () => {
     expect(pdfBuffer).toBeInstanceOf(Buffer);
     const loadedPdf = await PDFDocument.load(new Uint8Array(pdfBuffer));
     expect(loadedPdf.getPageCount()).toBe(6);
+
+    // Verify Page 5: Guaranteed row for each vendor, flags Budget Spice Caterers math variance
+    const p5Text = extractPdfText(loadedPdf, 4);
+    expect(p5Text).toContain("Royal Feast");
+    expect(p5Text).toContain("Budget Spice");
+    expect(p5Text).toContain("Imperial Maharaja");
+    expect(p5Text).toContain("Saffron Table");
+    expect(p5Text).toContain("Flagged");
+    expect(p5Text).toContain("Audit Discrepancy & Arithmetic Mismatch Log");
+
+    // Verify Page 6: Evidence snippets for evaluated vendors
+    const p6Text = extractPdfText(loadedPdf, 5);
+    expect(p6Text).toContain("Royal Feast");
+    expect(p6Text).toContain("Budget Spice");
+    expect(p6Text).toContain("Imperial Maharaja");
+    expect(p6Text).toContain("Saffron Table");
+    expect(p6Text).toContain("FINAL COMMERCIAL ADVISORY STATEMENT");
   });
 
   it("test with 6 vendors, lengthy commercial terms, and multi-tier pricing produces exactly 6 pages", async () => {
@@ -345,6 +433,22 @@ describe("Final PDF Polish Test Suite (2, 4, and 6 Vendors)", () => {
     const loadedPdf = await PDFDocument.load(new Uint8Array(pdfBuffer));
     expect(loadedPdf.getPageCount()).toBe(6);
 
+    // Verify Page 5: Guaranteed row for all 6 vendors, flags Delta Spice Artisans
+    const p5Text = extractPdfText(loadedPdf, 4);
+    expect(p5Text).toContain("Alpha Premier");
+    expect(p5Text).toContain("Beta Royal");
+    expect(p5Text).toContain("Gamma Luxury");
+    expect(p5Text).toContain("Delta Spice");
+    expect(p5Text).toContain("Epsilon Elite");
+    expect(p5Text).toContain("Zeta Traditional");
+    expect(p5Text).toContain("Flagged");
+    expect(p5Text).toContain("Audit Discrepancy & Arithmetic Mismatch Log");
+
+    // Verify Page 6: Citations and advisory statement present
+    const p6Text = extractPdfText(loadedPdf, 5);
+    expect(p6Text).toContain("Evidence Provenance");
+    expect(p6Text).toContain("FINAL COMMERCIAL ADVISORY STATEMENT");
+
     // Save a sample PDF to disk for manual inspection
     const outDir = path.resolve(process.cwd(), "scratch");
     if (!fs.existsSync(outDir)) {
@@ -354,6 +458,36 @@ describe("Final PDF Polish Test Suite (2, 4, and 6 Vendors)", () => {
     fs.writeFileSync(outPath, pdfBuffer);
     expect(fs.existsSync(outPath)).toBe(true);
     expect(fs.statSync(outPath).size).toBeGreaterThan(15000);
+  });
+
+  it("test with missing/incomplete audit data explicitly renders unaudited status without omitting rows", async () => {
+    const v1 = createMockVendor({
+      uploadId: "v_unaudited_1",
+      vendorName: "Heritage Castle Events",
+      grandTotal: 100000,
+    });
+    delete (v1 as any).financialAudit;
+
+    const v2 = createMockVendor({
+      uploadId: "v_unaudited_2",
+      vendorName: "Grand Pavilion Banquets",
+      grandTotal: 120000,
+    });
+    delete (v2 as any).financialAudit;
+
+    const comparison = await compareAnalyzedQuotations([v1, v2]);
+    const pdfBuffer = await generatePdfReport({
+      comparisonResult: comparison,
+      analyzedQuotations: [], // Client provided no quotation data
+    });
+
+    const loadedPdf = await PDFDocument.load(new Uint8Array(pdfBuffer));
+    expect(loadedPdf.getPageCount()).toBe(6);
+
+    const p5Text = extractPdfText(loadedPdf, 4);
+    expect(p5Text).toContain("Heritage Castle Events");
+    expect(p5Text).toContain("Grand Pavilion Banquets");
+    expect(p5Text).toContain("Unaudited");
   });
 
   it("verifies truncateWithEllipsis boundary helper", async () => {
