@@ -35,7 +35,6 @@ import {
   Info,
   RefreshCw,
   FileText,
-  Download,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -63,7 +62,6 @@ export function VendorComparisonModal({
   const [checkedClarifications, setCheckedClarifications] = useState<Record<string, boolean>>({});
   const [activePreset, setActivePreset] = useState<"balanced" | "cost" | "coverage" | "custom">("balanced");
   const [isExportingPdf, setIsExportingPdf] = useState(false);
-  const [isExportingExcel, setIsExportingExcel] = useState(false);
 
   const handleDownloadPdf = async () => {
     setIsExportingPdf(true);
@@ -108,52 +106,6 @@ export function VendorComparisonModal({
       toast.error("PDF Export Failed", { description: err.message });
     } finally {
       setIsExportingPdf(false);
-    }
-  };
-
-  const handleDownloadExcel = async () => {
-    setIsExportingExcel(true);
-    try {
-      const res = await fetch("/api/quotation-analyzer/export/excel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          comparisonResult,
-          metadata: {
-            eventName: "Wedding Proposal Comparison",
-            generatedAt: new Date().toLocaleDateString(),
-            preparedBy: "Gathbandhan AI Quotation Analyzer",
-          },
-        }),
-      });
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.error || "Failed to generate Excel report.");
-      }
-
-      const blob = await res.blob();
-      const contentDisposition = res.headers.get("Content-Disposition");
-      let filename = "Gathbandhan_Vendor_Comparison.xlsx";
-      if (contentDisposition && contentDisposition.includes("filename=")) {
-        const match = contentDisposition.match(/filename="?([^"]+)"?/);
-        if (match && match[1]) filename = match[1];
-      }
-
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-
-      toast.success("Excel Workbook downloaded successfully!");
-    } catch (err: any) {
-      toast.error("Excel Export Failed", { description: err.message });
-    } finally {
-      setIsExportingExcel(false);
     }
   };
 
@@ -921,26 +873,6 @@ export function VendorComparisonModal({
                 <>
                   <FileText className="w-3.5 h-3.5 mr-1.5 text-red-600" />
                   Download PDF Report
-                </>
-              )}
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadExcel}
-              disabled={isExportingExcel}
-              className="text-xs border-emerald-500/50 hover:bg-emerald-50 text-emerald-800 dark:text-emerald-300 font-semibold shadow-xs"
-            >
-              {isExportingExcel ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                  Generating Excel...
-                </>
-              ) : (
-                <>
-                  <Download className="w-3.5 h-3.5 mr-1.5 text-emerald-600" />
-                  Download Excel Workbook (.xlsx)
                 </>
               )}
             </Button>
