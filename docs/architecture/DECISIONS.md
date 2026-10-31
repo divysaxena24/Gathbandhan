@@ -55,3 +55,15 @@ Record material decisions here. Each entry should include date, status, context,
 - Context: Converting leads to weddings requires transactional consistency across clients, weddings, and multi-day events while strictly preventing duplicate or concurrent conversions.
 - Decision: Implement an 8-stage pipeline (`NEW`, `CONTACTED`, `CONSULTATION_SCHEDULED`, `PROPOSAL_SENT`, `NEGOTIATION`, `CONVERTED`, `LOST`, `ARCHIVED`) with mandatory lost reasons for `LOST`. Enforce lead-to-wedding conversion within an atomic database transaction (`db.transaction`), verified against status flags, client foreign key links, and unique database indexes on `clients.converted_from_lead_id`. Lead communication history is tracked via a dedicated `lead_activities` table.
 - Consequences: Guaranteed idempotency, zero orphaned records on conversion failures, and complete auditable communication logs.
+
+### DEC-008 — Deterministic Landed-Cost Engine, Human Verification & Transactional Quote Commitment
+- Date: 2026-10-31
+- Status: Accepted
+- Context: Wedding proposals vary widely in pricing structures (per-plate vs fixed charges, optional inclusions, outstation travel, overtime, varying GST brackets). Raw AI extraction cannot be trusted blindly for legal commitments.
+- Decision:
+  1. All quotes, items, travel, and overtime are calculated deterministically via a dedicated Landed-Cost Engine using exact integer paise (`bigint`).
+  2. Extracted quotes are flagged with `NEEDS_REVIEW` and cannot be committed without human planner verification (`reviewAndVerifyQuote`).
+  3. Dynamic guest-count sensitivity recalculates variable line items in real time.
+  4. Inclusion gap analysis automatically highlights excluded or optional deliverables across competing proposals.
+  5. Winning quote selection executes inside an atomic `db.transaction`, which awards the contract, transitions the quote to `SELECTED`, creates/updates the `wedding_vendors` assignment, closes the RFP (`CLOSED`), rejects competing quotes (`REJECTED`), and records an immutable audit log entry.
+- Consequences: Mathematical precision across multi-crore vendor commitments, full protection against hidden vendor exclusions, and complete transactional integrity.

@@ -5,6 +5,7 @@ import { leadActivities } from "./lead-activities";
 import { clients } from "./clients";
 import { weddings, weddingEvents } from "./weddings";
 import { vendors, weddingVendors } from "./vendors";
+import { quoteRequests, quotes, quoteItems } from "./quotes";
 import { auditLogs } from "./audit-logs";
 
 // ── User Relations ──────────────────────────────────────────────
@@ -69,6 +70,7 @@ export const weddingsRelations = relations(weddings, ({ one, many }) => ({
   }),
   events: many(weddingEvents),
   weddingVendors: many(weddingVendors),
+  quoteRequests: many(quoteRequests),
 }));
 
 // ── Wedding Event Relations ─────────────────────────────────────
@@ -86,6 +88,7 @@ export const weddingEventsRelations = relations(
 // ── Vendor Relations ────────────────────────────────────────────
 export const vendorsRelations = relations(vendors, ({ many }) => ({
   weddingVendors: many(weddingVendors),
+  quotes: many(quotes),
 }));
 
 // ── Wedding Vendor (join) Relations ─────────────────────────────
@@ -106,6 +109,47 @@ export const weddingVendorsRelations = relations(
     }),
   })
 );
+
+// ── Quote Request Relations ─────────────────────────────────────
+export const quoteRequestsRelations = relations(
+  quoteRequests,
+  ({ one, many }) => ({
+    wedding: one(weddings, {
+      fields: [quoteRequests.weddingId],
+      references: [weddings.id],
+    }),
+    quotes: many(quotes),
+    selectedQuote: one(quotes, {
+      fields: [quoteRequests.selectedQuoteId],
+      references: [quotes.id],
+    }),
+  })
+);
+
+// ── Quote Relations ─────────────────────────────────────────────
+export const quotesRelations = relations(quotes, ({ one, many }) => ({
+  quoteRequest: one(quoteRequests, {
+    fields: [quotes.quoteRequestId],
+    references: [quoteRequests.id],
+  }),
+  vendor: one(vendors, {
+    fields: [quotes.vendorId],
+    references: [vendors.id],
+  }),
+  reviewedBy: one(users, {
+    fields: [quotes.reviewedById],
+    references: [users.id],
+  }),
+  items: many(quoteItems),
+}));
+
+// ── Quote Item Relations ────────────────────────────────────────
+export const quoteItemsRelations = relations(quoteItems, ({ one }) => ({
+  quote: one(quotes, {
+    fields: [quoteItems.quoteId],
+    references: [quotes.id],
+  }),
+}));
 
 // ── Audit Log Relations ─────────────────────────────────────────
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({

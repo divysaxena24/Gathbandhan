@@ -112,3 +112,28 @@ export const checkInStatusEnum = pgEnum("check_in_status", [
   "LATE",
   "NO_SHOW",
 ]);
+
+export const quoteRequestStatusEnum = pgEnum("quote_request_status", [
+  "OPEN",
+  "CLOSED",
+  "CANCELLED",
+]);
+
+export const quoteStatusEnum = pgEnum("quote_status", [
+  "REQUESTED",
+  "RECEIVED",
+  "EXTRACTION_PENDING",
+  "NEEDS_REVIEW",
+  "VERIFIED",
+  "SELECTED",
+  "REJECTED",
+  "CLOSED",
+]);
+
+export const inclusionStatusEnum = pgEnum("inclusion_status", [
+  "INCLUDED",
+  "EXCLUDED",
+  "OPTIONAL",
+  "UNSPECIFIED",
+]);
+

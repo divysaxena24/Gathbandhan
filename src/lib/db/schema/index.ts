@@ -12,6 +12,9 @@ export {
   invoiceStatusEnum,
   incidentSeverityEnum,
   checkInStatusEnum,
+  quoteRequestStatusEnum,
+  quoteStatusEnum,
+  inclusionStatusEnum,
 } from "./enums";
 
 // Tables
@@ -21,6 +24,7 @@ export { leadActivities } from "./lead-activities";
 export { clients } from "./clients";
 export { weddings, weddingEvents } from "./weddings";
 export { vendors, weddingVendors } from "./vendors";
+export { quoteRequests, quotes, quoteItems } from "./quotes";
 export { auditLogs } from "./audit-logs";
 
 // Relations
@@ -33,5 +37,8 @@ export {
   weddingEventsRelations,
   vendorsRelations,
   weddingVendorsRelations,
+  quoteRequestsRelations,
+  quotesRelations,
+  quoteItemsRelations,
   auditLogsRelations,
 } from "./relations";

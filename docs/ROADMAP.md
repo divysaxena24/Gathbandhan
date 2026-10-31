@@ -26,13 +26,13 @@ Gate: Architecture, data boundaries, project commands and env placeholders docum
 - [x] Wedding overview.
 
 ## Phase 3 — Vendor intelligence
-- [ ] Vendor directory.
-- [ ] Quote requests and quote line items.
-- [ ] PDF upload/extraction adapter.
-- [ ] Human review.
-- [ ] Landed-cost engine.
-- [ ] Guest-count sensitivity and inclusion gaps.
-- [ ] Weighted scoring and vendor selection.
+- [x] Vendor directory.
+- [x] Quote requests and quote line items.
+- [x] PDF upload/extraction adapter.
+- [x] Human review.
+- [x] Landed-cost engine.
+- [x] Guest-count sensitivity and inclusion gaps.
+- [x] Weighted scoring and vendor selection.
 
 ## Phase 4 — Planning engine
 - [ ] Task template CRUD.

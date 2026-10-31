@@ -332,6 +332,266 @@ async function seed() {
     console.log(`  ✅ Assigned ${weddingVendors.length} vendors to wedding`);
 
     // ============================================================
+    // 8. Smart Quotations — RFP & Competing Quotes
+    // ============================================================
+    console.log("📑 Creating smart quotation requests and proposals...");
+
+    const [cateringRfp] = await db
+      .insert(schema.quoteRequests)
+      .values([
+        {
+          weddingId: sharmaWedding.id,
+          category: "CATERING",
+          title: "Royal Rajasthani 3-Day Catering & Live Food Stations",
+          description:
+            "[DEMO] 400 Pax full catering for Mehendi, Sangeet, Wedding, and Grand Reception. Authentic Marwari & Mewari cuisine with live international stations.",
+          targetBudgetPaise: BigInt(250000000), // ₹25 Lakh = 250,000,000 paise
+          status: "OPEN",
+          deadline: new Date("2026-12-15T18:00:00+05:30"),
+        },
+      ])
+      .returning();
+
+    // Competing Quote 1: Royal Rajasthani Caterers (Verified)
+    const [quote1] = await db
+      .insert(schema.quotes)
+      .values([
+        {
+          quoteRequestId: cateringRfp.id,
+          vendorId: vendors[0].id,
+          status: "VERIFIED",
+          submittedAt: new Date("2026-11-01T10:00:00+05:30"),
+          validUntil: new Date("2026-12-31T23:59:59+05:30"),
+          currency: "INR",
+          extractionStatus: "COMPLETED",
+          confidenceScore: "0.96",
+          reviewedById: planner1.id,
+          reviewedAt: new Date(),
+          travelFeePaise: BigInt(3500000), // ₹35,000
+          overtimeHourlyRatePaise: BigInt(1500000), // ₹15,000/hr
+          taxRule: "GST_5",
+          serviceChargeRule: "NONE",
+          notes: "[DEMO] Verified quote with complete inclusions.",
+        },
+      ])
+      .returning();
+
+    await db.insert(schema.quoteItems).values([
+      {
+        quoteId: quote1.id,
+        name: "Grand Rajasthani Royal Buffet & Live Counters",
+        category: "Food",
+        quantity: 1,
+        unit: "plate",
+        unitPricePaise: BigInt(320000), // ₹3,200 per plate
+        fixedChargePaise: BigInt(0),
+        isPerGuest: true,
+        taxPercent: "5.00",
+        serviceChargePercent: "5.00",
+        inclusionStatus: "INCLUDED",
+      },
+      {
+        quoteId: quote1.id,
+        name: "Welcome Drinks & Chaat Counter",
+        category: "Beverage",
+        quantity: 1,
+        unit: "plate",
+        unitPricePaise: BigInt(45000), // ₹450 per plate
+        fixedChargePaise: BigInt(0),
+        isPerGuest: true,
+        taxPercent: "5.00",
+        serviceChargePercent: "0.00",
+        inclusionStatus: "INCLUDED",
+      },
+      {
+        quoteId: quote1.id,
+        name: "Midnight Snack Counter",
+        category: "Food",
+        quantity: 1,
+        unit: "lump_sum",
+        unitPricePaise: BigInt(0),
+        fixedChargePaise: BigInt(4500000), // ₹45,000 fixed
+        isPerGuest: false,
+        taxPercent: "5.00",
+        serviceChargePercent: "0.00",
+        inclusionStatus: "INCLUDED",
+      },
+      {
+        quoteId: quote1.id,
+        name: "Bone China & Brass Cutlery Service",
+        category: "Equipment",
+        quantity: 1,
+        unit: "set",
+        unitPricePaise: BigInt(0),
+        fixedChargePaise: BigInt(7500000), // ₹75,000 fixed
+        isPerGuest: false,
+        taxPercent: "18.00",
+        serviceChargePercent: "0.00",
+        inclusionStatus: "INCLUDED",
+      },
+    ]);
+
+    // Competing Quote 2: Maharaja Feast Co. (Verified)
+    const [quote2] = await db
+      .insert(schema.quotes)
+      .values([
+        {
+          quoteRequestId: cateringRfp.id,
+          vendorId: vendors[1].id,
+          status: "VERIFIED",
+          submittedAt: new Date("2026-11-02T11:30:00+05:30"),
+          validUntil: new Date("2026-12-31T23:59:59+05:30"),
+          currency: "INR",
+          extractionStatus: "COMPLETED",
+          confidenceScore: "0.92",
+          reviewedById: planner1.id,
+          reviewedAt: new Date(),
+          travelFeePaise: BigInt(2500000), // ₹25,000
+          overtimeHourlyRatePaise: BigInt(2000000), // ₹20,000/hr
+          taxRule: "GST_5",
+          serviceChargeRule: "NONE",
+          notes: "[DEMO] Premium caterer, optional midnight snack surcharge.",
+        },
+      ])
+      .returning();
+
+    await db.insert(schema.quoteItems).values([
+      {
+        quoteId: quote2.id,
+        name: "Grand Rajasthani Royal Buffet & Live Counters",
+        category: "Food",
+        quantity: 1,
+        unit: "plate",
+        unitPricePaise: BigInt(350000), // ₹3,500 per plate
+        fixedChargePaise: BigInt(0),
+        isPerGuest: true,
+        taxPercent: "5.00",
+        serviceChargePercent: "0.00",
+        inclusionStatus: "INCLUDED",
+      },
+      {
+        quoteId: quote2.id,
+        name: "Welcome Drinks & Chaat Counter",
+        category: "Beverage",
+        quantity: 1,
+        unit: "plate",
+        unitPricePaise: BigInt(50000), // ₹500 per plate
+        fixedChargePaise: BigInt(0),
+        isPerGuest: true,
+        taxPercent: "5.00",
+        serviceChargePercent: "0.00",
+        inclusionStatus: "INCLUDED",
+      },
+      {
+        quoteId: quote2.id,
+        name: "Midnight Snack Counter",
+        category: "Food",
+        quantity: 1,
+        unit: "lump_sum",
+        unitPricePaise: BigInt(0),
+        fixedChargePaise: BigInt(6000000), // ₹60,000 fixed
+        isPerGuest: false,
+        taxPercent: "5.00",
+        serviceChargePercent: "0.00",
+        inclusionStatus: "OPTIONAL",
+      },
+      {
+        quoteId: quote2.id,
+        name: "Bone China & Brass Cutlery Service",
+        category: "Equipment",
+        quantity: 1,
+        unit: "set",
+        unitPricePaise: BigInt(0),
+        fixedChargePaise: BigInt(6000000), // ₹60,000 fixed
+        isPerGuest: false,
+        taxPercent: "18.00",
+        serviceChargePercent: "0.00",
+        inclusionStatus: "INCLUDED",
+      },
+    ]);
+
+    // Competing Quote 3: Palace Kitchen Catering (Needs Review)
+    const [quote3] = await db
+      .insert(schema.quotes)
+      .values([
+        {
+          quoteRequestId: cateringRfp.id,
+          vendorId: vendors[2].id,
+          status: "NEEDS_REVIEW",
+          submittedAt: new Date("2026-11-03T15:00:00+05:30"),
+          validUntil: new Date("2026-12-31T23:59:59+05:30"),
+          currency: "INR",
+          extractionStatus: "COMPLETED",
+          confidenceScore: "0.82",
+          travelFeePaise: BigInt(5000000), // ₹50,000 outstation
+          overtimeHourlyRatePaise: BigInt(1000000),
+          taxRule: "GST_5",
+          serviceChargeRule: "NONE",
+          extractionNotes: "[DEMO] Extracted via OCR adapter; requires planner review.",
+        },
+      ])
+      .returning();
+
+    await db.insert(schema.quoteItems).values([
+      {
+        quoteId: quote3.id,
+        name: "Grand Rajasthani Royal Buffet & Live Counters",
+        category: "Food",
+        quantity: 1,
+        unit: "plate",
+        unitPricePaise: BigInt(295000), // ₹2,950 per plate (lower base rate)
+        fixedChargePaise: BigInt(0),
+        isPerGuest: true,
+        taxPercent: "5.00",
+        serviceChargePercent: "0.00",
+        inclusionStatus: "INCLUDED",
+      },
+      {
+        quoteId: quote3.id,
+        name: "Welcome Drinks & Chaat Counter",
+        category: "Beverage",
+        quantity: 1,
+        unit: "plate",
+        unitPricePaise: BigInt(40000), // ₹400 per plate
+        fixedChargePaise: BigInt(0),
+        isPerGuest: true,
+        taxPercent: "5.00",
+        serviceChargePercent: "0.00",
+        inclusionStatus: "INCLUDED",
+      },
+      {
+        quoteId: quote3.id,
+        name: "Midnight Snack Counter",
+        category: "Food",
+        quantity: 1,
+        unit: "lump_sum",
+        unitPricePaise: BigInt(0),
+        fixedChargePaise: BigInt(0),
+        isPerGuest: false,
+        taxPercent: "5.00",
+        serviceChargePercent: "0.00",
+        inclusionStatus: "EXCLUDED",
+        notes: "Excluded from basic proposal",
+      },
+      {
+        quoteId: quote3.id,
+        name: "Bone China & Brass Cutlery Service",
+        category: "Equipment",
+        quantity: 1,
+        unit: "set",
+        unitPricePaise: BigInt(0),
+        fixedChargePaise: BigInt(0),
+        isPerGuest: false,
+        taxPercent: "18.00",
+        serviceChargePercent: "0.00",
+        inclusionStatus: "EXCLUDED",
+        notes: "Client or venue must provide dinnerware",
+      },
+    ]);
+
+    console.log(`  ✅ Created RFP and 3 competing vendor quotes`);
+
+    // ============================================================
     // 8. Audit Log — Initial entries
     // ============================================================
     console.log("📝 Creating audit log entries...");
