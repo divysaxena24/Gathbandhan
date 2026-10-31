@@ -25,6 +25,12 @@ export { clients } from "./clients";
 export { weddings, weddingEvents } from "./weddings";
 export { vendors, weddingVendors } from "./vendors";
 export { quoteRequests, quotes, quoteItems } from "./quotes";
+export {
+  taskTemplates,
+  taskTemplateDependencies,
+  tasks,
+  taskDependencies,
+} from "./tasks";
 export { auditLogs } from "./audit-logs";
 
 // Relations
@@ -40,5 +46,9 @@ export {
   quoteRequestsRelations,
   quotesRelations,
   quoteItemsRelations,
+  taskTemplatesRelations,
+  taskTemplateDependenciesRelations,
+  tasksRelations,
+  taskDependenciesRelations,
   auditLogsRelations,
 } from "./relations";

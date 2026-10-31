@@ -67,3 +67,15 @@ Record material decisions here. Each entry should include date, status, context,
   4. Inclusion gap analysis automatically highlights excluded or optional deliverables across competing proposals.
   5. Winning quote selection executes inside an atomic `db.transaction`, which awards the contract, transitions the quote to `SELECTED`, creates/updates the `wedding_vendors` assignment, closes the RFP (`CLOSED`), rejects competing quotes (`REJECTED`), and records an immutable audit log entry.
 - Consequences: Mathematical precision across multi-crore vendor commitments, full protection against hidden vendor exclusions, and complete transactional integrity.
+
+### DEC-009 — Acyclic Planning Dependency Graph & Backward Scheduling Engine
+- Date: 2026-10-31
+- Status: Accepted
+- Context: Luxury destination weddings involve dozens of interconnected vendor deliverables and ceremonies (e.g., Palace Floor Plan → Mandap 3D Render → Production Setup → Sacred Fire Pheras). Deadlines must be calculated backward from event dates, and circular dependencies must be strictly prevented.
+- Decision:
+  1. Database-driven task templates (`task_templates`) define offset days relative to wedding milestones (e.g. -180d, -60d, -2d, +7d) and package tiers (`FULL_SERVICE`, `PARTIAL`, `DAY_OF`).
+  2. Directed Acyclic Graph (DAG) validation via Depth-First Search (`checkForCycles`) strictly prevents circular dependency deadlocks when creating or updating task dependencies.
+  3. Topological sorting guarantees valid execution order (prerequisites completed before dependents).
+  4. Date-shift simulator recalculates backward-scheduled task target dates with an interactive impact preview showing overdue and at-risk milestones before applying changes.
+  5. Capacity management aggregates active task counts, overdue counts, and estimated versus actual logged hours per planner.
+- Consequences: Enforces chronological consistency across 28+ milestone phases, eliminates scheduling circularities, and provides full transparency on planner team capacity.

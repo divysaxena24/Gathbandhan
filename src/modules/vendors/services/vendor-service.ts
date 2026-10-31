@@ -151,3 +151,4 @@ export async function deleteVendor(id: string) {
 
   return deleted;
 }
+

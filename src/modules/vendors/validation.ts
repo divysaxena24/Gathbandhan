@@ -186,3 +186,4 @@ export const compareQuotesSchema = z.object({
       { message: "Weights must sum to 1.0 (100%)" }
     ),
 });
+

@@ -35,12 +35,12 @@ Gate: Architecture, data boundaries, project commands and env placeholders docum
 - [x] Weighted scoring and vendor selection.
 
 ## Phase 4 — Planning engine
-- [ ] Task template CRUD.
-- [ ] Package/event template support.
-- [ ] Backward scheduling.
-- [ ] Dependencies and cycle validation.
-- [ ] Task assignment and status workflow.
-- [ ] At-risk/overdue alerts and workload view.
+- [x] Task template CRUD.
+- [x] Package/event template support.
+- [x] Backward scheduling.
+- [x] Dependencies and cycle validation.
+- [x] Task assignment and status workflow.
+- [x] At-risk/overdue alerts and workload view.
 
 ## Phase 5 — Event control room
 - [ ] Timeline.

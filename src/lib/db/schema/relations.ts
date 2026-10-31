@@ -6,6 +6,12 @@ import { clients } from "./clients";
 import { weddings, weddingEvents } from "./weddings";
 import { vendors, weddingVendors } from "./vendors";
 import { quoteRequests, quotes, quoteItems } from "./quotes";
+import {
+  taskTemplates,
+  taskTemplateDependencies,
+  tasks,
+  taskDependencies,
+} from "./tasks";
 import { auditLogs } from "./audit-logs";
 
 // ── User Relations ──────────────────────────────────────────────
@@ -14,6 +20,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   assignedWeddings: many(weddings),
   auditLogs: many(auditLogs),
   leadActivities: many(leadActivities),
+  assignedTasks: many(tasks),
 }));
 
 // ── Lead Relations ──────────────────────────────────────────────
@@ -71,6 +78,7 @@ export const weddingsRelations = relations(weddings, ({ one, many }) => ({
   events: many(weddingEvents),
   weddingVendors: many(weddingVendors),
   quoteRequests: many(quoteRequests),
+  tasks: many(tasks),
 }));
 
 // ── Wedding Event Relations ─────────────────────────────────────
@@ -150,6 +158,77 @@ export const quoteItemsRelations = relations(quoteItems, ({ one }) => ({
     references: [quotes.id],
   }),
 }));
+
+// ── Task Template Relations ─────────────────────────────────────
+export const taskTemplatesRelations = relations(
+  taskTemplates,
+  ({ many }) => ({
+    dependencies: many(taskTemplateDependencies, {
+      relationName: "templateDeps",
+    }),
+    dependentOnThis: many(taskTemplateDependencies, {
+      relationName: "dependsOnTemplateDeps",
+    }),
+  })
+);
+
+export const taskTemplateDependenciesRelations = relations(
+  taskTemplateDependencies,
+  ({ one }) => ({
+    template: one(taskTemplates, {
+      fields: [taskTemplateDependencies.templateId],
+      references: [taskTemplates.id],
+      relationName: "templateDeps",
+    }),
+    dependsOnTemplate: one(taskTemplates, {
+      fields: [taskTemplateDependencies.dependsOnTemplateId],
+      references: [taskTemplates.id],
+      relationName: "dependsOnTemplateDeps",
+    }),
+  })
+);
+
+// ── Task Relations ──────────────────────────────────────────────
+export const tasksRelations = relations(tasks, ({ one, many }) => ({
+  wedding: one(weddings, {
+    fields: [tasks.weddingId],
+    references: [weddings.id],
+  }),
+  event: one(weddingEvents, {
+    fields: [tasks.eventId],
+    references: [weddingEvents.id],
+  }),
+  owner: one(users, {
+    fields: [tasks.ownerId],
+    references: [users.id],
+  }),
+  sourceTemplate: one(taskTemplates, {
+    fields: [tasks.sourceTemplateId],
+    references: [taskTemplates.id],
+  }),
+  dependencies: many(taskDependencies, {
+    relationName: "taskDeps",
+  }),
+  dependentTasks: many(taskDependencies, {
+    relationName: "dependsOnTaskDeps",
+  }),
+}));
+
+export const taskDependenciesRelations = relations(
+  taskDependencies,
+  ({ one }) => ({
+    task: one(tasks, {
+      fields: [taskDependencies.taskId],
+      references: [tasks.id],
+      relationName: "taskDeps",
+    }),
+    dependsOnTask: one(tasks, {
+      fields: [taskDependencies.dependsOnTaskId],
+      references: [tasks.id],
+      relationName: "dependsOnTaskDeps",
+    }),
+  })
+);
 
 // ── Audit Log Relations ─────────────────────────────────────────
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({

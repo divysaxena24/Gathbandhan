@@ -627,6 +627,143 @@ async function seed() {
     console.log(`  ✅ Created audit log entries`);
 
     // ============================================================
+    // 9. Task Templates & Backward Scheduled Wedding Plan
+    // ============================================================
+    console.log("📋 Seeding task templates & backward scheduled wedding plan...");
+
+    const templateDefinitions = [
+      { category: "Venue & Layout", title: "Venue Contract & Palace Booking", offsetDays: -180, defaultPriority: "CRITICAL", estimatedMinutes: 240 },
+      { category: "Venue & Layout", title: "Palace Floor Plan & Spatial Layout", offsetDays: -150, defaultPriority: "HIGH", estimatedMinutes: 180 },
+      { category: "Decor & Production", title: "Decor 3D Render & Mandap Design", offsetDays: -120, defaultPriority: "HIGH", estimatedMinutes: 240 },
+      { category: "Decor & Production", title: "Decor & Production Vendor Award", offsetDays: -100, defaultPriority: "CRITICAL", estimatedMinutes: 180 },
+      { category: "Catering & Menu", title: "Catering Menu Tasting & Master Chef Brief", offsetDays: -90, defaultPriority: "HIGH", estimatedMinutes: 180 },
+      { category: "Catering & Menu", title: "Catering RFP Finalization & Award", offsetDays: -80, defaultPriority: "CRITICAL", estimatedMinutes: 180 },
+      { category: "Invitations & Stationery", title: "Luxury Digital & Foil Invitation Design", offsetDays: -75, defaultPriority: "MEDIUM", estimatedMinutes: 120 },
+      { category: "Invitations & Stationery", title: "Invitation Dispatch & Courier Track", offsetDays: -60, defaultPriority: "HIGH", estimatedMinutes: 240 },
+      { category: "Decor & Production", title: "Sound, DJ & Architectural Lighting Rig Approval", offsetDays: -60, defaultPriority: "HIGH", estimatedMinutes: 120 },
+      { category: "Media & Films", title: "Cinematography & Photography Shot List Brief", offsetDays: -60, defaultPriority: "MEDIUM", estimatedMinutes: 120 },
+      { category: "Rituals & Pandit", title: "Panditji Ritual Schedule & Samagri Prep", offsetDays: -50, defaultPriority: "MEDIUM", estimatedMinutes: 90 },
+      { category: "Guest Logistics", title: "Guest RSVP Tracking & Preliminary Headcount", offsetDays: -45, defaultPriority: "HIGH", estimatedMinutes: 180 },
+      { category: "Guest Logistics", title: "Airport Shuttle & Vintage Car Fleet Roster", offsetDays: -30, defaultPriority: "HIGH", estimatedMinutes: 180 },
+      { category: "Hospitality", title: "Taj Lake Palace Rooming List Finalization", offsetDays: -25, defaultPriority: "HIGH", estimatedMinutes: 180 },
+      { category: "Catering & Menu", title: "Final Headcount Lock & Dietary Matrix Lock", offsetDays: -14, defaultPriority: "CRITICAL", estimatedMinutes: 120 },
+      { category: "Catering & Menu", title: "Catering Advance & Plate Quantity Confirmation", offsetDays: -10, defaultPriority: "HIGH", estimatedMinutes: 90 },
+      { category: "Decor & Production", title: "On-Site Production Load-in & Generator Fuel Test", offsetDays: -3, defaultPriority: "CRITICAL", estimatedMinutes: 300 },
+      { category: "Bridal & Beauty", title: "Bridal Suite Henna Station & Mehendi Crew Arrival", offsetDays: -2, defaultPriority: "HIGH", estimatedMinutes: 120 },
+      { category: "Event Execution", title: "Mehendi Ceremony Live Execution", offsetDays: -2, defaultPriority: "HIGH", estimatedMinutes: 360 },
+      { category: "Decor & Production", title: "Sangeet Choreography & Artist Soundcheck", offsetDays: -1, defaultPriority: "HIGH", estimatedMinutes: 180 },
+      { category: "Event Execution", title: "Sangeet Night Stage Production", offsetDays: -1, defaultPriority: "CRITICAL", estimatedMinutes: 360 },
+      { category: "Decor & Production", title: "Mandap Floral Installation & Cold Pyros Verification", offsetDays: 0, defaultPriority: "CRITICAL", estimatedMinutes: 240 },
+      { category: "Event Execution", title: "Baraat Procession & Vintage Car Staging", offsetDays: 0, defaultPriority: "HIGH", estimatedMinutes: 120 },
+      { category: "Event Execution", title: "Pheras & Sacred Fire Ceremony Coordination", offsetDays: 0, defaultPriority: "CRITICAL", estimatedMinutes: 300 },
+      { category: "Event Execution", title: "Grand Reception Banquet & Champagne Toast", offsetDays: 1, defaultPriority: "CRITICAL", estimatedMinutes: 360 },
+      { category: "Post-Wedding", title: "Vendor Tear-Down & Palace Handover Audit", offsetDays: 2, defaultPriority: "MEDIUM", estimatedMinutes: 180 },
+      { category: "Guest Logistics", title: "Guest Departure Logistics & Gift Favors Handover", offsetDays: 2, defaultPriority: "HIGH", estimatedMinutes: 180 },
+      { category: "Finance", title: "Vendor Final Invoice Reconciliation & Settlement", offsetDays: 7, defaultPriority: "CRITICAL", estimatedMinutes: 240 },
+    ];
+
+    const insertedTemplates = await db
+      .insert(schema.taskTemplates)
+      .values(
+        templateDefinitions.map((t) => ({
+          packageType: "FULL_SERVICE" as const,
+          category: t.category,
+          title: t.title,
+          offsetDays: t.offsetDays,
+          defaultPriority: t.defaultPriority,
+          estimatedMinutes: t.estimatedMinutes,
+          referenceEvent: "WEDDING_START",
+          suggestedRole: "PLANNER",
+        }))
+      )
+      .returning();
+
+    console.log(`  ✅ Created ${insertedTemplates.length} database task templates`);
+
+    // Template dependency rules (index-based)
+    // 1 (Floor Plan) depends on 0 (Venue Contract)
+    // 2 (Decor 3D Render) depends on 1 (Floor Plan)
+    // 3 (Decor Vendor Award) depends on 2 (Decor 3D Render)
+    // 7 (Invitation Dispatch) depends on 6 (Invitation Design)
+    // 8 (Sound Rig) depends on 3 (Decor Award)
+    // 11 (RSVP Tracking) depends on 7 (Dispatch)
+    // 13 (Rooming List) depends on 11 (RSVP)
+    // 14 (Headcount Lock) depends on 11 (RSVP) & 5 (Catering Award)
+    // 15 (Catering Advance) depends on 14 (Headcount Lock)
+    // 16 (Load-in & DG test) depends on 8 (Sound Rig)
+    // 19 (Sangeet Soundcheck) depends on 16 (Load-in)
+    // 21 (Mandap Florals) depends on 16 (Load-in)
+    // 23 (Pheras Coordination) depends on 21 (Mandap Florals) & 10 (Panditji Prep)
+    // 24 (Grand Reception) depends on 15 (Catering Advance)
+    // 27 (Final Invoice Reconciliation) depends on 25 (Tear-down)
+    const templateDepPairs = [
+      [1, 0],
+      [2, 1],
+      [3, 2],
+      [7, 6],
+      [8, 3],
+      [11, 7],
+      [13, 11],
+      [14, 11],
+      [14, 5],
+      [15, 14],
+      [16, 8],
+      [19, 16],
+      [21, 16],
+      [23, 21],
+      [23, 10],
+      [24, 15],
+      [27, 25],
+    ];
+
+    await db.insert(schema.taskTemplateDependencies).values(
+      templateDepPairs.map(([depIdx, prereqIdx]) => ({
+        templateId: insertedTemplates[depIdx].id,
+        dependsOnTemplateId: insertedTemplates[prereqIdx].id,
+      }))
+    );
+
+    // Instantiate tasks for Sharma Royal Wedding (Feb 12, 2027)
+    const weddingBaseDate = new Date(sharmaWedding.startDate || "2027-02-12");
+    const createdTasks = await db
+      .insert(schema.tasks)
+      .values(
+        insertedTemplates.map((t, idx) => {
+          const due = new Date(weddingBaseDate.getTime() + t.offsetDays * 24 * 60 * 60 * 1000);
+          due.setHours(18, 0, 0, 0);
+
+          let status: "TO_PLAN" | "IN_PROGRESS" | "DONE" = "TO_PLAN";
+          if (idx <= 4) status = "DONE";
+          else if (idx <= 8) status = "IN_PROGRESS";
+
+          return {
+            weddingId: sharmaWedding.id,
+            sourceTemplateId: t.id,
+            title: t.title,
+            category: t.category,
+            ownerId: idx % 2 === 0 ? planner1.id : planner2.id,
+            status,
+            priority: t.defaultPriority,
+            dueAt: due,
+            estimatedMinutes: t.estimatedMinutes,
+            actualMinutes: status === "DONE" ? t.estimatedMinutes : 0,
+            isCriticalPath: t.defaultPriority === "CRITICAL",
+          };
+        })
+      )
+      .returning();
+
+    // Instantiate task dependencies
+    await db.insert(schema.taskDependencies).values(
+      templateDepPairs.map(([depIdx, prereqIdx]) => ({
+        taskId: createdTasks[depIdx].id,
+        dependsOnTaskId: createdTasks[prereqIdx].id,
+      }))
+    );
+
+    console.log(`  ✅ Generated ${createdTasks.length} backward-scheduled tasks with dependency graph`);
+
+    // ============================================================
     // Done
     // ============================================================
     console.log("\n✨ Seed complete!");
