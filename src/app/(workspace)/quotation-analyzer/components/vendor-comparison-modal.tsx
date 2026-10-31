@@ -6,6 +6,8 @@ import {
   ComparisonWeights,
   DEFAULT_COMPARISON_WEIGHTS,
 } from "@/lib/ai/comparison-types";
+import { QuotationAnalysisResult } from "@/lib/ai/types";
+import { VendorComparisonDashboard } from "./vendor-comparison-dashboard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,6 +45,8 @@ interface VendorComparisonModalProps {
   comparisonResult: MultiVendorComparisonResult | null;
   onRecalculateWeights: (weights: Partial<ComparisonWeights>) => Promise<void>;
   isRecalculating: boolean;
+  analyzedQuotations?: QuotationAnalysisResult[];
+  onOpenPdfPreview?: (uploadId: string, pageNumber?: number) => void;
 }
 
 export function VendorComparisonModal({
@@ -51,8 +55,10 @@ export function VendorComparisonModal({
   comparisonResult,
   onRecalculateWeights,
   isRecalculating,
+  analyzedQuotations = [],
+  onOpenPdfPreview,
 }: VendorComparisonModalProps) {
-  const [activeTab, setActiveTab] = useState<string>("recommendation");
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [checkedClarifications, setCheckedClarifications] = useState<Record<string, boolean>>({});
   const [activePreset, setActivePreset] = useState<"balanced" | "cost" | "coverage" | "custom">("balanced");
   const [isExportingPdf, setIsExportingPdf] = useState(false);
@@ -252,9 +258,13 @@ export function VendorComparisonModal({
         <div className="px-6 pt-3 bg-muted/30 border-b border-border/60 shrink-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="bg-muted/80 p-1 rounded-xl">
+              <TabsTrigger value="dashboard" className="text-xs font-semibold flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-gold-500" />
+                Interactive Dashboard
+              </TabsTrigger>
               <TabsTrigger value="recommendation" className="text-xs font-semibold flex items-center gap-1.5">
                 <Award className="w-3.5 h-3.5 text-amber-500" />
-                Final Recommendation
+                Recommendation
               </TabsTrigger>
               <TabsTrigger value="matrix" className="text-xs font-semibold flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-blue-500" />
@@ -265,7 +275,7 @@ export function VendorComparisonModal({
                 Scoring Breakdown ({scoring.rankings.length})
               </TabsTrigger>
               <TabsTrigger value="proscons" className="text-xs font-semibold flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-gold-600" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                 AI Pros & Cons
               </TabsTrigger>
               <TabsTrigger value="alerts" className="text-xs font-semibold flex items-center gap-1.5">
@@ -278,6 +288,18 @@ export function VendorComparisonModal({
 
         {/* Modal Scrollable Body */}
         <div className="p-6 overflow-y-auto flex-1 space-y-6">
+          {/* TAB 0: INTERACTIVE DASHBOARD */}
+          {activeTab === "dashboard" && (
+            <VendorComparisonDashboard
+              comparisonResult={comparisonResult}
+              analyzedQuotations={analyzedQuotations}
+              onRecalculateWeights={onRecalculateWeights}
+              isRecalculating={isRecalculating}
+              onOpenPdfPage={onOpenPdfPreview}
+              onClose={onClose}
+            />
+          )}
+
           {/* TAB 1: FINAL RECOMMENDATION */}
           {activeTab === "recommendation" && (
             <div className="space-y-6">
