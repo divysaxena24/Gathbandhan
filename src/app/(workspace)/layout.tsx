@@ -62,9 +62,20 @@ export default function WorkspaceLayout({
   const { user } = useUser();
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const cachedRole = sessionStorage.getItem("gathbandhan_role");
+    if (cachedRole === "CLIENT") {
+      router.replace("/client/portal");
+      return;
+    }
+    if (cachedRole) return;
+
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((data) => {
+        if (data.role) {
+          sessionStorage.setItem("gathbandhan_role", data.role);
+        }
         if (data.role === "CLIENT") {
           router.replace("/client/portal");
         }
@@ -108,6 +119,7 @@ export default function WorkspaceLayout({
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className={cn(
                   "flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                   isActive
@@ -210,6 +222,7 @@ export default function WorkspaceLayout({
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
                   onClick={() => setMobileMenuOpen(false)}
                   className={cn(
                     "flex items-center justify-between px-4 py-3 rounded-lg text-base font-medium",
