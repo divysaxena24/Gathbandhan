@@ -92,3 +92,20 @@ Record material decisions here. Each entry should include date, status, context,
   5. Live incident command log tracks title, severity (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), resolution steps, and emergency cost impact in integer paise (`bigint`) for client and agency reconciliation.
   6. Offline resilience caches current schedule, emergency directories, and vendor contacts in client-side storage with an explicit network drop banner.
 - Consequences: Gives on-site coordinators full control of palace wedding execution, prevents vendor arrival surprises, protects auspicious ceremony timings, and records audit trails for billing reconciliation.
+
+### DEC-011 — Dual-Ledger Financial Integrity, Idempotent Disbursements & Non-Auto-Approving Invoice Reconciliation
+- Date: 2026-10-31
+- Status: Accepted
+- Context: Luxury destination weddings manage cashflows in crores across multiple decision-makers, milestone tranches, and external suppliers. Financial mistakes like duplicate vendor disbursements, untracked scope creep, or imbalanced ledgers destroy agency margin and trust.
+- Decision:
+  1. Strict separation of revenue and cost ledgers: `client_payment_milestones` & `client_payment_transactions` (receivables) vs `vendor_invoices` & `vendor_payment_transactions` (payables).
+  2. Pure integer paise arithmetic (`bigint`, mode: "bigint") with zero floating-point math across all monetary fields.
+  3. Strict transaction idempotency: every disbursal and receipt request enforces a unique `idempotency_key`. Exact retries return the existing transaction record safely.
+  4. Business duplicate heuristic: flags any attempt to disburse or collect the exact same amount for the same invoice or milestone within 24 hours, requiring explicit `allowBusinessDuplicate: true` override.
+  5. Deterministic invoice reconciliation against contract terms and approved extras (`approved_extras`):
+     - Invariant: Positive cost variance (`variancePaise > 0n`) is NEVER auto-approved. It is flagged `OVER_BUDGET` and sets `requiresFinanceApproval: true`.
+     - Invoiced amounts matching approved commitments (`variancePaise === 0n`) are flagged `EXACT_MATCH`.
+     - Favorable discounts (`variancePaise < 0n`) are flagged `UNDER_BUDGET`.
+  6. Dual-margin profitability engine: tracks both Projected Profit/Margin (contracted revenue minus committed vendor costs and approved outlays) and Realized Profit/Margin (collected receipts minus actual invoiced outlays), alongside category commitments.
+- Consequences: Eliminates double disbursements, preserves agency margins against unauthorized vendor cost creep, ensures audit-ready settlement trails, and provides real-time balance sheet transparency for founders and finance leads.
+

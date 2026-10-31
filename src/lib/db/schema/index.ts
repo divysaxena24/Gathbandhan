@@ -38,6 +38,14 @@ export {
   incidents,
   controlRoomAlerts,
 } from "./control-room";
+export {
+  clientPaymentMilestones,
+  clientPaymentTransactions,
+  vendorInvoices,
+  vendorPaymentTransactions,
+  expenses,
+  approvedExtras,
+} from "./finance";
 export { auditLogs } from "./audit-logs";
 
 // Relations
@@ -62,5 +70,11 @@ export {
   vendorCheckInsRelations,
   incidentsRelations,
   controlRoomAlertsRelations,
+  clientPaymentMilestonesRelations,
+  clientPaymentTransactionsRelations,
+  vendorInvoicesRelations,
+  vendorPaymentTransactionsRelations,
+  expensesRelations,
+  approvedExtrasRelations,
   auditLogsRelations,
 } from "./relations";

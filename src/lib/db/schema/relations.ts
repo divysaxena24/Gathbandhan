@@ -19,6 +19,14 @@ import {
   incidents,
   controlRoomAlerts,
 } from "./control-room";
+import {
+  clientPaymentMilestones,
+  clientPaymentTransactions,
+  vendorInvoices,
+  vendorPaymentTransactions,
+  expenses,
+  approvedExtras,
+} from "./finance";
 import { auditLogs } from "./audit-logs";
 
 // ── User Relations ──────────────────────────────────────────────
@@ -90,6 +98,12 @@ export const weddingsRelations = relations(weddings, ({ one, many }) => ({
   vendorCheckIns: many(vendorCheckIns),
   incidents: many(incidents),
   controlRoomAlerts: many(controlRoomAlerts),
+  clientPaymentMilestones: many(clientPaymentMilestones),
+  clientPaymentTransactions: many(clientPaymentTransactions),
+  vendorInvoices: many(vendorInvoices),
+  vendorPaymentTransactions: many(vendorPaymentTransactions),
+  expenses: many(expenses),
+  approvedExtras: many(approvedExtras),
 }));
 
 // ── Wedding Event Relations ─────────────────────────────────────
@@ -130,6 +144,9 @@ export const weddingVendorsRelations = relations(
       references: [weddingEvents.id],
     }),
     vendorCheckIns: many(vendorCheckIns),
+    invoices: many(vendorInvoices),
+    payments: many(vendorPaymentTransactions),
+    approvedExtras: many(approvedExtras),
   })
 );
 
@@ -348,6 +365,116 @@ export const controlRoomAlertsRelations = relations(
     wedding: one(weddings, {
       fields: [controlRoomAlerts.weddingId],
       references: [weddings.id],
+    }),
+  })
+);
+
+// ── Finance: Client Milestone & Transaction Relations ───────────
+export const clientPaymentMilestonesRelations = relations(
+  clientPaymentMilestones,
+  ({ one, many }) => ({
+    wedding: one(weddings, {
+      fields: [clientPaymentMilestones.weddingId],
+      references: [weddings.id],
+    }),
+    transactions: many(clientPaymentTransactions),
+  })
+);
+
+export const clientPaymentTransactionsRelations = relations(
+  clientPaymentTransactions,
+  ({ one }) => ({
+    milestone: one(clientPaymentMilestones, {
+      fields: [clientPaymentTransactions.milestoneId],
+      references: [clientPaymentMilestones.id],
+    }),
+    wedding: one(weddings, {
+      fields: [clientPaymentTransactions.weddingId],
+      references: [weddings.id],
+    }),
+    recordedByUser: one(users, {
+      fields: [clientPaymentTransactions.recordedBy],
+      references: [users.id],
+    }),
+  })
+);
+
+// ── Finance: Vendor Invoice & Payment Relations ─────────────────
+export const vendorInvoicesRelations = relations(
+  vendorInvoices,
+  ({ one, many }) => ({
+    weddingVendor: one(weddingVendors, {
+      fields: [vendorInvoices.weddingVendorId],
+      references: [weddingVendors.id],
+    }),
+    wedding: one(weddings, {
+      fields: [vendorInvoices.weddingId],
+      references: [weddings.id],
+    }),
+    vendor: one(vendors, {
+      fields: [vendorInvoices.vendorId],
+      references: [vendors.id],
+    }),
+    payments: many(vendorPaymentTransactions),
+    reconciledByUser: one(users, {
+      fields: [vendorInvoices.reconciledBy],
+      references: [users.id],
+    }),
+  })
+);
+
+export const vendorPaymentTransactionsRelations = relations(
+  vendorPaymentTransactions,
+  ({ one }) => ({
+    invoice: one(vendorInvoices, {
+      fields: [vendorPaymentTransactions.invoiceId],
+      references: [vendorInvoices.id],
+    }),
+    weddingVendor: one(weddingVendors, {
+      fields: [vendorPaymentTransactions.weddingVendorId],
+      references: [weddingVendors.id],
+    }),
+    wedding: one(weddings, {
+      fields: [vendorPaymentTransactions.weddingId],
+      references: [weddings.id],
+    }),
+    recordedByUser: one(users, {
+      fields: [vendorPaymentTransactions.recordedBy],
+      references: [users.id],
+    }),
+  })
+);
+
+// ── Finance: Miscellaneous Expenses & Extras Relations ──────────
+export const expensesRelations = relations(expenses, ({ one }) => ({
+  wedding: one(weddings, {
+    fields: [expenses.weddingId],
+    references: [weddings.id],
+  }),
+  vendor: one(vendors, {
+    fields: [expenses.vendorId],
+    references: [vendors.id],
+  }),
+  approvedByUser: one(users, {
+    fields: [expenses.approvedBy],
+    references: [users.id],
+  }),
+}));
+
+export const approvedExtrasRelations = relations(
+  approvedExtras,
+  ({ one }) => ({
+    wedding: one(weddings, {
+      fields: [approvedExtras.weddingId],
+      references: [weddings.id],
+    }),
+    weddingVendor: one(weddingVendors, {
+      fields: [approvedExtras.weddingVendorId],
+      references: [weddingVendors.id],
+    }),
+    approvedByUser: one(users, {
+      fields: [approvedExtras.approvedBy],
+      references: [users.id],
     }),
   })
 );

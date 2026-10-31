@@ -52,13 +52,13 @@ Gate: Architecture, data boundaries, project commands and env placeholders docum
 - [x] Mobile/offline schedule basics.
 
 ## Phase 6 — Financial integrity
-- [ ] Client milestones/transactions.
-- [ ] Vendor contracts/invoices/payments.
-- [ ] Expense and approved extra model.
-- [ ] Invoice reconciliation.
-- [ ] Duplicate/idempotency handling.
-- [ ] Append-only audit trail.
-- [ ] Projected and final profit.
+- [x] Client milestones/transactions.
+- [x] Vendor contracts/invoices/payments.
+- [x] Expense and approved extra model.
+- [x] Invoice reconciliation.
+- [x] Duplicate/idempotency handling.
+- [x] Append-only audit trail.
+- [x] Projected and final profit.
 
 ## Phase 7 — Guests and client portal
 - [ ] Guest and household records.

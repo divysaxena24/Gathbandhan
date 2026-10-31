@@ -1004,6 +1004,306 @@ async function seed() {
     console.log(`  ✅ Seeded ${seededTimeline.length} timeline items, 3 dependencies, ${checkInValues.length} QR gate passes, and 3 incident logs`);
 
     // ============================================================
+    // 11. Financial Integrity & Settlement — Phase 6
+    // ============================================================
+    console.log("💰 Seeding Financial Integrity & Settlement records...");
+
+    const financeUser = users[3]; // Rohan Mehta (FINANCE)
+
+    // 11.1 Client Payment Milestones for Sharma Royal Wedding (₹2 Crore budget)
+    const seededMilestones = await db
+      .insert(schema.clientPaymentMilestones)
+      .values([
+        {
+          weddingId: sharmaWedding.id,
+          title: "Initial Engagement Deposit & Date Lock",
+          percentage: "20.00",
+          amountPaise: 400000000n, // ₹40 Lakh
+          paidPaise: 400000000n,
+          dueAt: "2026-11-01",
+          status: "PAID",
+          orderIndex: 1,
+          notes: "Initial advance to secure Taj Lake Palace & flagship dates",
+        },
+        {
+          weddingId: sharmaWedding.id,
+          title: "Vendor Retainers & Concept Sign-off",
+          percentage: "30.00",
+          amountPaise: 600000000n, // ₹60 Lakh
+          paidPaise: 600000000n,
+          dueAt: "2026-12-15",
+          status: "PAID",
+          orderIndex: 2,
+          notes: "Disbursal for catering retainers and artist booking advances",
+        },
+        {
+          weddingId: sharmaWedding.id,
+          title: "Production, Decor & Hospitality Advance",
+          percentage: "30.00",
+          amountPaise: 600000000n, // ₹60 Lakh
+          paidPaise: 400000000n, // Partially paid ₹40 Lakh
+          dueAt: "2027-01-20",
+          status: "PARTIALLY_PAID",
+          orderIndex: 3,
+          notes: "Fabrication, trussing, floral imports, and vintage car fleet locks",
+        },
+        {
+          weddingId: sharmaWedding.id,
+          title: "Final Settlement & Post-Wedding Handover",
+          percentage: "20.00",
+          amountPaise: 400000000n, // ₹40 Lakh
+          paidPaise: 0n,
+          dueAt: "2027-02-15",
+          status: "PENDING",
+          orderIndex: 4,
+          notes: "Post-event final reconciliation including incidentals and extra guest covers",
+        },
+      ])
+      .returning();
+
+    // 11.2 Client Payment Transactions (Receipts)
+    await db.insert(schema.clientPaymentTransactions).values([
+      {
+        milestoneId: seededMilestones[0].id,
+        weddingId: sharmaWedding.id,
+        amountPaise: 400000000n,
+        paidAt: new Date("2026-10-28T11:30:00+05:30"),
+        paymentMethod: "RTGS",
+        reference: "HDFC000192837461",
+        idempotencyKey: "idemp_cl_sharma_001_initial_dep",
+        recordedBy: financeUser.id,
+        receiptUrl: "https://documents.gathbandhan.internal/receipts/rec-sharma-001.pdf",
+        notes: "Transferred from Mr. Aarav Sharma HDFC Private Banking",
+      },
+      {
+        milestoneId: seededMilestones[1].id,
+        weddingId: sharmaWedding.id,
+        amountPaise: 600000000n,
+        paidAt: new Date("2026-12-14T15:45:00+05:30"),
+        paymentMethod: "RTGS",
+        reference: "ICIC000847291823",
+        idempotencyKey: "idemp_cl_sharma_002_retainers",
+        recordedBy: financeUser.id,
+        receiptUrl: "https://documents.gathbandhan.internal/receipts/rec-sharma-002.pdf",
+        notes: "Milestone 2 cleared. Verified in corporate account.",
+      },
+      {
+        milestoneId: seededMilestones[2].id,
+        weddingId: sharmaWedding.id,
+        amountPaise: 400000000n,
+        paidAt: new Date("2027-01-19T17:15:00+05:30"),
+        paymentMethod: "RTGS",
+        reference: "KKBK000491827451",
+        idempotencyKey: "idemp_cl_sharma_003_prod_adv",
+        recordedBy: financeUser.id,
+        receiptUrl: "https://documents.gathbandhan.internal/receipts/rec-sharma-003.pdf",
+        notes: "First tranche of Milestone 3. Balance ₹20 Lakh due before Mehendi.",
+      },
+    ]);
+
+    // 11.3 Approved Extras (Out of scope variations)
+    const seededExtras = await db
+      .insert(schema.approvedExtras)
+      .values([
+        {
+          weddingId: sharmaWedding.id,
+          weddingVendorId: weddingVendors[0].id, // Royal Mewar Catering
+          title: "Additional 50 Royal Dining Covers (Sangeet)",
+          description: "Groom family guest count increased from 350 to 400 for Sangeet dinner buffet",
+          category: "Catering",
+          unitRatePaise: 600000n, // ₹6,000 per cover
+          quantity: 50,
+          vendorCostPaise: 24000000n, // ₹2.4 Lakh cost
+          clientAmountPaise: 30000000n, // ₹3.0 Lakh billed
+          billableToClient: true,
+          status: "APPROVED",
+          approvedBy: founder.id,
+          approvedAt: new Date("2027-01-15T10:00:00+05:30"),
+        },
+        {
+          weddingId: sharmaWedding.id,
+          weddingVendorId: weddingVendors[5].id, // Sound & Light
+          title: "Extended 2-Hour Sound Curfew Genset & Acoustic Shroud",
+          description: "Night permit acoustics for Jagmandir island courtyard until 1:00 AM",
+          category: "Production",
+          unitRatePaise: 15000000n, // ₹1.5 Lakh
+          quantity: 1,
+          vendorCostPaise: 10000000n, // ₹1.0 Lakh
+          clientAmountPaise: 15000000n, // ₹1.5 Lakh
+          billableToClient: true,
+          status: "APPROVED",
+          approvedBy: founder.id,
+          approvedAt: new Date("2027-01-20T16:30:00+05:30"),
+        },
+        {
+          weddingId: sharmaWedding.id,
+          weddingVendorId: weddingVendors[3].id, // Royal Floral Decor
+          title: "Imported Dutch Hydrangeas & White Orchids Mandap Enhancement",
+          description: "Delicate floral dome addition for lakeside wedding ceremony",
+          category: "Decor",
+          unitRatePaise: 25000000n, // ₹2.5 Lakh
+          quantity: 1,
+          vendorCostPaise: 20000000n, // ₹2.0 Lakh
+          clientAmountPaise: 25000000n, // ₹2.5 Lakh
+          billableToClient: true,
+          status: "PENDING_APPROVAL",
+        },
+      ])
+      .returning();
+
+    // 11.4 Operational Expenses
+    await db.insert(schema.expenses).values([
+      {
+        weddingId: sharmaWedding.id,
+        title: "Udaipur Municipal Police & Lake Authority NOC",
+        category: "COORDINATION",
+        amountPaise: 4500000n, // ₹45,000
+        incurredAt: new Date("2026-12-10T11:00:00+05:30"),
+        billableToClient: true,
+        isApproved: true,
+        approvedBy: founder.id,
+        approvedAt: new Date("2026-12-11T09:00:00+05:30"),
+        receiptUrl: "https://documents.gathbandhan.internal/receipts/noc-udaipur-45k.pdf",
+        notes: "Official receipt from Udaipur Municipal Corporation",
+      },
+      {
+        weddingId: sharmaWedding.id,
+        title: "Emergency High-Diesel Fuel for Secondary Genset",
+        category: "TRANSPORT",
+        amountPaise: 1850000n, // ₹18,500
+        incurredAt: new Date("2027-02-12T09:00:00+05:30"),
+        billableToClient: false,
+        isApproved: true,
+        approvedBy: financeUser.id,
+        approvedAt: new Date("2027-02-12T09:30:00+05:30"),
+        receiptUrl: "https://documents.gathbandhan.internal/receipts/fuel-genset-18500.pdf",
+        notes: "Incurred during 15V fluctuation incident response",
+      },
+      {
+        weddingId: sharmaWedding.id,
+        title: "Airport Chauffeur Refreshments & Fleet Parking Passes",
+        category: "TRANSPORT",
+        amountPaise: 1200000n, // ₹12,000
+        incurredAt: new Date("2027-02-11T18:00:00+05:30"),
+        billableToClient: true,
+        isApproved: false,
+        receiptUrl: null,
+        notes: "Maharana Pratap Airport parking coupons for 15 Innova Crysta cabs",
+      },
+    ]);
+
+    // 11.5 Vendor Invoices & Disbursements
+    const seededInvoices = await db
+      .insert(schema.vendorInvoices)
+      .values([
+        {
+          weddingVendorId: weddingVendors[0].id, // Royal Mewar Catering
+          weddingId: sharmaWedding.id,
+          vendorId: vendors[0].id,
+          invoiceNumber: "INV-RMC-2026-088",
+          issueDate: "2026-12-01",
+          dueDate: "2026-12-15",
+          subtotalPaise: 380952380n,
+          taxPaise: 19047620n, // 5% GST
+          totalPaise: 400000000n, // ₹40 Lakh (First 50% retainer of ₹80 Lakh contract)
+          paidPaise: 400000000n,
+          status: "PAID",
+          documentUrl: "https://documents.gathbandhan.internal/invoices/inv-rmc-088.pdf",
+          notes: "Catering booking advance and menu degustation sign-off",
+          isReconciled: true,
+          reconciledAt: new Date("2026-12-05T14:00:00+05:30"),
+          reconciledBy: financeUser.id,
+          reconciliationNotes: "Reconciled with 50% contract milestone terms. Exact match.",
+        },
+        {
+          weddingVendorId: weddingVendors[3].id, // Royal Floral Decor
+          weddingId: sharmaWedding.id,
+          vendorId: vendors[3].id,
+          invoiceNumber: "RFD-UDZ-2027-014",
+          issueDate: "2027-01-10",
+          dueDate: "2027-01-25",
+          subtotalPaise: 175000000n,
+          taxPaise: 0n,
+          totalPaise: 175000000n, // ₹17.5 Lakh (50% of ₹35 Lakh contract)
+          paidPaise: 175000000n,
+          status: "PAID",
+          documentUrl: "https://documents.gathbandhan.internal/invoices/inv-rfd-014.pdf",
+          notes: "Decor fabrication advance and flower procurement advance",
+          isReconciled: true,
+          reconciledAt: new Date("2027-01-12T16:00:00+05:30"),
+          reconciledBy: financeUser.id,
+          reconciliationNotes: "Reconciled against contract terms. Advance schedule verified.",
+        },
+        {
+          weddingVendorId: weddingVendors[4].id, // Photography
+          weddingId: sharmaWedding.id,
+          vendorId: vendors[4].id,
+          invoiceNumber: "INV-EP-2027-003",
+          issueDate: "2027-01-20",
+          dueDate: "2027-02-05",
+          subtotalPaise: 125000000n,
+          taxPaise: 0n,
+          totalPaise: 125000000n, // ₹12.5 Lakh (50% of ₹25 Lakh contract)
+          paidPaise: 0n,
+          status: "APPROVED",
+          documentUrl: "https://documents.gathbandhan.internal/invoices/inv-ep-003.pdf",
+          notes: "Pre-wedding shoot delivery and team travel booking advance",
+          isReconciled: true,
+          reconciledAt: new Date("2027-01-22T11:00:00+05:30"),
+          reconciledBy: financeUser.id,
+          reconciliationNotes: "Pre-wedding photos delivered in high resolution. Approved for payment.",
+        },
+        {
+          weddingVendorId: weddingVendors[0].id, // Royal Mewar Catering Second Invoice (Final + Extras)
+          weddingId: sharmaWedding.id,
+          vendorId: vendors[0].id,
+          invoiceNumber: "INV-RMC-2027-012",
+          issueDate: "2027-02-10",
+          dueDate: "2027-02-20",
+          subtotalPaise: 403809524n,
+          taxPaise: 20190476n,
+          totalPaise: 424000000n, // ₹42.4 Lakh (₹40 Lakh balance + ₹2.4 Lakh approved extra)
+          paidPaise: 0n,
+          status: "SENT",
+          documentUrl: "https://documents.gathbandhan.internal/invoices/inv-rmc-012.pdf",
+          notes: "Balance 50% catering contract plus 50 additional Sangeet dinner covers",
+          isReconciled: false,
+          reconciliationNotes: null,
+        },
+      ])
+      .returning();
+
+    // 11.6 Vendor Payment Disbursements (Idempotent transactions)
+    await db.insert(schema.vendorPaymentTransactions).values([
+      {
+        invoiceId: seededInvoices[0].id,
+        weddingVendorId: weddingVendors[0].id,
+        weddingId: sharmaWedding.id,
+        amountPaise: 400000000n,
+        paidAt: new Date("2026-12-14T11:00:00+05:30"),
+        paymentMethod: "RTGS",
+        reference: "KKBK000982736412",
+        idempotencyKey: "idemp_vnd_pay_rmc_001_adv",
+        recordedBy: financeUser.id,
+        notes: "Advance 50% transferred to Royal Mewar Catering current account",
+      },
+      {
+        invoiceId: seededInvoices[1].id,
+        weddingVendorId: weddingVendors[3].id,
+        weddingId: sharmaWedding.id,
+        amountPaise: 175000000n,
+        paidAt: new Date("2027-01-20T14:30:00+05:30"),
+        paymentMethod: "NEFT",
+        reference: "HDFC000762514930",
+        idempotencyKey: "idemp_vnd_pay_rfd_001_adv",
+        recordedBy: financeUser.id,
+        notes: "Transferred from Gathbandhan client escrow sub-ledger",
+      },
+    ]);
+
+    console.log(`  ✅ Seeded ${seededMilestones.length} client milestones, 3 client receipts, ${seededInvoices.length} vendor invoices, 2 vendor disbursements, ${seededExtras.length} approved extras, and 3 operational expenses`);
+
+    // ============================================================
     // Done
     // ============================================================
     console.log("\n✨ Seed complete!");
