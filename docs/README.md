@@ -54,7 +54,7 @@ The platform covers the entire wedding lifecycle, from the first client enquiry 
 |---|---|
 | Product name | Gathbandhan OS |
 | Category | Wedding Planning Management System |
-| Target users | Luxury wedding planning agencies |
+| Target users | Couples planning weddings, wedding vendors, and wedding planning agencies |
 | Primary market | India |
 | Typical wedding size | 400+ guests |
 | Typical vendor network | 18+ specialized vendors per wedding |
