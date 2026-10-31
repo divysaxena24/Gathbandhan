@@ -140,6 +140,7 @@ function createMockVendor(params: {
     financialAudit: {
       isValid: params.isMathValid ?? true,
       statedSubtotal: params.grandTotal,
+      statedGrandTotal: params.grandTotal * 1.05,
       calculatedSubtotal: params.calculatedTotal || params.grandTotal,
       subtotalDiscrepancy: params.isMathValid === false ? 5000 : 0,
       subtotalMatches: params.isMathValid ?? true,
@@ -163,6 +164,9 @@ function createMockVendor(params: {
       auditTimestamp: new Date().toISOString(),
     },
     conflictsAndWarnings: [],
+    sourcePageCount: 3,
+    missingFields: [],
+    error: null,
     meta: {
       uploadId: params.uploadId,
       originalFileName: `${params.vendorName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`,

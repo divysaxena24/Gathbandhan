@@ -75,11 +75,7 @@ export function VendorComparisonDashboard({
     : null;
 
   const drilldownQuotationResult = selectedDrilldownVendorId
-<<<<<<< HEAD
-    ? analyzedQuotations.find((q) => q.uploadId === selectedDrilldownVendorId || q.meta?.uploadId === selectedDrilldownVendorId) || null
-=======
-    ? analyzedQuotations.find((q) => (q?.uploadId || (q as any)?.meta?.uploadId) === selectedDrilldownVendorId) || null
->>>>>>> 4ab7cec (polish pdf comparison report)
+    ? analyzedQuotations.find((q) => (q?.uploadId || q?.meta?.uploadId) === selectedDrilldownVendorId) || null
     : null;
 
   const drilldownVendorScore = selectedDrilldownVendorId
