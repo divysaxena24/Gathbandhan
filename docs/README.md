@@ -2,103 +2,101 @@
 
 ### The Operating System for Luxury Wedding Planning
 
-<p align="center">
-  <strong>Plan beautifully. Execute flawlessly. Manage every detail.</strong>
-</p>
+**Plan beautifully. Execute flawlessly. Manage every detail.**
 
-<p align="center">
-  A unified wedding planning and management platform for luxury wedding agencies in India.
-</p>
+A unified planning and operations platform for luxury wedding agencies in India.
+
+![Next.js](https://img.shields.io/badge/Next.js-15.5.6-000000?logo=nextdotjs&logoColor=white)
+![React](https://img.shields.io/badge/React-19.1.1-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9.2-3178C6?logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16.x-4169E1?logo=postgresql&logoColor=white)
+![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-0.44.5-C5F74F)
+![Node.js](https://img.shields.io/badge/Node.js-22.x-339933?logo=nodedotjs&logoColor=white)
+
 
 ---
 
 ## Table of Contents
 
-- [Overview](#-overview)
-- [The Problem](#-the-problem)
-- [Vision and Goals](#-vision-and-goals)
-- [Core Capabilities](#-core-capabilities)
-- [Product Modules](#-product-modules)
-- [System Architecture](#-system-architecture)
-- [Business Workflows](#-business-workflows)
-- [Database Architecture](#-database-architecture)
-- [Authentication and Authorization](#-authentication-and-authorization)
-- [Technology Stack](#-technology-stack)
-- [Project Structure](#-project-structure)
-- [Getting Started](#-getting-started)
-- [Environment Variables](#-environment-variables)
-- [Database Setup](#-database-setup)
-- [Development Commands](#-development-commands)
-- [Testing and Quality Assurance](#-testing-and-quality-assurance)
-- [Security and Data Integrity](#-security-and-data-integrity)
-- [Roadmap](#-roadmap)
-- [Development Principles](#-development-principles)
-- [Contributing](#-contributing)
-- [License](#-license)
+- [Overview](#overview)
+- [The Problem](#the-problem)
+- [Vision and Goals](#vision-and-goals)
+- [Core Capabilities](#core-capabilities)
+- [Product Modules](#product-modules)
+- [System Architecture](#system-architecture)
+- [Business Workflows](#business-workflows)
+- [Database Architecture](#database-architecture)
+- [Authentication and Authorization](#authentication-and-authorization)
+- [Technology Stack](#technology-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [Database Setup](#database-setup)
+- [Development Commands](#development-commands)
+- [Testing and Quality Assurance](#testing-and-quality-assurance)
+- [Security and Data Integrity](#security-and-data-integrity)
+- [Roadmap](#roadmap)
+- [Development Principles](#development-principles)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## 📌 Overview
+## Overview
 
-**Gathbandhan OS** is a modern, full-stack wedding planning management platform designed for luxury wedding planning agencies operating in India.
+**Gathbandhan OS** is a full-stack wedding planning management platform built for luxury wedding agencies operating in India. The name comes from *Gathbandhan*, the ritual in which the couple's garments are tied together. The product does the same for an agency's operations: it ties together clients, vendors, tasks, schedules, guests, and money in one system of record.
 
-The platform brings the entire wedding lifecycle into one centralized workspace—from the first client enquiry to wedding execution, vendor coordination, financial settlement, and post-wedding business analytics.
-
-It is designed for agencies managing large destination weddings, multi-day celebrations, numerous vendors, complex budgets, and high expectations from clients.
-
-Gathbandhan aims to replace fragmented workflows involving WhatsApp conversations, spreadsheets, PDFs, paper checklists, and disconnected financial records with a unified operational system.
+The platform covers the entire wedding lifecycle, from the first client enquiry through planning, vendor coordination, wedding-day execution, financial settlement, and post-wedding business analytics. It replaces fragmented workflows built on WhatsApp conversations, spreadsheets, PDFs, paper checklists, and disconnected financial records.
 
 ### Product Identity
 
 | Attribute | Description |
 |---|---|
-| Product Name | Gathbandhan OS |
-| Product Category | Wedding Planning Management System |
-| Target Users | Luxury wedding planning agencies |
-| Primary Market | India |
-| Typical Wedding Size | 400+ guests |
-| Typical Vendor Network | 18+ specialized vendors per wedding |
-| Wedding Format | Multi-day destination weddings |
+| Product name | Gathbandhan OS |
+| Category | Wedding Planning Management System |
+| Target users | Luxury wedding planning agencies |
+| Primary market | India |
+| Typical wedding size | 400+ guests |
+| Typical vendor network | 18+ specialized vendors per wedding |
+| Wedding format | Multi-day destination weddings |
 | Currency | INR |
-| Monetary Storage | Integer paise |
-| Primary Timezone | Asia/Kolkata (IST) |
+| Monetary storage | Integer paise |
+| Primary timezone | Asia/Kolkata (IST) |
 
-> Gathbandhan is designed around the operational complexity of luxury weddings—not simply as a wedding checklist application.
+> Gathbandhan is designed around the operational complexity of luxury weddings. It is not a wedding checklist application.
 
 ---
 
-## 🎯 The Problem
+## The Problem
 
-Luxury wedding planning involves coordinating multiple interconnected business and operational processes.
+A single luxury wedding involves several interconnected business and operational processes:
 
-A typical wedding may involve:
+- Multiple family members and decision-makers
+- Several days of events
+- Dozens of vendors and service providers
+- Large budgets paid in stages
+- Guest accommodation and transportation
+- Constant timeline changes
+- High expectations for real-time coordination
 
-- Multiple family members and decision-makers.
-- Several days of wedding events.
-- Dozens of vendors and service providers.
-- Large budgets and staged payments.
-- Detailed guest accommodation and transportation.
-- Constant timeline changes.
-- High expectations for real-time coordination.
-
-When these processes are managed through disconnected tools, several problems arise.
+When these are managed through disconnected tools, the consequences are predictable.
 
 | Problem | Business Impact |
 |---|---|
 | Enquiries scattered across WhatsApp, calls, and Instagram | Leads are missed or forgotten |
-| Vendor quotations stored as PDFs | Manual comparisons are slow and error-prone |
-| Paper-based checklists | Tasks are difficult to track and delegate |
+| Vendor quotations stored as PDFs | Manual comparison is slow and error-prone |
+| Paper-based checklists | Tasks are hard to track and delegate |
 | Vendor dependencies are not visible | Delays cascade into other wedding activities |
-| Payments are tracked manually | Duplicate payments and financial leakage |
-| Wedding budgets are maintained separately | Actual profitability becomes difficult to determine |
-| Guest information is fragmented | RSVP and logistics coordination becomes inefficient |
-| Founder reports are prepared manually | Business decisions are delayed |
+| Manual payment tracking | Duplicate payments and financial leakage |
+| Budgets maintained separately | Actual profitability is hard to determine |
+| Fragmented guest information | RSVP and logistics coordination is inefficient |
+| Manually prepared founder reports | Business decisions are delayed |
 
-Gathbandhan provides a centralized system of record for these workflows.
+Gathbandhan provides a centralized system of record for all of these workflows.
 
 ---
 
-## 🚀 Vision and Goals
+## Vision and Goals
 
 ### Vision
 
@@ -119,156 +117,131 @@ Build the most reliable operational platform for luxury wedding planning agencie
 
 Gathbandhan is not intended to be:
 
-- A generic task management application.
-- A public wedding inspiration marketplace.
-- A standalone accounting replacement.
-- A simple vendor directory.
-- A consumer-only wedding checklist application.
+- A generic task management application
+- A public wedding inspiration marketplace
+- A standalone accounting replacement
+- A simple vendor directory
+- A consumer-only wedding checklist application
 
-The product is designed primarily for the internal operations of professional wedding planning agencies, with client and vendor experiences where appropriate.
+The product serves the internal operations of professional wedding planning agencies, with client and vendor experiences where appropriate.
 
 ---
 
-## ✨ Core Capabilities
+## Core Capabilities
 
-The long-term product is organized around the following capabilities.
+The long-term product is organized around nine capabilities.
 
 ### 1. CRM and Lead Management
 
 Capture, qualify, assign, and convert wedding enquiries.
 
-Planned capabilities include:
-
-- Lead capture from multiple sources.
-- Lead ownership and assignment.
-- Sales pipeline management.
-- Follow-up scheduling.
-- Client consultation tracking.
-- Lead activity history.
-- Lead-to-wedding conversion.
-- Conversion analytics.
+- Lead capture from multiple sources
+- Lead ownership and assignment
+- Sales pipeline management
+- Follow-up scheduling
+- Client consultation tracking
+- Lead activity history
+- Lead-to-wedding conversion
+- Conversion analytics
 
 ### 2. Client Portal
 
-Provide clients with a centralized place to access wedding information.
+Give clients a central place to access wedding information.
 
-Planned capabilities include:
-
-- Wedding overview.
-- Event itinerary.
-- Agreements and documents.
-- Approvals.
-- Selected planning updates.
-- Guest-related information.
+- Wedding overview
+- Event itinerary
+- Agreements and documents
+- Approvals
+- Selected planning updates
+- Guest-related information
 
 ### 3. Vendor Management
 
-Maintain a structured vendor directory and vendor relationship history.
+Maintain a structured vendor directory and relationship history.
 
-Planned capabilities include:
-
-- Vendor profiles.
-- Categories and specialties.
-- Contact information.
-- Service areas.
-- Vendor availability.
-- Wedding assignments.
-- Contract and scope information.
-- Vendor performance records.
+- Vendor profiles
+- Categories and specialties
+- Contact information and service areas
+- Vendor availability
+- Wedding assignments
+- Contract and scope information
+- Vendor performance records
 
 ### 4. Smart Vendor Quotations
 
-Make vendor quotation evaluation more structured.
+Make quotation evaluation structured and comparable.
 
-Planned capabilities include:
-
-- PDF quotation ingestion.
-- Quote normalization.
-- Cost comparison.
-- Guest-count sensitivity.
-- Inclusion and exclusion comparison.
-- Landed-cost calculations.
-- Weighted vendor scoring.
-- Quote version history.
+- PDF quotation ingestion
+- Quote normalization
+- Cost comparison and landed-cost calculation
+- Guest-count sensitivity
+- Inclusion and exclusion comparison
+- Weighted vendor scoring
+- Quote version history
 
 ### 5. Wedding Planning
 
 Manage wedding projects and their interconnected tasks.
 
-Planned capabilities include:
-
-- Multi-day event planning.
-- Task assignment.
-- Task dependencies.
-- Planning milestones.
-- Deadline tracking.
-- Checklist templates.
-- Progress monitoring.
+- Multi-day event planning
+- Task assignment and dependencies
+- Planning milestones and deadline tracking
+- Checklist templates
+- Progress monitoring
 
 ### 6. Event Control Room
 
 Provide an operational view of wedding-day execution.
 
-Planned capabilities include:
-
-- Live event timelines.
-- Vendor check-in.
-- Arrival monitoring.
-- Delay alerts.
-- Incident logging.
-- Timeline adjustments.
-- Operational status tracking.
+- Live event timelines
+- Vendor check-in and arrival monitoring
+- Delay alerts
+- Incident logging
+- Timeline adjustments
+- Operational status tracking
 
 ### 7. Financial Integrity
 
-Track wedding budgets, commitments, payments, and profitability.
+Track budgets, commitments, payments, and profitability.
 
-Planned capabilities include:
-
-- Budget management.
-- Vendor payment milestones.
-- Payment status tracking.
-- Duplicate payment prevention.
-- Additional expense tracking.
-- Actual versus planned cost.
-- Profitability monitoring.
-- Financial audit history.
+- Budget management
+- Vendor payment milestones and status tracking
+- Duplicate payment prevention
+- Additional expense tracking
+- Actual versus planned cost
+- Profitability monitoring
+- Financial audit history
 
 ### 8. Guest Logistics
 
 Manage guest-related wedding operations.
 
-Planned capabilities include:
-
-- Guest records.
-- RSVP tracking.
-- Household grouping.
-- Accommodation requirements.
-- Transportation coordination.
-- Event attendance.
-- Guest communication status.
+- Guest records and household grouping
+- RSVP tracking
+- Accommodation requirements
+- Transportation coordination
+- Event attendance
+- Guest communication status
 
 ### 9. Founder Analytics
 
 Provide business-level visibility.
 
-Planned capabilities include:
+- Lead conversion
+- Wedding pipeline
+- Revenue and cost summaries
+- Profitability
+- Vendor performance
+- Season-level reporting
+- Operational risk indicators
 
-- Lead conversion.
-- Wedding pipeline.
-- Revenue and cost summaries.
-- Profitability.
-- Vendor performance.
-- Season-level reporting.
-- Operational risk indicators.
-
-> **Implementation status:** Phase 0 and Phase 1 establish the foundation. The modules above represent the product direction; their implementation status is tracked in `docs/ROADMAP.md`.
+> **Implementation status:** Phase 0 and Phase 1 establish the foundation. The capabilities above describe the product direction. Delivery status is tracked in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ---
 
-## 🧩 Product Modules
+## Product Modules
 
-The application is organized into the following workspace modules.
+The workspace is organized into the following modules.
 
 | Route | Module | Purpose |
 |---|---|---|
@@ -288,11 +261,9 @@ The routes are established in the Phase 1 application shell. Each module is impl
 
 ---
 
-## 🏗 System Architecture
+## System Architecture
 
-Gathbandhan follows a modular full-stack architecture built around Next.js, PostgreSQL, and Drizzle ORM.
-
-### High-Level Architecture
+Gathbandhan follows a modular full-stack architecture built on Next.js, PostgreSQL, and Drizzle ORM.
 
 ```mermaid
 flowchart TB
@@ -354,19 +325,19 @@ flowchart TB
 
 ### Architectural Principles
 
-- Modular domain-oriented code organization.
-- Server-side authorization.
-- Shared validation schemas.
-- Typed domain errors.
-- Standardized API responses.
-- Database transactions for multi-record mutations.
-- Exact integer representation for money.
-- Append-only audit history for important mutations.
-- Incremental implementation by roadmap phase.
+- Modular, domain-oriented code organization
+- Server-side authorization
+- Shared validation schemas
+- Typed domain errors
+- Standardized API responses
+- Database transactions for multi-record mutations
+- Exact integer representation for money
+- Append-only audit history for important mutations
+- Incremental delivery by roadmap phase
 
 ---
 
-## 🔄 Business Workflows
+## Business Workflows
 
 ### Lead-to-Wedding Lifecycle
 
@@ -412,26 +383,13 @@ flowchart TD
     K --> L["Post-Wedding Review"]
 ```
 
-This represents the intended product workflow. Individual stages are delivered through the roadmap.
+These diagrams represent the intended product workflow. Individual stages are delivered through the roadmap.
 
 ---
 
-## 🗄 Database Architecture
+## Database Architecture
 
-The database uses PostgreSQL with Drizzle ORM.
-
-The Phase 1 foundation includes normalized schemas for:
-
-- Users.
-- Leads.
-- Clients.
-- Weddings.
-- Wedding events.
-- Vendors.
-- Wedding-vendor assignments.
-- Audit logs.
-
-### Entity Relationship Diagram
+The database uses PostgreSQL with Drizzle ORM. The Phase 1 foundation includes normalized schemas for users, leads, clients, weddings, wedding events, vendors, wedding-vendor assignments, and audit logs.
 
 ```mermaid
 erDiagram
@@ -498,33 +456,33 @@ erDiagram
     }
 ```
 
-> The diagram is a conceptual representation of the current foundation. Consult `src/lib/db/schema/` and the generated migrations for the authoritative schema.
+> The diagram is a conceptual view of the current foundation. The authoritative schema lives in `src/lib/db/schema/` and the generated migrations in `drizzle/`.
 
 ### Data Modeling Principles
 
-- Use UUIDs for entity identifiers where defined by the schema.
-- Use foreign keys for relational integrity.
-- Use explicit join entities for wedding-vendor relationships.
-- Preserve lead history after conversion.
-- Use soft deletion where supported.
-- Keep audit records append-only.
-- Represent monetary values as integer paise.
+- UUID identifiers where defined by the schema
+- Foreign keys for relational integrity
+- Explicit join entities for wedding-vendor relationships
+- Lead history preserved after conversion
+- Soft deletion where supported
+- Append-only audit records
+- Monetary values stored as integer paise
 
 ---
 
-## 🔐 Authentication and Authorization
+## Authentication and Authorization
 
-Gathbandhan uses Clerk for authentication and a server-side role-based access control system.
+Gathbandhan uses **Clerk** for authentication and a server-side role-based access control (RBAC) system for authorization.
 
 ### Supported Roles
 
-| Role | Intended Responsibility |
+| Role | Responsibility |
 |---|---|
 | `FOUNDER_ADMIN` | Agency-wide administration and oversight |
 | `PLANNER` | Wedding planning and client coordination |
 | `FINANCE` | Budgets, payments, and financial operations |
 | `ONSITE_COORDINATOR` | Wedding-day execution |
-| `VENDOR` | Authorized vendor-specific access |
+| `VENDOR` | Authorized, vendor-specific access |
 | `CLIENT` | Authorized client portal access |
 
 ### Authorization Flow
@@ -551,13 +509,13 @@ sequenceDiagram
 
 ### Security Principles
 
-- Authentication does not automatically imply authorization.
-- Every sensitive mutation must be checked server-side.
-- Access to wedding records must respect wedding-level permissions.
-- Vendor and client access must be scoped appropriately.
-- Public vendor check-in flows must use their intended token-based access model.
-- Sensitive information must not be exposed in client-side code.
-- Secrets must be stored in environment variables.
+- Authentication does not imply authorization.
+- Every sensitive mutation is checked server-side.
+- Access to wedding records respects wedding-level permissions.
+- Vendor and client access is scoped to the records they are authorized to see.
+- Public vendor check-in flows use a token-based access model.
+- Sensitive information is never exposed in client-side code.
+- Secrets are stored in environment variables.
 
 The role definitions and permission matrix are maintained in:
 
@@ -568,7 +526,7 @@ src/lib/auth/index.ts
 
 ---
 
-## 💻 Technology Stack
+## Technology Stack
 
 The project uses a fixed, documented technology baseline.
 
@@ -592,11 +550,11 @@ The project uses a fixed, documented technology baseline.
 | Lucide React | 0.545.0 | Icons |
 | date-fns | 4.1.0 | Date utilities |
 
-The actual installed versions in `package.json` and `pnpm-lock.yaml` are authoritative.
+> The installed versions in `package.json` and `pnpm-lock.yaml` are authoritative.
 
 ### Design System
 
-The visual system uses a premium wedding-inspired palette.
+The visual identity uses a premium, wedding-inspired palette with Inter and Playfair Display typography, plus semantic status tokens for operational states.
 
 | Token | Value | Usage |
 |---|---|---|
@@ -604,13 +562,9 @@ The visual system uses a premium wedding-inspired palette.
 | Charcoal | `#2A2A2A` | Navigation and typography |
 | Muted Gold | `#C5A855` | Accent color |
 
-The application uses Inter and Playfair Display typography, with semantic status tokens for operational states.
-
 ---
 
-## 📁 Project Structure
-
-The following is a high-level representation of the application structure.
+## Project Structure
 
 ```text
 gathbandhan-os/
@@ -625,7 +579,7 @@ gathbandhan-os/
 │   ├── prd/
 │   └── ROADMAP.md
 │
-├── drizzle/
+├── drizzle/                     # Generated SQL migrations
 │   ├── 0000_dashing_ozymandias.sql
 │   └── 0001_milky_kree.sql
 │
@@ -683,76 +637,72 @@ gathbandhan-os/
 └── vitest.config.ts
 ```
 
-> This tree reflects the documented Phase 1 structure. Use the actual repository tree if files have since been added or renamed.
+> This tree reflects the documented Phase 1 structure. Refer to the repository for the current layout.
 
 ---
 
-## ⚙️ Getting Started
+## Getting Started
 
 ### Prerequisites
 
-Install the following:
+- Node.js 22.x
+- pnpm 10.17.1
+- PostgreSQL 16.x, or a compatible hosted PostgreSQL service
+- A Clerk application for authentication
 
-- Node.js 22.x.
-- pnpm 10.17.1.
-- PostgreSQL 16.x or a compatible hosted PostgreSQL service.
-- A Clerk application for live authentication.
+The repository includes an `.nvmrc` file to pin the expected Node.js runtime.
 
-The project includes an `.nvmrc` file to help maintain the expected Node.js runtime.
+### Installation
 
-### 1. Clone the Repository
+**1. Clone the repository**
 
 ```bash
 git clone <your-repository-url>
 cd gathbandhan-os
 ```
 
-### 2. Use the Expected Node.js Version
+**2. Use the expected Node.js version**
 
 ```bash
 nvm install
 nvm use
-```
-
-Verify the runtime:
-
-```bash
 node --version
-pnpm --version
 ```
 
-### 3. Install Dependencies
+**3. Install dependencies**
 
 ```bash
 corepack enable
 pnpm install --frozen-lockfile
+pnpm --version
 ```
 
-### 4. Configure Environment Variables
+**4. Configure environment variables**
 
 ```bash
 cp .env.example .env.local
 ```
 
-Fill in the required values.
+Fill in the required values (see [Environment Variables](#environment-variables)).
 
-### 5. Run the Development Server
+**5. Prepare the database**
+
+```bash
+pnpm db:push
+pnpm db:seed
+```
+
+**6. Start the development server**
 
 ```bash
 pnpm dev
 ```
 
-Open:
-
-```text
-http://localhost:3000
-```
+Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## 🔑 Environment Variables
-
-The application uses environment variables for database access and authentication.
+## Environment Variables
 
 An example configuration is maintained in `.env.example`.
 
@@ -774,78 +724,65 @@ Additional variables may be introduced as modules and integrations are implement
 
 ---
 
-## 🗃 Database Setup
+## Database Setup
 
 Gathbandhan uses Drizzle ORM for schema management and migrations.
 
-### Generate Migrations
-
 ```bash
+# Generate migrations from schema changes
 pnpm db:generate
-```
 
-### Apply Database Changes
-
-Use the migration command defined in `package.json`.
-
-For environments where the project uses Drizzle Kit push:
-
-```bash
+# Apply schema changes using the configured Drizzle workflow
 pnpm db:push
-```
 
-Review generated SQL and migration history before applying schema changes to a shared or production database.
-
-### Seed Development Data
-
-```bash
+# Seed development data
 pnpm db:seed
 ```
 
-The deterministic seed script establishes demonstration records for the foundational modules.
+Review the generated SQL and migration history before applying schema changes to a shared or production database.
 
-The documented Phase 1 dataset includes:
+### Seed Data
 
-- Users across agency roles.
-- Four pipeline leads.
-- One converted anchor client.
-- A sample Sharma Royal Wedding.
-- A ₹2 crore wedding budget.
-- 400 guests.
-- Four multi-day wedding events.
-- Eighteen specialized vendors.
-- Wedding-vendor assignments.
-- Initial audit entries.
+The deterministic seed script creates demonstration records for the foundational modules:
 
-Seed data is intended for development and demonstration. Do not execute it against production without reviewing the script.
+| Seeded Data | Detail |
+|---|---|
+| Users | One per agency role |
+| Pipeline leads | Four |
+| Converted client | One anchor client |
+| Sample wedding | Sharma Royal Wedding |
+| Wedding budget | ₹2 crore |
+| Guests | 400 |
+| Wedding events | Four multi-day events |
+| Vendors | Eighteen specialized vendors |
+| Assignments | Wedding-vendor assignments |
+| Audit entries | Initial entries |
+
+> Seed data is for development and demonstration only. Do not run it against production without reviewing the script.
 
 ---
 
-## 🛠 Development Commands
-
-The following commands are used by the project.
+## Development Commands
 
 | Command | Purpose |
 |---|---|
-| `pnpm dev` | Start local development server |
-| `pnpm build` | Create production build |
-| `pnpm start` | Start production server |
+| `pnpm dev` | Start the local development server |
+| `pnpm build` | Create a production build |
+| `pnpm start` | Start the production server |
 | `pnpm typecheck` | Run TypeScript checks |
 | `pnpm lint` | Run linting |
 | `pnpm test` | Run unit tests |
 | `pnpm db:generate` | Generate Drizzle migrations |
-| `pnpm db:push` | Apply schema changes using the configured Drizzle workflow |
+| `pnpm db:push` | Apply schema changes |
 | `pnpm db:seed` | Seed development data |
 
 Check `package.json` for the exact scripts configured in the repository.
 
 ---
 
-## 🧪 Testing and Quality Assurance
+## Testing and Quality Assurance
 
-Gathbandhan uses automated checks to maintain implementation quality.
-
-### Quality Gates
+Every change passes through the same automated quality gates.
 
 ```mermaid
 flowchart TD
@@ -862,12 +799,90 @@ flowchart TD
 
 ### Phase 1 Verification
 
-The Phase 0 and Phase 1 completion report recorded the following results:
+The Phase 0 and Phase 1 completion report recorded the following results.
 
 | Quality Gate | Result |
 |---|---|
-| Unit Tests | 26 passed |
-| Type Checking | Passed |
+| Unit tests | 26 passed |
+| Type checking | Passed |
 | Linting | Passed |
-| Production Build | Passed |
-| Static
+| Production build | Passed |
+
+Unit tests run with Vitest and end-to-end tests with Playwright.
+
+---
+
+## Security and Data Integrity
+
+Financial and operational correctness are treated as product requirements.
+
+### Data Integrity
+
+- **Exact money.** All amounts are stored as integer paise. Floating-point arithmetic is never used for currency.
+- **Transactions.** Mutations that touch multiple records run inside database transactions.
+- **Append-only audit trail.** Important changes are recorded with the actor, action, and timestamp, and audit records are never updated or deleted.
+- **Referential integrity.** Foreign keys and explicit join entities enforce valid relationships.
+- **Soft deletion.** Where supported, records are archived rather than removed.
+- **Duplicate payment prevention.** Planned as part of the Financial Integrity module, enforced at the database level rather than only in the interface.
+
+### Application Security
+
+- Authentication through Clerk, with authorization enforced server-side on every sensitive operation.
+- Role-based access control with wedding-level scoping.
+- Zod validation of all external input.
+- Token-based access for public vendor check-in flows.
+- Secrets confined to environment variables and never committed.
+
+---
+
+## Roadmap
+
+Phase 0 and Phase 1 are complete. The remaining phases are planned and may be reordered. [`docs/ROADMAP.md`](docs/ROADMAP.md) is the source of truth for scope and status.
+
+| Phase | Focus | Status |
+|---|---|---|
+| 0 | Project setup, tooling, and architecture documentation | Complete |
+| 1 | Application shell, authentication, RBAC, core schema, seed data | Complete |
+| 2 | CRM, lead pipeline, and agreements | Planned |
+| 3 | Vendor management and smart quotations | Planned |
+| 4 | Wedding planning, tasks, and dependencies | Planned |
+| 5 | Financial integrity and payment milestones | Planned |
+| 6 | Event control room | Planned |
+| 7 | Guest logistics and client portal | Planned |
+| 8 | Founder analytics and reporting | Planned |
+
+---
+
+## Development Principles
+
+1. **System of record first.** Data accuracy and traceability take priority over features.
+2. **Server-side trust.** The client is never trusted for authorization or business rules.
+3. **Typed and validated.** TypeScript and Zod protect every boundary.
+4. **Money is exact.** Integer paise, always.
+5. **Auditable by default.** Important mutations leave a permanent record.
+6. **Incremental delivery.** Ship in phases, each passing all quality gates.
+7. **Documented decisions.** Architectural choices are recorded in `docs/architecture/DECISIONS.md`.
+8. **Premium experience.** Interfaces should feel as refined as the weddings they support.
+
+---
+
+## Contributing
+
+1. Create a feature branch from the main branch.
+2. Follow the [Development Principles](#development-principles) and the architecture documents in `docs/architecture/`.
+3. Add or update tests for any behavior change.
+4. Confirm all quality gates pass before opening a pull request:
+
+   ```bash
+   pnpm typecheck && pnpm lint && pnpm test && pnpm build
+   ```
+
+5. Describe what changed and why in the pull request. Link the relevant roadmap item where applicable.
+
+---
+
+## License
+
+Copyright © Gathbandhan OS contributors. All rights reserved.
+
+*Replace this section with the project's chosen license before public release.*
