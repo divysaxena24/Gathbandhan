@@ -11,6 +11,7 @@ import { useConsultation } from '@/hooks/useConsultation';
 import StepNavigation from '@/components/consultation-ui/StepNavigation';
 import { getCeremoniesByTraditions } from '@/data/wedding-knowledge';
 import { CeremonyInfo } from '@/types/wedding';
+import { AiAdviceDisplay } from '@/components/consultation-ui/AiAdviceDisplay';
 import { Sparkles, BookOpen, Clock, Users, ChevronDown, ChevronUp, Bot, CheckCircle } from 'lucide-react';
 
 export default function CeremonyDiscoveryStep() {
@@ -33,7 +34,7 @@ export default function CeremonyDiscoveryStep() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          consultationId: state.consultationId,
+          consultationId: state.consultationId || `cons_${Date.now()}`,
           currentStep: 'ceremony_discovery',
           selections: state.selections,
           requestType: 'ceremony_explanation',
@@ -41,8 +42,12 @@ export default function CeremonyDiscoveryStep() {
         }),
       });
       const data = await res.json();
-      setAiAdvice(data.message || 'Consultation advice generated.');
-    } catch {
+      if (!res.ok || !data.message) {
+        throw new Error(data.error || 'Failed to generate consultation advice');
+      }
+      setAiAdvice(data.message);
+    } catch (err: unknown) {
+      console.error('Error fetching AI advice:', err);
       setAiAdvice('Our senior consultants suggest arranging these ceremonies chronologically with adequate rest buffers between high-energy celebrations.');
     } finally {
       setLoadingAi(false);
@@ -89,9 +94,10 @@ export default function CeremonyDiscoveryStep() {
         </div>
 
         {aiAdvice && (
-          <div className="mt-4 pt-4 border-t border-gold/20 text-xs sm:text-sm text-charcoal/90 leading-relaxed whitespace-pre-line bg-white/60 p-4 rounded-xl">
-            {aiAdvice}
-          </div>
+          <AiAdviceDisplay
+            content={aiAdvice}
+            onClose={() => setAiAdvice(null)}
+          />
         )}
       </div>
 

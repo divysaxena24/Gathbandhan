@@ -55,11 +55,11 @@ export const spendingPrioritySchema = z.enum([
 
 // === AI Chat Request ===
 export const aiChatRequestSchema = z.object({
-  consultationId: z.string().min(1),
-  currentStep: z.string(),
-  selections: z.record(z.string(), z.unknown()),
+  consultationId: z.string().nullable().optional(),
+  currentStep: z.string().optional().default('ceremony_discovery'),
+  selections: z.record(z.string(), z.unknown()).optional().default({}),
   userMessage: z.string().max(2000).optional(),
-  requestType: z.enum(['ceremony_explanation', 'follow_up', 'recommendation', 'summary']),
+  requestType: z.enum(['ceremony_explanation', 'follow_up', 'recommendation', 'summary']).optional().default('ceremony_explanation'),
 });
 
 // === Lead Capture ===

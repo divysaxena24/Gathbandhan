@@ -47,7 +47,7 @@ export function getGroqClient(): Groq {
  * Falls back to llama-3.3-70b-versatile if not set.
  */
 export function getGroqModel(): string {
-  return process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+  return process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 }
 
 /**
@@ -70,11 +70,14 @@ export async function groqChatCompletion(
       model,
       messages,
       temperature: options?.temperature ?? 0.7,
-      max_tokens: options?.maxTokens ?? 1024,
+      max_tokens: options?.maxTokens ?? 2048,
       top_p: options?.topP ?? 0.9,
     });
 
-    return completion.choices[0]?.message?.content ?? null;
+    const choice = completion.choices[0];
+    const content = choice?.message?.content;
+    const reasoning = (choice?.message as any)?.reasoning;
+    return content || reasoning || null;
   } catch (error: unknown) {
     if (error instanceof Error) {
       // Rate limit handling
