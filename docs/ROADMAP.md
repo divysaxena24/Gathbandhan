@@ -1,22 +1,22 @@
 # Implementation Roadmap
 
 ## Phase 0 — Repository discovery and planning
-- [ ] Inspect existing repository and assets.
-- [ ] Read master prompt and all architecture/PRD documents.
-- [ ] Record decisions and clarify conflicts.
-- [ ] Confirm exact package versions and compatible lockfile.
-- [ ] Create implementation plan and issue checklist.
+- [x] Inspect existing repository and assets.
+- [x] Read master prompt and all architecture/PRD documents.
+- [x] Record decisions and clarify conflicts.
+- [x] Confirm exact package versions and compatible lockfile.
+- [x] Create implementation plan and issue checklist.
 
 Gate: Architecture, data boundaries, project commands and env placeholders documented.
 
 ## Phase 1 — Foundation
-- [ ] Next.js app shell and responsive navigation.
-- [ ] Auth and RBAC.
-- [ ] PostgreSQL + Drizzle schema/migrations.
-- [ ] Shared validation, error handling and logging.
-- [ ] Design tokens and reusable UI.
-- [ ] Seed data and demo mode.
-- [ ] Lint/typecheck/test/build scripts.
+- [x] Next.js app shell and responsive navigation.
+- [x] Auth and RBAC.
+- [x] PostgreSQL + Drizzle schema/migrations.
+- [x] Shared validation, error handling and logging.
+- [x] Design tokens and reusable UI.
+- [x] Seed data and demo mode.
+- [x] Lint/typecheck/test/build scripts.
 
 ## Phase 2 — CRM and conversion
 - [ ] Lead pipeline and detail view.
