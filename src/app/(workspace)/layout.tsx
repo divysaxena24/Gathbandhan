@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { UserButton, useUser } from "@clerk/nextjs";
 import {
   LayoutDashboard,
-  Users,
   Heart,
   CheckSquare,
   Building2,
@@ -36,7 +35,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Leads & Clients", href: "/leads", icon: Users },
+  { title: "Booking Requests", href: "/booking-requests", icon: Sparkles, badge: "Requests" },
   { title: "Weddings", href: "/weddings", icon: Heart },
   { title: "Planning & Tasks", href: "/planning", icon: CheckSquare },
   { title: "Vendors", href: "/vendors", icon: Building2 },
@@ -44,7 +43,6 @@ const navItems: NavItem[] = [
   { title: "Event Control Room", href: "/control-room", icon: Radio, badge: "Live" },
   { title: "Finance", href: "/finance", icon: IndianRupee },
   { title: "Guests & Logistics", href: "/guests", icon: UserCheck },
-  { title: "Booking Requests", href: "/booking-requests", icon: Sparkles, badge: "Requests" },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Settings", href: "/settings", icon: Settings },
 ];

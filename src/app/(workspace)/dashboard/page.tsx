@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Clock,
   ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,10 +22,10 @@ export default function DashboardPage() {
         title="Agency Operations Overview"
         description="Gathbandhan luxury season command summary — Jaipur & Udaipur"
       >
-        <Link href="/leads">
+        <Link href="/booking-requests">
           <Button variant="outline" size="sm" className="gap-1.5 border-border">
-            <Users className="w-3.5 h-3.5 text-gold" />
-            CRM Pipeline
+            <Sparkles className="w-3.5 h-3.5 text-gold" />
+            Booking Requests
           </Button>
         </Link>
         <Link href="/weddings">

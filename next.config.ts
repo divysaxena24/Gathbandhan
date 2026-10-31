@@ -27,6 +27,16 @@ const nextConfig: NextConfig = {
         destination: "/quotation-analyzer",
         permanent: false,
       },
+      {
+        source: "/leads",
+        destination: "/booking-requests",
+        permanent: false,
+      },
+      {
+        source: "/leads/:path*",
+        destination: "/booking-requests",
+        permanent: false,
+      },
     ];
   },
 };
