@@ -27,6 +27,13 @@ import {
   expenses,
   approvedExtras,
 } from "./finance";
+import {
+  guests,
+  guestEventRsvps,
+  accommodationBookings,
+  transportAssignments,
+} from "./guests";
+import { agreements } from "./agreements";
 import { auditLogs } from "./audit-logs";
 
 // ── User Relations ──────────────────────────────────────────────
@@ -104,6 +111,11 @@ export const weddingsRelations = relations(weddings, ({ one, many }) => ({
   vendorPaymentTransactions: many(vendorPaymentTransactions),
   expenses: many(expenses),
   approvedExtras: many(approvedExtras),
+  guests: many(guests),
+  guestEventRsvps: many(guestEventRsvps),
+  accommodationBookings: many(accommodationBookings),
+  transportAssignments: many(transportAssignments),
+  agreements: many(agreements),
 }));
 
 // ── Wedding Event Relations ─────────────────────────────────────
@@ -118,6 +130,7 @@ export const weddingEventsRelations = relations(
     timelineItems: many(timelineItems),
     vendorCheckIns: many(vendorCheckIns),
     incidents: many(incidents),
+    guestEventRsvps: many(guestEventRsvps),
   })
 );
 
@@ -478,3 +491,72 @@ export const approvedExtrasRelations = relations(
     }),
   })
 );
+
+// ── Guests, RSVPs, Accommodation & Transport Relations ───────────
+export const guestsRelations = relations(guests, ({ one, many }) => ({
+  wedding: one(weddings, {
+    fields: [guests.weddingId],
+    references: [weddings.id],
+  }),
+  rsvps: many(guestEventRsvps),
+  accommodationBookings: many(accommodationBookings),
+  transportAssignments: many(transportAssignments),
+}));
+
+export const guestEventRsvpsRelations = relations(
+  guestEventRsvps,
+  ({ one }) => ({
+    wedding: one(weddings, {
+      fields: [guestEventRsvps.weddingId],
+      references: [weddings.id],
+    }),
+    guest: one(guests, {
+      fields: [guestEventRsvps.guestId],
+      references: [guests.id],
+    }),
+    event: one(weddingEvents, {
+      fields: [guestEventRsvps.eventId],
+      references: [weddingEvents.id],
+    }),
+  })
+);
+
+export const accommodationBookingsRelations = relations(
+  accommodationBookings,
+  ({ one }) => ({
+    wedding: one(weddings, {
+      fields: [accommodationBookings.weddingId],
+      references: [weddings.id],
+    }),
+    guest: one(guests, {
+      fields: [accommodationBookings.guestId],
+      references: [guests.id],
+    }),
+  })
+);
+
+export const transportAssignmentsRelations = relations(
+  transportAssignments,
+  ({ one }) => ({
+    wedding: one(weddings, {
+      fields: [transportAssignments.weddingId],
+      references: [weddings.id],
+    }),
+    guest: one(guests, {
+      fields: [transportAssignments.guestId],
+      references: [guests.id],
+    }),
+  })
+);
+
+export const agreementsRelations = relations(agreements, ({ one }) => ({
+  wedding: one(weddings, {
+    fields: [agreements.weddingId],
+    references: [weddings.id],
+  }),
+  client: one(clients, {
+    fields: [agreements.clientId],
+    references: [clients.id],
+  }),
+}));
+

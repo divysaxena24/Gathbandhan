@@ -61,12 +61,12 @@ Gate: Architecture, data boundaries, project commands and env placeholders docum
 - [x] Projected and final profit.
 
 ## Phase 7 — Guests and client portal
-- [ ] Guest and household records.
-- [ ] Event RSVP.
-- [ ] Dietary summary.
-- [ ] Accommodation/transport.
-- [ ] Client portal.
-- [ ] Agreement and payment views.
+- [x] Guest and household records.
+- [x] Event RSVP.
+- [x] Dietary summary.
+- [x] Accommodation/transport.
+- [x] Client portal.
+- [x] Agreement and payment views.
 
 ## Phase 8 — Analytics and release
 - [ ] Founder dashboard.

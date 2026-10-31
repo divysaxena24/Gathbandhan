@@ -15,6 +15,11 @@ export {
   quoteRequestStatusEnum,
   quoteStatusEnum,
   inclusionStatusEnum,
+  guestSideEnum,
+  rsvpStatusEnum,
+  mealPreferenceEnum,
+  transportStatusEnum,
+  agreementStatusEnum,
 } from "./enums";
 
 // Tables
@@ -46,6 +51,13 @@ export {
   expenses,
   approvedExtras,
 } from "./finance";
+export {
+  guests,
+  guestEventRsvps,
+  accommodationBookings,
+  transportAssignments,
+} from "./guests";
+export { agreements } from "./agreements";
 export { auditLogs } from "./audit-logs";
 
 // Relations
@@ -76,5 +88,10 @@ export {
   vendorPaymentTransactionsRelations,
   expensesRelations,
   approvedExtrasRelations,
+  guestsRelations,
+  guestEventRsvpsRelations,
+  accommodationBookingsRelations,
+  transportAssignmentsRelations,
+  agreementsRelations,
   auditLogsRelations,
 } from "./relations";

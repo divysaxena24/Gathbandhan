@@ -23,6 +23,7 @@ import {
   Bell,
   Search,
   Sparkles,
+  HeartHandshake,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ const navItems: NavItem[] = [
   { title: "Event Control Room", href: "/control-room", icon: Radio, badge: "Live" },
   { title: "Finance", href: "/finance", icon: IndianRupee },
   { title: "Guests & Logistics", href: "/guests", icon: UserCheck },
+  { title: "Client Portal", href: "/portal", icon: HeartHandshake, badge: "Couple" },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Settings", href: "/settings", icon: Settings },
 ];

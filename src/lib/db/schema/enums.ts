@@ -137,3 +137,39 @@ export const inclusionStatusEnum = pgEnum("inclusion_status", [
   "UNSPECIFIED",
 ]);
 
+export const guestSideEnum = pgEnum("guest_side", [
+  "BRIDE",
+  "GROOM",
+  "MUTUAL",
+  "VIP",
+]);
+
+export const rsvpStatusEnum = pgEnum("rsvp_status", [
+  "INVITED",
+  "ATTENDING",
+  "DECLINED",
+  "TENTATIVE",
+]);
+
+export const mealPreferenceEnum = pgEnum("meal_preference", [
+  "VEG",
+  "JAIN",
+  "NON_VEG",
+  "VEGAN",
+]);
+
+export const transportStatusEnum = pgEnum("transport_status", [
+  "SCHEDULED",
+  "DISPATCHED",
+  "COMPLETED",
+  "CANCELLED",
+]);
+
+export const agreementStatusEnum = pgEnum("agreement_status", [
+  "DRAFT",
+  "SENT",
+  "SIGNED",
+  "EXPIRED",
+  "CANCELLED",
+]);
+

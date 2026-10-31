@@ -1304,6 +1304,311 @@ async function seed() {
     console.log(`  ✅ Seeded ${seededMilestones.length} client milestones, 3 client receipts, ${seededInvoices.length} vendor invoices, 2 vendor disbursements, ${seededExtras.length} approved extras, and 3 operational expenses`);
 
     // ============================================================
+    // 12. Guests, RSVPs, Logistics & Client Portal — Phase 7
+    // ============================================================
+    console.log("💌 Seeding Guests, RSVPs, Room Allocations, Transports & Master Agreement...");
+
+    // 12.1 Master Agreement
+    await db.insert(schema.agreements).values([
+      {
+        weddingId: sharmaWedding.id,
+        clientId: clients[0].id,
+        title: "Master Wedding Planning & Coordination Agreement",
+        version: "1.0",
+        status: "SIGNED",
+        totalAmountPaise: 2000000000n, // ₹2 Crore
+        documentUrl: "https://documents.gathbandhan.internal/agreements/agr-sharma-royal-2027.pdf",
+        documentHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        termsSummary: "Full destination coordination across Taj Lake Palace, Jagmandir Island, and Udaivilas covering decor, catering, guest transfers, and production.",
+        sentAt: new Date("2026-10-25T11:00:00+05:30"),
+        signedAt: new Date("2026-10-28T10:00:00+05:30"),
+        signerName: "Aarav Sharma",
+        signerEmail: "aarav.sharma@email.com",
+        signerIp: "103.21.244.1",
+        signatureEvidence: "ELECTRONIC ACCEPTANCE by Aarav Sharma (aarav.sharma@email.com) via Gathbandhan Portal on 2026-10-28T10:00:00+05:30 [IP: 103.21.244.1]",
+        notes: "Countersigned by Priya Rathore (Founder). Stored in private S3 bucket.",
+      },
+    ]);
+
+    // 12.2 Guest Roster & Family Delegations
+    const seededGuests = await db
+      .insert(schema.guests)
+      .values([
+        {
+          weddingId: sharmaWedding.id,
+          householdName: "Sharma Family (Groom Core)",
+          firstName: "Rajesh",
+          lastName: "Sharma",
+          email: "rajesh.sharma@email.com",
+          phone: "+919811100001",
+          side: "GROOM",
+          isPrimaryContact: true,
+          dietaryPreference: "VEG",
+          allergies: null,
+          accessibilityNeeds: null,
+          rsvpToken: "rsvp_sharma_groom_rajesh_demo",
+          invitationSentAt: new Date("2026-11-01T12:00:00+05:30"),
+        },
+        {
+          weddingId: sharmaWedding.id,
+          householdName: "Sharma Family (Groom Core)",
+          firstName: "Sunita",
+          lastName: "Sharma",
+          email: "sunita.sharma@email.com",
+          phone: "+919811100002",
+          side: "GROOM",
+          isPrimaryContact: false,
+          dietaryPreference: "VEG",
+          allergies: null,
+          accessibilityNeeds: null,
+          rsvpToken: "rsvp_sharma_groom_sunita_demo",
+          invitationSentAt: new Date("2026-11-01T12:00:00+05:30"),
+        },
+        {
+          weddingId: sharmaWedding.id,
+          householdName: "Sharma Family (Groom Core)",
+          firstName: "Rohan",
+          lastName: "Sharma",
+          email: "rohan.sharma@email.com",
+          phone: "+919811100003",
+          side: "GROOM",
+          isPrimaryContact: false,
+          dietaryPreference: "NON_VEG",
+          allergies: "Peanuts",
+          accessibilityNeeds: null,
+          rsvpToken: "rsvp_sharma_groom_rohan_demo",
+          invitationSentAt: new Date("2026-11-01T12:00:00+05:30"),
+        },
+        {
+          weddingId: sharmaWedding.id,
+          householdName: "Joshi Family (Bride Core)",
+          firstName: "Dr. Vikram",
+          lastName: "Joshi",
+          email: "dr.vikram.joshi@email.com",
+          phone: "+919822200001",
+          side: "BRIDE",
+          isPrimaryContact: true,
+          dietaryPreference: "JAIN",
+          allergies: null,
+          accessibilityNeeds: null,
+          rsvpToken: "rsvp_joshi_bride_vikram_demo",
+          invitationSentAt: new Date("2026-11-01T12:00:00+05:30"),
+        },
+        {
+          weddingId: sharmaWedding.id,
+          householdName: "Joshi Family (Bride Core)",
+          firstName: "Geeta",
+          lastName: "Joshi",
+          email: "geeta.joshi@email.com",
+          phone: "+919822200002",
+          side: "BRIDE",
+          isPrimaryContact: false,
+          dietaryPreference: "JAIN",
+          allergies: "Shellfish",
+          accessibilityNeeds: null,
+          rsvpToken: "rsvp_joshi_bride_geeta_demo",
+          invitationSentAt: new Date("2026-11-01T12:00:00+05:30"),
+        },
+        {
+          weddingId: sharmaWedding.id,
+          householdName: "Joshi Family (Bride Core)",
+          firstName: "Ananya",
+          lastName: "Joshi",
+          email: "ananya.joshi@email.com",
+          phone: "+919822200003",
+          side: "BRIDE",
+          isPrimaryContact: false,
+          dietaryPreference: "VEGAN",
+          allergies: "Lactose, Gluten",
+          accessibilityNeeds: null,
+          rsvpToken: "rsvp_joshi_bride_ananya_demo",
+          invitationSentAt: new Date("2026-11-01T12:00:00+05:30"),
+        },
+        {
+          weddingId: sharmaWedding.id,
+          householdName: "Singhania Delegation",
+          firstName: "Justice P. K.",
+          lastName: "Singhania",
+          email: "pk.singhania@email.com",
+          phone: "+919833300001",
+          side: "VIP",
+          isPrimaryContact: true,
+          dietaryPreference: "VEG",
+          allergies: null,
+          accessibilityNeeds: "Wheelchair assistance required for palace boat pier",
+          rsvpToken: "rsvp_singhania_vip_demo",
+          invitationSentAt: new Date("2026-11-01T12:00:00+05:30"),
+        },
+        {
+          weddingId: sharmaWedding.id,
+          householdName: "Kapoor Family Friends",
+          firstName: "Aditya Birla",
+          lastName: "Kapoor",
+          email: "aditya.kapoor@email.com",
+          phone: "+919844400001",
+          side: "MUTUAL",
+          isPrimaryContact: true,
+          dietaryPreference: "NON_VEG",
+          allergies: null,
+          accessibilityNeeds: null,
+          rsvpToken: "rsvp_kapoor_mutual_aditya_demo",
+          invitationSentAt: new Date("2026-11-01T12:00:00+05:30"),
+        },
+        {
+          weddingId: sharmaWedding.id,
+          householdName: "University Friends",
+          firstName: "Nikhil",
+          lastName: "Verma",
+          email: "nikhil.verma@email.com",
+          phone: "+919855500001",
+          side: "MUTUAL",
+          isPrimaryContact: true,
+          dietaryPreference: "VEG",
+          allergies: null,
+          accessibilityNeeds: null,
+          rsvpToken: "rsvp_verma_mutual_nikhil_demo",
+          invitationSentAt: new Date("2026-11-01T12:00:00+05:30"),
+        },
+      ])
+      .returning();
+
+    // 12.3 Event RSVPs for Each Wedding Event
+    // events[0] = Mehendi, events[1] = Sangeet, events[2] = Ceremony/Pheras, events[3] = Reception
+    const rsvpValues = [];
+    for (const g of seededGuests) {
+      for (const ev of events) {
+        let status: "ATTENDING" | "DECLINED" | "TENTATIVE" | "INVITED" = "ATTENDING";
+        let plusOnes = 0;
+        const mealPref = g.dietaryPreference;
+
+        if (g.firstName === "Nikhil") {
+          // Declined due to international travel
+          status = "DECLINED";
+        } else if (g.firstName === "Rajesh" || g.firstName === "Dr. Vikram") {
+          // Head of households bringing spouse/family plus-ones
+          plusOnes = 1;
+        } else if (g.firstName === "Justice P. K.") {
+          // Attending Ceremony and Reception only
+          status = ev.id === events[0].id ? "DECLINED" : "ATTENDING";
+          plusOnes = 1;
+        }
+
+        rsvpValues.push({
+          weddingId: sharmaWedding.id,
+          guestId: g.id,
+          eventId: ev.id,
+          status,
+          plusOnes,
+          mealPreference: mealPref,
+          dietaryNotes: g.allergies ? `Medical allergy note: ${g.allergies}` : null,
+          respondedAt: new Date("2026-11-15T14:00:00+05:30"),
+        });
+      }
+    }
+
+    await db.insert(schema.guestEventRsvps).values(rsvpValues);
+
+    // 12.4 Palace Accommodation Bookings
+    await db.insert(schema.accommodationBookings).values([
+      {
+        weddingId: sharmaWedding.id,
+        guestId: seededGuests[0].id,
+        householdName: "Sharma Family (Groom Core)",
+        hotelName: "Taj Lake Palace, Udaipur",
+        roomNumber: "Suite 204",
+        roomType: "Palace Lake View Suite",
+        checkInDate: "2027-02-11",
+        checkOutDate: "2027-02-14",
+        confirmationCode: "TLP-77182",
+        status: "CONFIRMED",
+        notes: "Overlooking Jagmandir Island courtyard",
+      },
+      {
+        weddingId: sharmaWedding.id,
+        guestId: seededGuests[3].id,
+        householdName: "Joshi Family (Bride Core)",
+        hotelName: "Taj Lake Palace, Udaipur",
+        roomNumber: "Suite 208",
+        roomType: "Grand Royal Heritage Suite",
+        checkInDate: "2027-02-11",
+        checkOutDate: "2027-02-14",
+        confirmationCode: "TLP-77189",
+        status: "CONFIRMED",
+        notes: "Adjacent to bridal makeup suite",
+      },
+      {
+        weddingId: sharmaWedding.id,
+        guestId: seededGuests[6].id,
+        householdName: "Singhania Delegation",
+        hotelName: "The Oberoi Udaivilas, Udaipur",
+        roomNumber: "Room 114",
+        roomType: "Premier Pool View Room",
+        checkInDate: "2027-02-11",
+        checkOutDate: "2027-02-13",
+        confirmationCode: "OU-90123",
+        status: "CONFIRMED",
+        notes: "Ground floor allocation for wheelchair access",
+      },
+    ]);
+
+    // 12.5 Airport & Venue Transport Assignments
+    await db.insert(schema.transportAssignments).values([
+      {
+        weddingId: sharmaWedding.id,
+        guestId: seededGuests[3].id,
+        guestName: "Dr. Vikram Joshi & Family",
+        transferType: "AIRPORT_PICKUP",
+        pickupTime: new Date("2027-02-11T14:30:00+05:30"),
+        pickupLocation: "Maharana Pratap Airport (UDR), Arrival Gate",
+        dropoffLocation: "Taj Lake Palace Pier (Private Jetty)",
+        vehicleType: "Toyota Innova Crysta",
+        vehicleNumber: "RJ-27-PA-4421",
+        driverName: "Suresh Singh",
+        driverPhone: "+919829088771",
+        passengerCount: 3,
+        status: "COMPLETED",
+        flightTrainNumber: "6E-2094 from DEL",
+        notes: "Flight landed on time. Chauffeur met family with flower garlands.",
+      },
+      {
+        weddingId: sharmaWedding.id,
+        guestId: seededGuests[6].id,
+        guestName: "Justice P. K. Singhania",
+        transferType: "AIRPORT_PICKUP",
+        pickupTime: new Date("2027-02-11T16:00:00+05:30"),
+        pickupLocation: "Maharana Pratap Airport (UDR), VIP Exit",
+        dropoffLocation: "The Oberoi Udaivilas Main Porch",
+        vehicleType: "Mercedes S-Class",
+        vehicleNumber: "RJ-27-CD-0001",
+        driverName: "Harish Rao",
+        driverPhone: "+919829088772",
+        passengerCount: 2,
+        status: "SCHEDULED",
+        flightTrainNumber: "AI-471 from BOM",
+        notes: "VIP protocol escort. Chauffeur alerted to wheelchair transfer.",
+      },
+      {
+        weddingId: sharmaWedding.id,
+        guestId: null,
+        guestName: "Guest Inter-Venue Convoy (Udaivilas to Pier)",
+        transferType: "INTER_VENUE_SHUTTLE",
+        pickupTime: new Date("2027-02-12T18:00:00+05:30"),
+        pickupLocation: "The Oberoi Udaivilas Lobby",
+        dropoffLocation: "Jagmandir Island Jetty Pier",
+        vehicleType: "Force Urbania 17-Seater",
+        vehicleNumber: "RJ-27-TA-8822",
+        driverName: "Mohan Lal",
+        driverPhone: "+919829088773",
+        passengerCount: 16,
+        status: "SCHEDULED",
+        flightTrainNumber: null,
+        notes: "Continuous 15-minute loop shuttle for Sangeet night",
+      },
+    ]);
+
+    console.log(`  ✅ Seeded ${seededGuests.length} guests across 4 households, ${rsvpValues.length} event RSVPs, 3 palace room allocations, 3 airport transfers, and 1 signed Master Agreement`);
+
+    // ============================================================
     // Done
     // ============================================================
     console.log("\n✨ Seed complete!");

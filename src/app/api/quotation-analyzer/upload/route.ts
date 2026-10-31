@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from "next/server";
 import {
   saveQuotationFile,
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest | Request) {
         );
       }
 
-      return new NextResponse(fileData.buffer, {
+      return new NextResponse(new Uint8Array(fileData.buffer), {
         status: 200,
         headers: {
           "Content-Type": "application/pdf",
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest | Request) {
     const rawFiles: File[] = [];
 
     // Extract all files from formData (both 'files' and 'file' keys or any file values)
-    for (const [key, value] of formData.entries()) {
+    for (const [, value] of formData.entries()) {
       if (value && typeof value === "object" && "name" in value) {
         rawFiles.push(value as File);
       }

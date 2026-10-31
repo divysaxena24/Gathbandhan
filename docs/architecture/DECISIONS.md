@@ -109,3 +109,16 @@ Record material decisions here. Each entry should include date, status, context,
   6. Dual-margin profitability engine: tracks both Projected Profit/Margin (contracted revenue minus committed vendor costs and approved outlays) and Realized Profit/Margin (collected receipts minus actual invoiced outlays), alongside category commitments.
 - Consequences: Eliminates double disbursements, preserves agency margins against unauthorized vendor cost creep, ensures audit-ready settlement trails, and provides real-time balance sheet transparency for founders and finance leads.
 
+### DEC-012 — Per-Event RSVP Architecture, Confidential Dietary Matrix & Tamper-Evident Client Agreements
+- Date: 2026-10-31
+- Status: Accepted
+- Context: Destination weddings in Rajasthan (Jaipur, Udaipur, Jodhpur) span multiple ceremonies over several days with fluctuating attendance between intimate daytime rituals (Mehendi, Haldi) and high-attendance evening galas (Sangeet, Reception). Catering operations require accurate per-event plate commitments with dynamic safety buffers, while guest medical and dietary confidentiality must be protected against vendor leakage. Furthermore, high-value client agreements require verifiable, tamper-evident digital execution with strict client boundary isolation.
+- Decision:
+  1. Per-Event RSVP Architecture (`guest_event_rsvps`): Instead of a single static wedding headcount, attendance, plus-ones, and meal choices (`JAIN`, `VEG`, `NON_VEG`, `VEGAN`) are tracked per ceremony (`eventId`).
+  2. Dynamic Catering Plate Commitments: A calculation engine computes exact plate commitments per event with configurable safety buffers (default 5-10%) to prevent food shortages while avoiding over-ordering penalties.
+  3. Confidential Dietary & Allergy Matrix: Aggregates medical allergies (nut, dairy, gluten, shellfish, etc.) into an anonymized matrix for catering chefs, hiding personal guest identities and contact details to respect privacy.
+  4. Luxury Client Portal Security Boundary: Strict tenant isolation verifies the authenticated client ID matches the wedding's assigned `clientId`. Cross-wedding access attempts throw `ForbiddenError`. Client financial views expose contract values and verified payment receipts while strictly redacting agency vendor margins, supplier cost sheets, and internal coordinator notes.
+  5. Tamper-Evident Digital Agreements (`agreements`): Master service agreements store content SHA-256 hashes (`document_hash`). Electronic signatures log signer name, email, IP address, timestamp, and signature evidence payload, transitioning agreement status from `SENT` to `SIGNED`.
+- Consequences: Eliminates guest count discrepancies across multi-day destination itineraries, prevents catering over-expenditure, protects VIP and guest medical privacy, provides a luxury branded portal for couples, and ensures enforceable digital contract execution.
+
+
