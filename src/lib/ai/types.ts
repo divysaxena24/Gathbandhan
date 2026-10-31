@@ -131,8 +131,11 @@ export interface FinancialAuditResult {
     type: "LINE_ITEM_MATH" | "SUBTOTAL_MISMATCH" | "GRAND_TOTAL_MISMATCH" | "MISSING_STATED_TOTAL" | "TAX_MISMATCH";
     severity: "critical" | "warning" | "info";
     message: string;
+    difference?: number;
   }>;
   missingInformationFlags: string[];
+  taxCalculations?: any[];
+  auditTimestamp?: string;
 }
 
 export interface QuotationAnalysisResult {
@@ -149,4 +152,12 @@ export interface QuotationAnalysisResult {
   conflictsAndWarnings: string[];
   missingFields: string[];
   error: string | null;
+  meta?: {
+    uploadId: string;
+    originalName?: string;
+    originalFileName?: string;
+    extractedAt?: string;
+    pageCount?: number;
+    [key: string]: any;
+  };
 }

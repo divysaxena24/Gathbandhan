@@ -45,7 +45,6 @@ import {
   CheckSquare,
   XSquare,
   Square,
-  Award,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ExtractionResult, ExtractedPage } from "@/lib/pdf/types";

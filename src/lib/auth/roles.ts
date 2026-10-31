@@ -14,6 +14,7 @@ export const ROLE_PERMISSIONS = {
   FOUNDER_ADMIN: [
     "leads:read", "leads:write", "leads:delete",
     "clients:read", "clients:write",
+    "booking-requests:read", "booking-requests:write", "booking-requests:delete",
     "weddings:read", "weddings:write", "weddings:delete",
     "vendors:read", "vendors:write", "vendors:delete",
     "quotations:read", "quotations:write",
@@ -29,6 +30,7 @@ export const ROLE_PERMISSIONS = {
   PLANNER: [
     "leads:read", "leads:write",
     "clients:read", "clients:write",
+    "booking-requests:read", "booking-requests:write",
     "weddings:read", "weddings:write",
     "vendors:read",
     "quotations:read", "quotations:write",
@@ -60,6 +62,7 @@ export const ROLE_PERMISSIONS = {
     "weddings:read",              // only own wedding
     "guests:read", "guests:write", // own wedding guests
     "finance:read",               // own payment schedule
+    "booking-requests:read", "booking-requests:write", // own booking requests
   ],
 } as const;
 

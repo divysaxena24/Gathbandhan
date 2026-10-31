@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { UserButton, useUser } from "@clerk/nextjs";
 import {
   LayoutDashboard,
@@ -46,8 +46,7 @@ const navItems: NavItem[] = [
   { title: "Event Control Room", href: "/control-room", icon: Radio, badge: "Live" },
   { title: "Finance", href: "/finance", icon: IndianRupee },
   { title: "Guests & Logistics", href: "/guests", icon: UserCheck },
-  { title: "Client Portal", href: "/portal", icon: HeartHandshake, badge: "Couple" },
-  { title: "Client Consultation", href: "/plan-your-wedding", icon: Sparkles, badge: "Live" },
+  { title: "Booking Requests", href: "/booking-requests", icon: Sparkles, badge: "Requests" },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
@@ -58,8 +57,20 @@ export default function WorkspaceLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useUser();
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.role === "CLIENT") {
+          router.replace("/client/portal");
+        }
+      })
+      .catch(() => {});
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-ivory-50 flex">

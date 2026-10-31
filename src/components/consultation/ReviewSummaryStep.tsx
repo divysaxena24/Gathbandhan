@@ -6,6 +6,8 @@
 // ============================================================
 
 import React, { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useConsultation } from '@/hooks/useConsultation';
 import StepNavigation from '@/components/consultation-ui/StepNavigation';
 import { calculateWeddingBudget } from '@/lib/services/budget-calculator';
@@ -27,6 +29,8 @@ import {
 } from 'lucide-react';
 
 export default function ReviewSummaryStep() {
+  const router = useRouter();
+  const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
   const { state, goToStep } = useConsultation();
   const { selections } = state;
 
@@ -47,21 +51,26 @@ export default function ReviewSummaryStep() {
     setSubmittingLead(true);
     setSubmitError(null);
     try {
-      const res = await fetch("/api/leads/client-consultation", {
+      const res = await fetch("/api/booking-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           leadName,
           leadEmail,
           leadPhone,
+          preferredContactMethod: selections.preferredContactMethod || "whatsapp",
           selections,
           budget,
         }),
       });
-      if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.bookingRequestId) {
+        setCreatedRequestId(data.bookingRequestId);
         setLeadCaptured(true);
+        setTimeout(() => {
+          router.push(`/client/portal?requestId=${data.bookingRequestId}`);
+        }, 1200);
       } else {
-        const data = await res.json().catch(() => ({}));
         setSubmitError(data.error || "Failed to submit consultation. Please try again.");
       }
     } catch {
@@ -285,14 +294,25 @@ export default function ReviewSummaryStep() {
             </form>
           </div>
         ) : (
-          <div className="text-center py-4 space-y-2 animate-[fadeIn_0.3s_ease]">
-            <CheckCircle className="w-12 h-12 text-gold mx-auto" />
-            <h4 className="font-heading font-bold text-xl text-maroon-deep">
-              Thank You! Your Consultation Is Saved.
+          <div className="text-center py-6 space-y-3 animate-[fadeIn_0.3s_ease]">
+            <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto border border-emerald-300">
+              <CheckCircle className="w-8 h-8 text-emerald-600" />
+            </div>
+            <h4 className="font-heading font-bold text-2xl text-maroon-deep">
+              Thank You! Your Wedding Consultation Is Saved & Awaiting Review.
             </h4>
-            <p className="text-xs text-warm-gray max-w-md mx-auto">
-              Our lead consultant at The Royal Knot has received your wedding plan. We will get in touch shortly to assist with venue bookings and vendor coordination.
+            <p className="text-sm text-warm-gray max-w-md mx-auto">
+              Our wedding designer is reviewing your 14-step plan. We are redirecting you to your dedicated Client Wedding Portal...
             </p>
+            <div className="pt-2">
+              <Link
+                href={createdRequestId ? `/client/portal?requestId=${createdRequestId}` : "/client/portal"}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-maroon hover:bg-maroon-deep text-soft-white font-bold text-sm shadow-md transition-all"
+              >
+                <span>Enter Your Wedding Portal Now</span>
+                <ChevronRight className="w-4 h-4" />
+              </Link>
+            </div>
           </div>
         )}
       </div>
@@ -307,12 +327,13 @@ export default function ReviewSummaryStep() {
           Back to Adjust Selections
         </button>
 
-        <a
-          href="/"
-          className="px-6 py-2.5 rounded-full bg-maroon text-soft-white text-xs font-semibold hover:bg-maroon-deep transition-all shadow"
+        <Link
+          href={createdRequestId ? `/client/portal?requestId=${createdRequestId}` : "/client/portal"}
+          className="px-6 py-2.5 rounded-full bg-maroon text-soft-white text-xs font-semibold hover:bg-maroon-deep transition-all shadow flex items-center gap-1.5"
         >
-          Finish & Return Home
-        </a>
+          <span>View Wedding Portal</span>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
     </div>
   );

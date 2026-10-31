@@ -63,6 +63,7 @@ export {
 export { agreements } from "./agreements";
 export { notifications } from "./notifications";
 export { auditLogs } from "./audit-logs";
+export { bookingRequests, bookingRequestMessages } from "./booking-requests";
 
 // Relations
 export {

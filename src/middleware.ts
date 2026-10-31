@@ -15,6 +15,8 @@ const isPublicRoute = createRouteMatcher([
   "/api/services(.*)",
   "/api/budget(.*)",
   "/api/leads/client-consultation(.*)",
+  "/api/booking-requests(.*)",
+  "/api/auth(.*)",
   "/manifest.webmanifest",
   "/manifest.json",
   "/",

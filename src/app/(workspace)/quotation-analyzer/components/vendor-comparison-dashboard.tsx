@@ -77,7 +77,7 @@ export function VendorComparisonDashboard({
     : null;
 
   const drilldownQuotationResult = selectedDrilldownVendorId
-    ? analyzedQuotations.find((q) => q.meta.uploadId === selectedDrilldownVendorId) || null
+    ? analyzedQuotations.find((q) => q.uploadId === selectedDrilldownVendorId || q.meta?.uploadId === selectedDrilldownVendorId) || null
     : null;
 
   const drilldownVendorScore = selectedDrilldownVendorId

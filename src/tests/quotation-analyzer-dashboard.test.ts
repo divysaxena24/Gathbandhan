@@ -146,6 +146,7 @@ function createMockAnalysis(params: {
     },
     financialAudit: {
       isValid: params.isMathValid ?? true,
+      statedGrandTotal: params.grandTotal ?? 100000,
       statedSubtotal: params.grandTotal ?? 100000,
       calculatedSubtotal: params.calculatedTotal ?? params.grandTotal ?? 100000,
       subtotalDiscrepancy: params.isMathValid === false ? 5000 : 0,
@@ -161,6 +162,9 @@ function createMockAnalysis(params: {
       auditTimestamp: new Date().toISOString(),
     },
     conflictsAndWarnings: [],
+    sourcePageCount: 3,
+    missingFields: [],
+    error: null,
     meta: {
       uploadId: params.uploadId,
       originalFileName: `${params.vendorName.replace(/\s+/g, "_")}.pdf`,
