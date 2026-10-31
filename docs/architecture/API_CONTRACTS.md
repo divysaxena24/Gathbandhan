@@ -4,7 +4,14 @@ Use consistent REST resource names, JSON payloads, Zod validation and typed resp
 
 ## API groups
 - `/api/leads`
+- `/api/leads/:id`
+- `/api/leads/:id/stage`
+- `/api/leads/:id/assign`
+- `/api/leads/:id/follow-up`
+- `/api/leads/:id/notes`
 - `/api/leads/:id/convert`
+- `/api/leads/stats`
+- `/api/planners`
 - `/api/clients`
 - `/api/weddings`
 - `/api/weddings/:id/events`

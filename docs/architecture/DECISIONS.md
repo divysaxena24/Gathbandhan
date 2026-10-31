@@ -41,3 +41,17 @@ Record material decisions here. Each entry should include date, status, context,
 - Context: Floating point arithmetic introduces rounding errors in luxury budgets (e.g. ₹2+ Crore).
 - Decision: All monetary figures in database tables (`leads`, `weddings`, `wedding_vendors`, `invoices`, `transactions`) are persisted as `bigint` storing exact paise (1 INR = 100 paise). The shared `src/lib/money` module performs deterministic conversions.
 - Consequences: Eliminates monetary drift across all financial reconciliation and quotation scoring engines.
+
+### DEC-006 — Product Rebranding to Gathbandhan
+- Date: 2026-10-31
+- Status: Accepted
+- Context: Product identity was rebranded from "The Royal Knot" to "Gathbandhan" and "Gathbandhan OS".
+- Decision: Rebranded all client-facing and internal documentation, metadata, landing pages, application shells, and seed fixtures across the codebase to Gathbandhan while preserving client/vendor identity records and historical migration identifiers.
+- Consequences: Unified product naming throughout all views, routes, and documentation.
+
+### DEC-007 — CRM Sales Pipeline & Atomic Lead Conversion
+- Date: 2026-10-31
+- Status: Accepted
+- Context: Converting leads to weddings requires transactional consistency across clients, weddings, and multi-day events while strictly preventing duplicate or concurrent conversions.
+- Decision: Implement an 8-stage pipeline (`NEW`, `CONTACTED`, `CONSULTATION_SCHEDULED`, `PROPOSAL_SENT`, `NEGOTIATION`, `CONVERTED`, `LOST`, `ARCHIVED`) with mandatory lost reasons for `LOST`. Enforce lead-to-wedding conversion within an atomic database transaction (`db.transaction`), verified against status flags, client foreign key links, and unique database indexes on `clients.converted_from_lead_id`. Lead communication history is tracked via a dedicated `lead_activities` table.
+- Consequences: Guaranteed idempotency, zero orphaned records on conversion failures, and complete auditable communication logs.

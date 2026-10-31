@@ -19,8 +19,14 @@ export default function DashboardPage() {
     <div className="space-y-8 animate-in fade-in-50">
       <PageHeader
         title="Agency Operations Overview"
-        description="Jaipur & Udaipur luxury season command summary"
+        description="Gathbandhan luxury season command summary — Jaipur & Udaipur"
       >
+        <Link href="/leads">
+          <Button variant="outline" size="sm" className="gap-1.5 border-border">
+            <Users className="w-3.5 h-3.5 text-gold" />
+            CRM Pipeline
+          </Button>
+        </Link>
         <Link href="/weddings">
           <Button size="sm" className="bg-charcoal text-ivory hover:bg-charcoal-700">
             View All Weddings

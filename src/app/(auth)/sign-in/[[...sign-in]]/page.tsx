@@ -8,7 +8,7 @@ export default function SignInPage() {
           Sign In to Workspace
         </h1>
         <p className="mt-1 text-sm text-charcoal-400">
-          Enter your agency credentials to access The Royal Knot OS
+          Enter your agency credentials to access Gathbandhan OS
         </p>
       </div>
       <div className="flex justify-center">

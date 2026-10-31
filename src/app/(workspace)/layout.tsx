@@ -68,7 +68,7 @@ export default function WorkspaceLayout({
             </div>
             <div>
               <span className="font-display font-bold text-base text-ivory tracking-wide block leading-tight">
-                The Royal Knot
+                Gathbandhan
               </span>
               <span className="text-[10px] uppercase font-semibold text-gold tracking-widest">
                 Operations OS
@@ -150,7 +150,7 @@ export default function WorkspaceLayout({
             <Crown className="w-3.5 h-3.5 text-gold" />
           </div>
           <span className="font-display font-bold text-sm text-ivory">
-            The Royal Knot
+            Gathbandhan
           </span>
         </Link>
         <div className="flex items-center gap-2">

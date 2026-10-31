@@ -22,7 +22,7 @@ export default async function HomePage() {
             </div>
             <div>
               <span className="font-display font-bold text-lg text-charcoal tracking-wide">
-                The Royal Knot
+                Gathbandhan
               </span>
               <span className="ml-2 text-xs font-semibold px-1.5 py-0.5 rounded bg-gold/10 text-gold-600 border border-gold/20">
                 OS
@@ -113,7 +113,7 @@ export default async function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-border/40 py-6 text-center text-xs text-charcoal-400">
-        <p>© 2026 The Royal Knot OS — Jaipur & Udaipur, Rajasthan. Built for luxury wedding planners.</p>
+        <p>© 2026 Gathbandhan OS — Jaipur & Udaipur, Rajasthan. Built for luxury wedding planners.</p>
       </footer>
     </main>
   );

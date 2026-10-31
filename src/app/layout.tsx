@@ -15,7 +15,7 @@ const fontDisplay = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "The Royal Knot OS",
+  title: "Gathbandhan OS",
   description: "Intelligent wedding operations platform for luxury weddings",
 };
 

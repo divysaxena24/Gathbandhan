@@ -15,7 +15,7 @@ export default function AuthLayout({
             <Crown className="w-4 h-4 text-gold" />
           </div>
           <span className="font-display font-bold text-base text-charcoal">
-            The Royal Knot
+            Gathbandhan
           </span>
         </Link>
       </header>

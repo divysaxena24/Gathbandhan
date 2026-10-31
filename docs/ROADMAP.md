@@ -19,11 +19,11 @@ Gate: Architecture, data boundaries, project commands and env placeholders docum
 - [x] Lint/typecheck/test/build scripts.
 
 ## Phase 2 — CRM and conversion
-- [ ] Lead pipeline and detail view.
-- [ ] Follow-up reminders.
-- [ ] Proposal/agreement baseline.
-- [ ] Transactional lead conversion.
-- [ ] Wedding overview.
+- [x] Lead pipeline and detail view.
+- [x] Follow-up reminders.
+- [x] Proposal/agreement baseline.
+- [x] Transactional lead conversion.
+- [x] Wedding overview.
 
 ## Phase 3 — Vendor intelligence
 - [ ] Vendor directory.

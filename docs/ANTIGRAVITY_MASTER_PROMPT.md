@@ -17,7 +17,7 @@ Before coding:
 Build a single unified platform that takes a couple from enquiry to final client/vendor settlement and founder season review. The product replaces scattered WhatsApp conversations, PDFs, paper diaries and spreadsheets with a reliable operational system.
 
 Agency profile:
-- Agency: The Royal Knot.
+- Agency: Gathbandhan.
 - Region: Jaipur and Udaipur, India.
 - Season volume: approximately 25 luxury weddings.
 - Typical wedding: 3 days, 400+ guests, around 18 vendors.

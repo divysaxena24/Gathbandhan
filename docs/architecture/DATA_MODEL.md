@@ -10,7 +10,10 @@ This is a domain-oriented schema reference. Antigravity should create normalized
 - Use explicit membership/assignment tables if multiple agency tenants are introduced.
 
 ### Lead
-- id, coupleName, contact details, source, event date, guest count, budget, theme, package type, status, assigned planner, follow-up timestamp, createdAt.
+- id (UUID), coupleName, partnerOneName, partnerOneEmail, partnerOnePhone, partnerTwoName, partnerTwoPhone, partnerTwoEmail, source, eventDate (date), dateFlexibility, estimatedGuestCount, estimatedBudgetPaise (bigint), city, venue, themeNotes, packageType, status (NEW, CONTACTED, CONSULTATION_SCHEDULED, PROPOSAL_SENT, NEGOTIATION, CONVERTED, LOST, ARCHIVED), qualificationStatus (PENDING, QUALIFIED, UNQUALIFIED), assignedPlannerId (FK users), notes, nextFollowUpAt, lostReason, convertedToClientId (FK clients), convertedToWeddingId (FK weddings), convertedAt, createdAt, updatedAt, deletedAt (soft deletion).
+
+### LeadActivity
+- id (UUID), leadId (FK leads, cascade delete), actorId (FK users nullable), activityType (CREATED, STAGE_CHANGED, PLANNER_ASSIGNED, NOTE_ADDED, FOLLOW_UP_SCHEDULED, FOLLOW_UP_COMPLETED, CONSULTATION_SCHEDULED, CONVERTED, MARKED_LOST), title, description, metadata (JSONB), createdAt.
 
 ### Client
 - id, couple profile, contact details, portal identity mapping.

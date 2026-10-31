@@ -1,5 +1,5 @@
 /**
- * Seed script for The Royal Knot OS demo data.
+ * Seed script for Gathbandhan OS demo data.
  *
  * Run with: pnpm db:seed
  *
@@ -26,7 +26,7 @@ const client = postgres(DATABASE_URL, { prepare: false });
 const db = drizzle(client, { schema });
 
 async function seed() {
-  console.log("🌱 Seeding The Royal Knot OS demo data...\n");
+  console.log("🌱 Seeding Gathbandhan OS demo data...\n");
 
   try {
     // ============================================================
@@ -40,35 +40,35 @@ async function seed() {
         {
           authProviderId: "clerk_demo_founder",
           name: "Priya Rathore",
-          email: "priya@theroyalknot.com",
+          email: "priya@gathbandhan.com",
           phone: "+919876543210",
           role: "FOUNDER_ADMIN",
         },
         {
           authProviderId: "clerk_demo_planner_1",
           name: "Ananya Sharma",
-          email: "ananya@theroyalknot.com",
+          email: "ananya@gathbandhan.com",
           phone: "+919876543211",
           role: "PLANNER",
         },
         {
           authProviderId: "clerk_demo_planner_2",
           name: "Kavya Singh",
-          email: "kavya@theroyalknot.com",
+          email: "kavya@gathbandhan.com",
           phone: "+919876543212",
           role: "PLANNER",
         },
         {
           authProviderId: "clerk_demo_finance",
           name: "Rohan Mehta",
-          email: "rohan@theroyalknot.com",
+          email: "rohan@gathbandhan.com",
           phone: "+919876543213",
           role: "FINANCE",
         },
         {
           authProviderId: "clerk_demo_coordinator",
           name: "Vikram Patel",
-          email: "vikram@theroyalknot.com",
+          email: "vikram@gathbandhan.com",
           phone: "+919876543214",
           role: "ONSITE_COORDINATOR",
         },
