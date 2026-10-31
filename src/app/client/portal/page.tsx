@@ -30,10 +30,12 @@ import {
   Mail,
   Home,
   Check,
+  CreditCard,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ClientBillsUpiView } from "@/components/finance/client-bills-upi-view";
 
 interface BookingRequestData {
   id: string;
@@ -463,6 +465,13 @@ function ClientPortalContent() {
               <MessageSquare className="w-3.5 h-3.5 text-gold" />
               Designer Chat ({bookingData.messages?.length || 0})
             </TabsTrigger>
+            <TabsTrigger
+              value="bills-upi"
+              className="data-[state=active]:bg-maroon data-[state=active]:text-soft-white rounded-xl text-xs py-2 px-3 font-semibold flex items-center gap-1.5"
+            >
+              <CreditCard className="w-3.5 h-3.5 text-gold" />
+              Bills & Virtual UPI
+            </TabsTrigger>
           </TabsList>
 
           {/* TAB 1: Wedding Overview */}
@@ -806,6 +815,11 @@ function ClientPortalContent() {
                 </Button>
               </form>
             </div>
+          </TabsContent>
+
+          {/* TAB 6: Bills & Virtual UPI Payments */}
+          <TabsContent value="bills-upi" className="space-y-6">
+            <ClientBillsUpiView weddingId={bookingData.weddingId || undefined} />
           </TabsContent>
         </Tabs>
       </main>
