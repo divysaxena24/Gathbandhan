@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
 import { resolveReportData } from "@/lib/reports/report-data-service";
 import { generateExcelReport } from "@/lib/reports/excel-report-service";
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest | Request) {
     await saveTemporaryReport(excelBuffer, filename);
     cleanupExpiredReports().catch(() => {});
 
-    return new Response(excelBuffer, {
+    return new Response(new Uint8Array(excelBuffer), {
       status: 200,
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

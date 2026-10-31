@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";

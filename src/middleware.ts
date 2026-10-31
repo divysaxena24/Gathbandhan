@@ -3,7 +3,20 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
-  "/api/check-in/(.*)", // vendor check-in is public (token-based)
+  "/check-in(.*)",
+  "/api/check-in(.*)",
+  "/rsvp(.*)",
+  "/api/rsvp(.*)",
+  "/plan-your-wedding(.*)",
+  "/client(.*)",
+  "/portal-select(.*)",
+  "/api/wedding-ai(.*)",
+  "/api/consultations(.*)",
+  "/api/services(.*)",
+  "/api/budget(.*)",
+  "/api/leads/client-consultation(.*)",
+  "/manifest.webmanifest",
+  "/manifest.json",
   "/",
 ]);
 

@@ -41,8 +41,24 @@ const config: Config = {
           400: "#C5A855",
           500: "#B8963F",
           600: "#A07B2E",
+          light: "#E8D48B",
+          dark: "#A07D2B",
           DEFAULT: "#C5A855",
         },
+        maroon: {
+          DEFAULT: "#6B1D2A",
+          deep: "#4A0E1C",
+          light: "#8B3040",
+        },
+        cream: "#F5EDE0",
+        blush: "#F5E6E0",
+        sage: "#A8B5A0",
+        rose: "#D4A0A0",
+        "warm-gray": {
+          DEFAULT: "#8B8178",
+          light: "#B8AFA6",
+        },
+        "soft-white": "#FFFFFF",
         // Semantic status colors
         status: {
           success: "#2D8A4E",
@@ -102,6 +118,7 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         display: ["var(--font-display)", "Georgia", "serif"],
+        heading: ["var(--font-display)", "Playfair Display", "Georgia", "serif"],
       },
       borderRadius: {
         lg: "var(--radius)",

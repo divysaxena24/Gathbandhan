@@ -47,6 +47,7 @@ const navItems: NavItem[] = [
   { title: "Finance", href: "/finance", icon: IndianRupee },
   { title: "Guests & Logistics", href: "/guests", icon: UserCheck },
   { title: "Client Portal", href: "/portal", icon: HeartHandshake, badge: "Couple" },
+  { title: "Client Consultation", href: "/plan-your-wedding", icon: Sparkles, badge: "Live" },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
@@ -120,6 +121,20 @@ export default function WorkspaceLayout({
               </Link>
             );
           })}
+        </div>
+
+        {/* Quick Portal Switcher */}
+        <div className="p-3 border-t border-charcoal-700/60 bg-charcoal-800/30">
+          <Link
+            href="/portal-select"
+            className="flex items-center justify-between px-3 py-2 rounded-lg bg-gold/10 hover:bg-gold/20 text-gold text-xs font-semibold transition-all border border-gold/30"
+          >
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-gold" />
+              Switch Portal
+            </span>
+            <span className="text-[10px] text-ivory/60 uppercase">Client / Admin</span>
+          </Link>
         </div>
 
         {/* User Profile in Sidebar */}

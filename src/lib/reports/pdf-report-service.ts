@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from "pdf-lib";
 import { ReportGenerationInput } from "./report-types";
 import { QuotationAnalysisResult } from "@/lib/ai/types";

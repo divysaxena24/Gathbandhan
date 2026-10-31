@@ -30,6 +30,46 @@ async function seed() {
   console.log("🌱 Seeding Gathbandhan OS demo data...\n");
 
   try {
+    // Clean old demo data so seed is completely idempotent
+    console.log("🧹 Resetting existing demo records...");
+    await client.unsafe(`
+      TRUNCATE TABLE 
+        notifications,
+        agreements,
+        transport_assignments,
+        accommodation_bookings,
+        guest_event_rsvps,
+        guests,
+        approved_extras,
+        expenses,
+        vendor_payment_transactions,
+        vendor_invoices,
+        client_payment_transactions,
+        client_payment_milestones,
+        control_room_alerts,
+        incidents,
+        vendor_check_ins,
+        timeline_dependencies,
+        timeline_items,
+        tasks,
+        task_dependencies,
+        task_template_dependencies,
+        task_templates,
+        quote_items,
+        quotes,
+        quote_requests,
+        wedding_vendors,
+        wedding_events,
+        weddings,
+        clients,
+        lead_activities,
+        leads,
+        vendors,
+        audit_logs,
+        users
+      CASCADE;
+    `);
+
     // ============================================================
     // 1. Users — Agency team members
     // ============================================================

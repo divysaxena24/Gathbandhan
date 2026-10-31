@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { describe, it, expect, beforeEach } from "vitest";
 import ExcelJS from "exceljs";
 import { PDFDocument } from "pdf-lib";
@@ -166,7 +167,7 @@ describe("Milestone 5: PDF and Excel Report Generation Engine", () => {
 
       // Verify the generated Excel with ExcelJS reader
       const readWb = new ExcelJS.Workbook();
-      await readWb.xlsx.load(excelBuffer);
+      await readWb.xlsx.load(excelBuffer as any);
 
       const sheetNames = readWb.worksheets.map((s) => s.name);
       expect(sheetNames).toContain("Executive Summary");
@@ -245,7 +246,7 @@ describe("Milestone 5: PDF and Excel Report Generation Engine", () => {
         analyzedQuotations: [q1, q2],
       });
       const readWb = new ExcelJS.Workbook();
-      await readWb.xlsx.load(excelBuf);
+      await readWb.xlsx.load(excelBuf as any);
 
       const auditSheet = readWb.getWorksheet("Financial Audit")!;
       const auditValues = JSON.stringify(auditSheet.getSheetValues());

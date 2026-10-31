@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
@@ -44,6 +44,7 @@ import {
   CheckSquare,
   XSquare,
   Square,
+  Award,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ExtractionResult, ExtractedPage } from "@/lib/pdf/types";

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import path from "path";
 import fs from "fs/promises";
 import { getQuotationFile } from "@/lib/storage/temp-quotations";

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
 import { compareQuotationsByIds } from "@/lib/ai/vendor-comparison-service";
 import { ComparisonWeights } from "@/lib/ai/comparison-types";

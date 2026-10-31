@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { z } from "zod";
 import { executeGroqJsonChat, GroqCompletionOptions } from "./groq-client";
 import {

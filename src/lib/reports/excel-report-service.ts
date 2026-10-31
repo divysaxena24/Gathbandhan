@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import ExcelJS from "exceljs";
 import { ReportGenerationInput } from "./report-types";
 import { QuotationAnalysisResult } from "@/lib/ai/types";

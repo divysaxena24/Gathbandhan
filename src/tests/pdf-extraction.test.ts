@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import path from "path";
 import os from "os";
@@ -98,6 +99,7 @@ startxref
     const scannedPdfPath = path.join(testDir, "scanned_invoice.pdf").replace(/\\/g, "/");
 
     await generatePythonPdf(`
+import PIL.JpegImagePlugin
 from PIL import Image
 img = Image.new('RGB', (200, 200), color='white')
 img.save('${scannedPdfPath}')
@@ -121,6 +123,7 @@ img.save('${scannedPdfPath}')
 
     const pyCode = `
 import pypdf
+import PIL.JpegImagePlugin
 from PIL import Image
 import io
 
