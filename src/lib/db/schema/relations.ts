@@ -12,6 +12,13 @@ import {
   tasks,
   taskDependencies,
 } from "./tasks";
+import {
+  timelineItems,
+  timelineDependencies,
+  vendorCheckIns,
+  incidents,
+  controlRoomAlerts,
+} from "./control-room";
 import { auditLogs } from "./audit-logs";
 
 // ── User Relations ──────────────────────────────────────────────
@@ -79,6 +86,10 @@ export const weddingsRelations = relations(weddings, ({ one, many }) => ({
   weddingVendors: many(weddingVendors),
   quoteRequests: many(quoteRequests),
   tasks: many(tasks),
+  timelineItems: many(timelineItems),
+  vendorCheckIns: many(vendorCheckIns),
+  incidents: many(incidents),
+  controlRoomAlerts: many(controlRoomAlerts),
 }));
 
 // ── Wedding Event Relations ─────────────────────────────────────
@@ -90,6 +101,9 @@ export const weddingEventsRelations = relations(
       references: [weddings.id],
     }),
     weddingVendors: many(weddingVendors),
+    timelineItems: many(timelineItems),
+    vendorCheckIns: many(vendorCheckIns),
+    incidents: many(incidents),
   })
 );
 
@@ -102,7 +116,7 @@ export const vendorsRelations = relations(vendors, ({ many }) => ({
 // ── Wedding Vendor (join) Relations ─────────────────────────────
 export const weddingVendorsRelations = relations(
   weddingVendors,
-  ({ one }) => ({
+  ({ one, many }) => ({
     wedding: one(weddings, {
       fields: [weddingVendors.weddingId],
       references: [weddings.id],
@@ -115,6 +129,7 @@ export const weddingVendorsRelations = relations(
       fields: [weddingVendors.eventId],
       references: [weddingEvents.id],
     }),
+    vendorCheckIns: many(vendorCheckIns),
   })
 );
 
@@ -237,3 +252,102 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// ── Control Room: Timeline Relations ───────────────────────────
+export const timelineItemsRelations = relations(
+  timelineItems,
+  ({ one, many }) => ({
+    wedding: one(weddings, {
+      fields: [timelineItems.weddingId],
+      references: [weddings.id],
+    }),
+    event: one(weddingEvents, {
+      fields: [timelineItems.eventId],
+      references: [weddingEvents.id],
+    }),
+    owner: one(users, {
+      fields: [timelineItems.ownerId],
+      references: [users.id],
+    }),
+    vendor: one(vendors, {
+      fields: [timelineItems.vendorId],
+      references: [vendors.id],
+    }),
+    weddingVendor: one(weddingVendors, {
+      fields: [timelineItems.weddingVendorId],
+      references: [weddingVendors.id],
+    }),
+    dependencies: many(timelineDependencies, {
+      relationName: "timelineDeps",
+    }),
+    dependentItems: many(timelineDependencies, {
+      relationName: "dependsOnTimelineDeps",
+    }),
+  })
+);
+
+export const timelineDependenciesRelations = relations(
+  timelineDependencies,
+  ({ one }) => ({
+    timelineItem: one(timelineItems, {
+      fields: [timelineDependencies.timelineItemId],
+      references: [timelineItems.id],
+      relationName: "timelineDeps",
+    }),
+    dependsOnItem: one(timelineItems, {
+      fields: [timelineDependencies.dependsOnItemId],
+      references: [timelineItems.id],
+      relationName: "dependsOnTimelineDeps",
+    }),
+  })
+);
+
+// ── Control Room: Vendor Check-in Relations ────────────────────
+export const vendorCheckInsRelations = relations(
+  vendorCheckIns,
+  ({ one }) => ({
+    weddingVendor: one(weddingVendors, {
+      fields: [vendorCheckIns.weddingVendorId],
+      references: [weddingVendors.id],
+    }),
+    wedding: one(weddings, {
+      fields: [vendorCheckIns.weddingId],
+      references: [weddings.id],
+    }),
+    event: one(weddingEvents, {
+      fields: [vendorCheckIns.eventId],
+      references: [weddingEvents.id],
+    }),
+  })
+);
+
+// ── Control Room: Incident Relations ───────────────────────────
+export const incidentsRelations = relations(incidents, ({ one }) => ({
+  wedding: one(weddings, {
+    fields: [incidents.weddingId],
+    references: [weddings.id],
+  }),
+  event: one(weddingEvents, {
+    fields: [incidents.eventId],
+    references: [weddingEvents.id],
+  }),
+  owner: one(users, {
+    fields: [incidents.ownerId],
+    references: [users.id],
+  }),
+  vendor: one(vendors, {
+    fields: [incidents.vendorId],
+    references: [vendors.id],
+  }),
+}));
+
+// ── Control Room: Alert Relations ──────────────────────────────
+export const controlRoomAlertsRelations = relations(
+  controlRoomAlerts,
+  ({ one }) => ({
+    wedding: one(weddings, {
+      fields: [controlRoomAlerts.weddingId],
+      references: [weddings.id],
+    }),
+  })
+);

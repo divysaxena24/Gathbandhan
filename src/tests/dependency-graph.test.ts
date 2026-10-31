@@ -172,3 +172,4 @@ describe("Dependency Graph Engine", () => {
     expect(impacts[1].criticality).toBe("CRITICAL");
   });
 });
+

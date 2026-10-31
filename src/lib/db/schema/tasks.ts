@@ -122,3 +122,4 @@ export const taskDependencies = pgTable(
     index("task_deps_depends_idx").on(table.dependsOnTaskId),
   ]
 );
+

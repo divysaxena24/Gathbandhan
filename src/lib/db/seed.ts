@@ -11,6 +11,7 @@
  */
 
 import "dotenv/config";
+import crypto from "crypto";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
@@ -762,6 +763,245 @@ async function seed() {
     );
 
     console.log(`  ✅ Generated ${createdTasks.length} backward-scheduled tasks with dependency graph`);
+
+    // ============================================================
+    // 10. Control Room — Timeline, Gate Check-ins & Incidents
+    // ============================================================
+    console.log("⏱️ Seeding Event Control Room data (Day-of timeline, QR gate passes, incidents)...");
+
+    const coordinator = users[4]; // Vikram Patel (ONSITE_COORDINATOR)
+
+    // 10.1 Day-of Timeline Items for Mehendi Ceremony
+    const timelineItemsData = [
+      {
+        weddingId: sharmaWedding.id,
+        eventId: events[0].id,
+        title: "Floral & Marigold Stage Setup Complete",
+        description: "Stage floral backdrop and seating arranged with fresh marigolds.",
+        startsAt: new Date("2027-02-12T08:00:00+05:30"),
+        endsAt: new Date("2027-02-12T09:30:00+05:30"),
+        location: "Garden Pavilion Stage",
+        status: "COMPLETED",
+        isKeyMoment: false,
+        orderIndex: 1,
+        vendorId: vendors[3].id, // Floral vendor
+        ownerId: coordinator.id,
+      },
+      {
+        weddingId: sharmaWedding.id,
+        eventId: events[0].id,
+        title: "Sound System & Folk Troupe Soundcheck",
+        description: "PA speakers and wireless mics tested with folk artists.",
+        startsAt: new Date("2027-02-12T08:30:00+05:30"),
+        endsAt: new Date("2027-02-12T09:45:00+05:30"),
+        location: "Courtyard Stage",
+        status: "COMPLETED",
+        isKeyMoment: false,
+        orderIndex: 2,
+        vendorId: vendors[5].id, // Sound vendor
+        ownerId: coordinator.id,
+      },
+      {
+        weddingId: sharmaWedding.id,
+        eventId: events[0].id,
+        title: "Guest Welcome & Refreshment Station Open",
+        description: "Chilled tender coconut and Rajasthani spiced buttermilk station opens.",
+        startsAt: new Date("2027-02-12T09:45:00+05:30"),
+        endsAt: new Date("2027-02-12T10:15:00+05:30"),
+        location: "Pavilion Archway Entrance",
+        status: "IN_PROGRESS",
+        isKeyMoment: false,
+        orderIndex: 3,
+        ownerId: coordinator.id,
+      },
+      {
+        weddingId: sharmaWedding.id,
+        eventId: events[0].id,
+        title: "Bride Entry & Floral Chhappar Procession",
+        description: "Bride enters under floral canopy accompanied by traditional Manganiyar singers.",
+        startsAt: new Date("2027-02-12T10:15:00+05:30"),
+        endsAt: new Date("2027-02-12T10:45:00+05:30"),
+        location: "Garden Promenade to Main Stage",
+        status: "PENDING",
+        isKeyMoment: true,
+        orderIndex: 4,
+        ownerId: planner1.id,
+      },
+      {
+        weddingId: sharmaWedding.id,
+        eventId: events[0].id,
+        title: "Bridal Mehendi Artist Session Begins",
+        description: "Master artist starts intricate organic Rajasthani mehendi application.",
+        startsAt: new Date("2027-02-12T10:45:00+05:30"),
+        endsAt: new Date("2027-02-12T12:30:00+05:30"),
+        location: "Royal Mehendi Lounge",
+        status: "PENDING",
+        isKeyMoment: false,
+        orderIndex: 5,
+        vendorId: vendors[7].id, // Mehendi artist
+        ownerId: coordinator.id,
+      },
+      {
+        weddingId: sharmaWedding.id,
+        eventId: events[0].id,
+        title: "Live Rajasthani Dhol & Ghoomar Folk Performance",
+        description: "High-energy cultural showcase with guest participation.",
+        startsAt: new Date("2027-02-12T11:15:00+05:30"),
+        endsAt: new Date("2027-02-12T12:45:00+05:30"),
+        location: "Center Courtyard",
+        status: "PENDING",
+        isKeyMoment: false,
+        orderIndex: 6,
+        ownerId: planner2.id,
+      },
+      {
+        weddingId: sharmaWedding.id,
+        eventId: events[0].id,
+        title: "Royal Marwari Lunch Buffet Opens",
+        description: "Live Dal Baati Churma, Ker Sangri, and Chaat stations.",
+        startsAt: new Date("2027-02-12T12:30:00+05:30"),
+        endsAt: new Date("2027-02-12T14:30:00+05:30"),
+        location: "Lakeside Dining Pavilion",
+        status: "PENDING",
+        isKeyMoment: true,
+        orderIndex: 7,
+        vendorId: vendors[0].id, // Royal Mewar Catering
+        ownerId: coordinator.id,
+      },
+    ];
+
+    const seededTimeline = await db
+      .insert(schema.timelineItems)
+      .values(timelineItemsData)
+      .returning();
+
+    // 10.2 Timeline Dependencies
+    await db.insert(schema.timelineDependencies).values([
+      {
+        timelineItemId: seededTimeline[3].id,
+        dependsOnItemId: seededTimeline[2].id,
+        bufferMinutes: 5,
+      },
+      {
+        timelineItemId: seededTimeline[4].id,
+        dependsOnItemId: seededTimeline[3].id,
+        bufferMinutes: 0,
+      },
+      {
+        timelineItemId: seededTimeline[6].id,
+        dependsOnItemId: seededTimeline[3].id,
+        bufferMinutes: 105,
+      },
+    ]);
+
+    // 10.3 Vendor Check-in Passes for assigned wedding vendors
+    const checkInValues = weddingVendors.map((wv, idx) => {
+      const rawToken = `gate_token_${idx + 1}_${crypto.randomBytes(8).toString("hex")}`;
+      const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+      const expectedArrival = events[0].startsAt
+        ? new Date(events[0].startsAt.getTime() - (idx % 3 === 0 ? 3 : 2) * 60 * 60 * 1000)
+        : new Date();
+
+      let status: "EXPECTED" | "ARRIVED" | "SETUP_COMPLETE" | "WORKING" | "COMPLETED" | "LATE" = "EXPECTED";
+      let arrivedAt: Date | null = null;
+      let setupCompletedAt: Date | null = null;
+      let checkInSource: string | null = null;
+
+      if (idx <= 3) {
+        status = "SETUP_COMPLETE";
+        arrivedAt = new Date(expectedArrival.getTime() - 15 * 60 * 1000);
+        setupCompletedAt = new Date(arrivedAt.getTime() + 45 * 60 * 1000);
+        checkInSource = "QR_SCAN";
+      } else if (idx <= 6) {
+        status = "ARRIVED";
+        arrivedAt = new Date(expectedArrival.getTime() - 10 * 60 * 1000);
+        checkInSource = "WEB_LINK";
+      } else if (idx === 7) {
+        status = "LATE";
+        checkInSource = null;
+      }
+
+      return {
+        weddingVendorId: wv.id,
+        weddingId: sharmaWedding.id,
+        eventId: events[0].id,
+        rawToken,
+        tokenHash,
+        expectedArrivalAt: expectedArrival,
+        graceMinutes: 15,
+        status,
+        arrivedAt,
+        setupCompletedAt,
+        checkInSource,
+        checkedInBy: arrivedAt ? "Lead Crew Supervisor" : null,
+        lateAlertSentAt: status === "LATE" ? new Date() : null,
+      };
+    });
+
+    await db.insert(schema.vendorCheckIns).values(checkInValues);
+
+    // 10.4 Incidents Log
+    await db.insert(schema.incidents).values([
+      {
+        weddingId: sharmaWedding.id,
+        eventId: events[0].id,
+        title: "Main Courtyard Silent Generator Voltage Fluctuation",
+        description: "Primary 100kVA generator showed 15V fluctuation during soundcheck. Risk of amp speaker distortion.",
+        severity: "HIGH",
+        status: "RESOLVED",
+        ownerId: coordinator.id,
+        vendorId: vendors[5].id,
+        reportedBy: "Vikram Patel (On-Site Coordinator)",
+        reportedAt: new Date("2027-02-12T08:40:00+05:30"),
+        resolvedAt: new Date("2027-02-12T08:52:00+05:30"),
+        resolutionNotes: "Switched to secondary 125kVA backup genset within 12 minutes. Sound and stage power stabilized with clean sine wave.",
+        costImpactPaise: 1500000n, // ₹15,000 emergency surcharge
+      },
+      {
+        weddingId: sharmaWedding.id,
+        eventId: events[0].id,
+        title: "Chilled Welcome Drink Glassware Breakage near Pier",
+        description: "2 crates of crystal water goblets chipped during boat transport from jetty.",
+        severity: "LOW",
+        status: "RESOLVED",
+        ownerId: coordinator.id,
+        vendorId: vendors[0].id,
+        reportedBy: "Banquet Captain - Taj Lake Palace",
+        reportedAt: new Date("2027-02-12T09:10:00+05:30"),
+        resolvedAt: new Date("2027-02-12T09:20:00+05:30"),
+        resolutionNotes: "Jetty dock cleared in 10 minutes. Premium acrylic tumblers deployed for pier walkway, crystal reserved for pavilion tables.",
+        costImpactPaise: 500000n, // ₹5,000 breakage deposit deduction
+      },
+      {
+        weddingId: sharmaWedding.id,
+        eventId: events[1].id,
+        title: "Baraat Vintage Car Radiator Running Hot During Test",
+        description: "1948 Rolls Royce Silver Wraith radiator temperature elevated during pre-procession trial run.",
+        severity: "MEDIUM",
+        status: "OPEN",
+        ownerId: coordinator.id,
+        vendorId: vendors[11].id,
+        reportedBy: "Major Chauhan (ShieldGuard Security)",
+        reportedAt: new Date("2027-02-12T09:30:00+05:30"),
+        costImpactPaise: 0n,
+      },
+    ]);
+
+    // 10.5 Control Room Alert for Late Vendor
+    await db.insert(schema.controlRoomAlerts).values([
+      {
+        weddingId: sharmaWedding.id,
+        alertType: "VENDOR_LATE",
+        severity: "WARNING",
+        title: "Vendor Late: Mehendi Artist Crew",
+        message: "Expected arrival was 07:00 AM IST. Grace period of 15m exceeded without gate check-in.",
+        relatedEntityType: "vendor_check_ins",
+        isDismissed: false,
+      },
+    ]);
+
+    console.log(`  ✅ Seeded ${seededTimeline.length} timeline items, 3 dependencies, ${checkInValues.length} QR gate passes, and 3 incident logs`);
 
     // ============================================================
     // Done

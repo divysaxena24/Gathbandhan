@@ -43,13 +43,13 @@ Gate: Architecture, data boundaries, project commands and env placeholders docum
 - [x] At-risk/overdue alerts and workload view.
 
 ## Phase 5 — Event control room
-- [ ] Timeline.
-- [ ] Secure vendor check-in links/QR.
-- [ ] Realtime check-in/timeline updates.
-- [ ] Grace-period late detection.
-- [ ] Incident log.
-- [ ] Dependency-based schedule impact.
-- [ ] Mobile/offline schedule basics.
+- [x] Timeline.
+- [x] Secure vendor check-in links/QR.
+- [x] Realtime check-in/timeline updates.
+- [x] Grace-period late detection.
+- [x] Incident log.
+- [x] Dependency-based schedule impact.
+- [x] Mobile/offline schedule basics.
 
 ## Phase 6 — Financial integrity
 - [ ] Client milestones/transactions.

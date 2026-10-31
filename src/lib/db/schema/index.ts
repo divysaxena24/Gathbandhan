@@ -31,6 +31,13 @@ export {
   tasks,
   taskDependencies,
 } from "./tasks";
+export {
+  timelineItems,
+  timelineDependencies,
+  vendorCheckIns,
+  incidents,
+  controlRoomAlerts,
+} from "./control-room";
 export { auditLogs } from "./audit-logs";
 
 // Relations
@@ -50,5 +57,10 @@ export {
   taskTemplateDependenciesRelations,
   tasksRelations,
   taskDependenciesRelations,
+  timelineItemsRelations,
+  timelineDependenciesRelations,
+  vendorCheckInsRelations,
+  incidentsRelations,
+  controlRoomAlertsRelations,
   auditLogsRelations,
 } from "./relations";

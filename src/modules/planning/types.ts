@@ -111,3 +111,4 @@ export interface PlannerWorkload {
   totalEstimatedMinutes: number;
   totalActualMinutes: number;
 }
+

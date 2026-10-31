@@ -79,3 +79,16 @@ Record material decisions here. Each entry should include date, status, context,
   4. Date-shift simulator recalculates backward-scheduled task target dates with an interactive impact preview showing overdue and at-risk milestones before applying changes.
   5. Capacity management aggregates active task counts, overdue counts, and estimated versus actual logged hours per planner.
 - Consequences: Enforces chronological consistency across 28+ milestone phases, eliminates scheduling circularities, and provides full transparency on planner team capacity.
+
+### DEC-010 — Event Control Room Real-Time Timeline, QR Vendor Check-in & Idempotent Late Detection
+- Date: 2026-10-31
+- Status: Accepted
+- Context: On wedding day in Rajasthan heritage palaces, coordinators manage simultaneous multi-vendor operations across large grounds where spotty cellular connectivity and schedule delays occur. Planners need real-time gate clearance, early warning for late arrivals, downstream cascade impact projection, and incident cost tracking.
+- Decision:
+  1. Minute-by-minute timeline items (`timeline_items`) and explicit dependencies (`timeline_dependencies`) store timezone-aware instants in Asia/Kolkata (`IST`).
+  2. Pure graph traversal (`calculateCascadeImpact`) projects downstream schedule shifts when an activity or vendor setup is delayed, flags affected Key Moments (Varmala, Mahurat Pheras), and provides deterministic tactical recovery options (buffer absorption, catering/emcee pacing).
+  3. Frictionless vendor gate clearance uses secure cryptographic tokens (`vendor_check_ins.token_hash` via SHA-256) allowing vendor crews to confirm arrival at palace gates without downloading apps or creating accounts (`/check-in/[token]`).
+  4. Idempotent late arrival detection (`checkVendorLateStatus`) compares current time against `expectedArrivalAt + graceMinutes`, flags status `LATE`, and uses `lateAlertSentAt` tracking to guarantee exactly one alert is generated even across repeated background runs.
+  5. Live incident command log tracks title, severity (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), resolution steps, and emergency cost impact in integer paise (`bigint`) for client and agency reconciliation.
+  6. Offline resilience caches current schedule, emergency directories, and vendor contacts in client-side storage with an explicit network drop banner.
+- Consequences: Gives on-site coordinators full control of palace wedding execution, prevents vendor arrival surprises, protects auspicious ceremony timings, and records audit trails for billing reconciliation.
