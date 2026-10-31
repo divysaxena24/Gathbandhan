@@ -15,6 +15,20 @@ const nextConfig: NextConfig = {
       "@radix-ui/react-scroll-area",
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/quotations",
+        destination: "/quotation-analyzer",
+        permanent: false,
+      },
+      {
+        source: "/quotations/:path*",
+        destination: "/quotation-analyzer",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -102,10 +102,10 @@ export default function VendorDetailPage() {
         title={vendor.name}
         description={`${vendor.category.replace(/_/g, " ")} partner for luxury destination weddings`}
       >
-        <Link href={`/quotations?vendorId=${vendor.id}`}>
+        <Link href="/quotation-analyzer">
           <Button size="sm" className="bg-charcoal text-ivory hover:bg-charcoal-700 gap-1.5">
             <FileText className="w-4 h-4 text-gold" />
-            View Active Quotes
+            AI Quotation Analyzer
           </Button>
         </Link>
       </PageHeader>
