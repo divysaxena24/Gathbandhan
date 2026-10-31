@@ -280,6 +280,7 @@ describe("Milestone 5: PDF and Excel Report Generation Engine", () => {
       expect(filename).toBe("test_report_cleanup.pdf");
 
       // Cleanup with negative or 0ms maxAge will clean the file immediately
+      await new Promise((r) => setTimeout(r, 60));
       const cleaned = await cleanupExpiredReports(-1);
       expect(cleaned).toBeGreaterThanOrEqual(1);
     });

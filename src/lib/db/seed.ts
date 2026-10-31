@@ -220,6 +220,58 @@ async function seed() {
           notes: "[DEMO] Anchor wedding couple",
           convertedFromLeadId: leads[0].id,
         },
+        {
+          coupleName: "Raj & Simran Kapoor",
+          partnerOneName: "Raj Kapoor",
+          partnerOneEmail: "raj.kapoor@email.com",
+          partnerOnePhone: "+919812345002",
+          partnerTwoName: "Simran Malhotra",
+          partnerTwoEmail: "simran.m@email.com",
+          address: "Palace Road, Jaipur, Rajasthan",
+          notes: "[DEMO] Heritage luxury celebration",
+          convertedFromLeadId: leads[1].id,
+        },
+        {
+          coupleName: "Vikram & Ananya Mehta",
+          partnerOneName: "Vikram Mehta",
+          partnerOneEmail: "vikram.mehta@email.com",
+          partnerOnePhone: "+919812345003",
+          partnerTwoName: "Ananya Singhania",
+          partnerTwoEmail: "ananya.s@email.com",
+          address: "Lake Fatehsagar Enclave, Udaipur",
+          notes: "[DEMO] Lake palace destination wedding",
+          convertedFromLeadId: leads[2].id,
+        },
+        {
+          coupleName: "Rohan & Pooja Singhania",
+          partnerOneName: "Rohan Singhania",
+          partnerOneEmail: "rohan.s@email.com",
+          partnerOnePhone: "+919812345004",
+          partnerTwoName: "Pooja Agarwal",
+          partnerTwoEmail: "pooja.a@email.com",
+          address: "Circuit House Road, Jodhpur",
+          notes: "[DEMO] Fort palace royal festivity",
+        },
+        {
+          coupleName: "Kabir & Natasha Verma",
+          partnerOneName: "Kabir Verma",
+          partnerOneEmail: "kabir.verma@email.com",
+          partnerOnePhone: "+919812345005",
+          partnerTwoName: "Natasha Roy",
+          partnerTwoEmail: "natasha.roy@email.com",
+          address: "Cavelossim Beach, South Goa",
+          notes: "[DEMO] Coastal luxury wedding",
+        },
+        {
+          coupleName: "Dev & Radhika Malhotra",
+          partnerOneName: "Dev Khanna",
+          partnerOneEmail: "dev.khanna@email.com",
+          partnerOnePhone: "+919876543210",
+          partnerTwoName: "Radhika Malhotra",
+          partnerTwoEmail: "radhika.m@email.com",
+          address: "Saheli Nagar, Udaipur",
+          notes: "[DEMO] Converted from 14-step consultation",
+        },
       ])
       .returning();
 
@@ -235,7 +287,7 @@ async function seed() {
       .values([
         {
           clientId: clients[0].id,
-          title: "Sharma Royal Wedding",
+          title: "Sharma Royal Wedding — Udaipur",
           city: "Udaipur",
           venue: "Taj Lake Palace & City Palace",
           startDate: "2027-02-12",
@@ -246,6 +298,76 @@ async function seed() {
           lifecycleStatus: "PLANNING",
           assignedPlannerId: planner1.id,
           notes: "[DEMO] Anchor wedding for full demo scenario",
+        },
+        {
+          clientId: clients[1].id,
+          title: "Kapoor Heritage Celebration — Jaipur",
+          city: "Jaipur",
+          venue: "Rambagh Palace",
+          startDate: "2027-03-20",
+          endDate: "2027-03-22",
+          estimatedGuestCount: 350,
+          budgetPaise: BigInt(17500000000), // ₹1.75 crore
+          packageType: "FULL_SERVICE",
+          lifecycleStatus: "PLANNING",
+          assignedPlannerId: planner2.id,
+          notes: "[DEMO] Traditional Rajputana heritage extravaganza",
+        },
+        {
+          clientId: clients[2].id,
+          title: "Mehta Grand Lake Palace Wedding",
+          city: "Udaipur",
+          venue: "The Leela Palace",
+          startDate: "2027-04-10",
+          endDate: "2027-04-12",
+          estimatedGuestCount: 500,
+          budgetPaise: BigInt(25000000000), // ₹2.5 crore
+          packageType: "FULL_SERVICE",
+          lifecycleStatus: "ACTIVE",
+          assignedPlannerId: planner1.id,
+          notes: "[DEMO] High-profile multi-day waterfront wedding",
+        },
+        {
+          clientId: clients[3].id,
+          title: "Singhania Fort Palace Festivity",
+          city: "Jodhpur",
+          venue: "Umaid Bhawan Palace",
+          startDate: "2027-05-02",
+          endDate: "2027-05-04",
+          estimatedGuestCount: 450,
+          budgetPaise: BigInt(32000000000), // ₹3.2 crore
+          packageType: "FULL_SERVICE",
+          lifecycleStatus: "PLANNING",
+          assignedPlannerId: planner2.id,
+          notes: "[DEMO] Ultra luxury royal fort palace festivity",
+        },
+        {
+          clientId: clients[4].id,
+          title: "Verma Coastal Luxury Wedding",
+          city: "Goa",
+          venue: "ITC Grand Goa Resort",
+          startDate: "2026-12-18",
+          endDate: "2026-12-20",
+          estimatedGuestCount: 250,
+          budgetPaise: BigInt(12000000000), // ₹1.2 crore
+          packageType: "PARTIAL",
+          lifecycleStatus: "ACTIVE",
+          assignedPlannerId: planner1.id,
+          notes: "[DEMO] Sunset beach ceremony and ballroom reception",
+        },
+        {
+          clientId: clients[5].id,
+          title: "Dev & Radhika Royal Conclave",
+          city: "Udaipur",
+          venue: "City Palace Complex",
+          startDate: "2027-01-20",
+          endDate: "2027-01-22",
+          estimatedGuestCount: 300,
+          budgetPaise: BigInt(15000000000), // ₹1.5 crore
+          packageType: "FULL_SERVICE",
+          lifecycleStatus: "PLANNING",
+          assignedPlannerId: planner1.id,
+          notes: "[DEMO] Live converted consultation from client portal",
         },
       ])
       .returning();
@@ -1713,6 +1835,152 @@ async function seed() {
     // ============================================================
     // Done
     // ============================================================
+        // ============================================================
+    // 15. Inbound Booking Requests & Concierge Messages
+    // ============================================================
+    console.log("💌 Seeding Inbound Booking Requests & Concierge Messages...");
+
+    const bookingReqs = await db
+      .insert(schema.bookingRequests)
+      .values([
+        {
+          coupleName: "Dev and Radhika",
+          contactName: "Dev Khanna",
+          contactEmail: "dev.khanna@email.com",
+          contactPhone: "+91 98765 43210",
+          preferredContactMethod: "WHATSAPP",
+          weddingType: "HINDU",
+          regionalTraditions: ["North Indian", "Rajasthani"],
+          ceremonies: ["Royal Mehendi", "Sangeet Darbar", "Sacred Pheras", "Grand Reception"],
+          destination: "Udaipur",
+          destinationCity: "Udaipur",
+          venueType: "heritage_palace",
+          preferredDate: "2027-01-20",
+          dateFlexible: true,
+          durationDays: 3,
+          guestCount: 300,
+          theme: "Royal Rajasthani Heritage",
+          decorPreferences: ["Marigold Floral Canopy", "Palace Courtyard Lighting", "Royal Doli Entry"],
+          cuisines: ["North Indian", "Rajasthani Dal Baati", "Live Chaat & Kebabs"],
+          dietaryRestrictions: ["Jain Options Required"],
+          photography: ["Candid Photography", "Cinematography Film", "Drone Coverage"],
+          entertainment: ["Sufi Singer", "DJ with Visuals", "Folk Dancers"],
+          accommodation: ["5-Star Palace Rooms for 120 VIPs"],
+          transportation: ["Airport Fleet of 10 SUVs"],
+          additionalServices: ["Guest Welcome Hampers", "Bridal Makeup Artist", "Turbans & Safa Styling"],
+          customRequirements: "We want a spectacular lakeside varmala on boats followed by fireworks.",
+          estimatedBudgetPaise: BigInt(15000000000), // ₹1.5 Crore
+          status: "SUBMITTED",
+          internalNotes: "High-value enquiry with verified phone. Recommended assign to Senior Planner.",
+        },
+        {
+          coupleName: "Kavita & Rohan Singhania",
+          contactName: "Kavita Singhania",
+          contactEmail: "kavita.s@email.com",
+          contactPhone: "+91 98111 22334",
+          preferredContactMethod: "EMAIL",
+          weddingType: "INTERFAITH",
+          regionalTraditions: ["Punjabi", "Marwari"],
+          ceremonies: ["Anand Karaj", "Varmala & Pheras", "Cocktail Gala", "Reception"],
+          destination: "Jaipur",
+          destinationCity: "Jaipur",
+          venueType: "fort_resort",
+          preferredDate: "2027-03-15",
+          dateFlexible: false,
+          durationDays: 3,
+          guestCount: 450,
+          theme: "Contemporary Regal Gold & Ivory",
+          cuisines: ["Continental", "Awadhi", "Pan-Asian", "Gourmet Dessert Bar"],
+          photography: ["Pre-Wedding Shoot", "Traditional & Candid", "Same Day Edit Video"],
+          entertainment: ["Celebrity Anchor", "Live Band", "Bollywood Choreographer"],
+          estimatedBudgetPaise: BigInt(22500000000), // ₹2.25 Crore
+          status: "UNDER_REVIEW",
+          reviewNotes: "Checking Rambagh Palace lawn availability for March 15 weekend.",
+          internalNotes: "VIP family referral. Prioritize quote comparison across top caterers.",
+        },
+        {
+          coupleName: "Zoya & Farhan Merchant",
+          contactName: "Farhan Merchant",
+          contactEmail: "farhan.m@email.com",
+          contactPhone: "+91 97654 32109",
+          preferredContactMethod: "WHATSAPP",
+          weddingType: "MUSLIM",
+          regionalTraditions: ["Hyderabadi & Lucknowi"],
+          ceremonies: ["Manjha", "Nikah Ceremony", "Walima Banquet"],
+          destination: "Jodhpur",
+          destinationCity: "Jodhpur",
+          venueType: "palace",
+          preferredDate: "2027-04-05",
+          durationDays: 2,
+          guestCount: 350,
+          theme: "Emerald & Pearl Mughal Splendor",
+          cuisines: ["Dum Biryani", "Mughlai Specialities", "Shahi Tukda & Phirni"],
+          estimatedBudgetPaise: BigInt(18000000000), // ₹1.80 Crore
+          status: "CHANGES_REQUESTED",
+          reviewNotes: "Please confirm whether the banquet hall requires separate family seating sections.",
+          internalNotes: "Client requested revision of hall floorplan.",
+        },
+        {
+          coupleName: "Ananya & Siddharth Deshmukh",
+          contactName: "Ananya Deshmukh",
+          contactEmail: "ananya.d@email.com",
+          contactPhone: "+91 99200 11223",
+          preferredContactMethod: "PHONE",
+          weddingType: "HINDU",
+          regionalTraditions: ["Maharashtrian & Gujarati"],
+          ceremonies: ["Sakhar Puda", "Haldi Ceremony", "Lagna Muhurtham", "Gala Reception"],
+          destination: "Goa",
+          destinationCity: "Goa",
+          venueType: "beachfront_resort",
+          preferredDate: "2027-02-25",
+          durationDays: 2,
+          guestCount: 220,
+          theme: "Boho Beach Luxury",
+          cuisines: ["Coastal Seafood", "Gujarati Thali", "Live Grill"],
+          estimatedBudgetPaise: BigInt(11000000000), // ₹1.10 Crore
+          status: "ACCEPTED",
+          weddingId: weddings[4].id,
+          reviewNotes: "Consultation accepted into production. Assigned to Lead Planner Priya.",
+        },
+      ])
+      .returning();
+
+    console.log(`  ✅ Seeded ${bookingReqs.length} booking requests`);
+
+    // Seed Messages
+    await db.insert(schema.bookingRequestMessages).values([
+      {
+        bookingRequestId: bookingReqs[0].id,
+        senderRole: "CLIENT",
+        senderName: "Dev Khanna",
+        message: "Hello Gathbandhan team! We submitted our wedding plan for January 2027 in Udaipur. Could you please confirm if City Palace grounds can host 300 guests for sacred pheras?",
+        isInternal: false,
+      },
+      {
+        bookingRequestId: bookingReqs[0].id,
+        senderRole: "ADMIN",
+        senderName: "Priya Sharma (Lead Planner)",
+        message: "Namaste Dev & Radhika! Absolutely, Zenana Mahal at City Palace comfortably accommodates 300-400 guests with lakeside staging. We are reviewing your catering preferences now.",
+        isInternal: false,
+      },
+      {
+        bookingRequestId: bookingReqs[1].id,
+        senderRole: "CLIENT",
+        senderName: "Kavita Singhania",
+        message: "Hi! We're planning an interfaith Anand Karaj + Hindu Varmala in Jaipur. We need both traditions executed with complete authenticity.",
+        isInternal: false,
+      },
+      {
+        bookingRequestId: bookingReqs[1].id,
+        senderRole: "ADMIN",
+        senderName: "Vikram Malhotra (Partner)",
+        message: "Welcome Kavita! Our agency has curated over 15 dual-tradition ceremonies in Rajasthan with separate sacred canopy protocols and synchronized musical ensembles.",
+        isInternal: false,
+      },
+    ]);
+
+    console.log("  ✅ Seeded concierge conversation threads");
+
     console.log("\n✨ Seed complete!");
     console.log("   Anchor wedding: Sharma Royal Wedding (Udaipur)");
     console.log("   Budget: ₹2 Crore | Guests: 400 | Events: 4");

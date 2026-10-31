@@ -71,6 +71,8 @@ export function VendorComparisonModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           comparisonResult,
+          analyzedQuotations,
+          activeScenario: activePreset,
           metadata: {
             eventName: "Wedding Proposal Comparison",
             generatedAt: new Date().toLocaleDateString(),

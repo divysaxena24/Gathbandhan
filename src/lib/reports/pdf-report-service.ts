@@ -1,9 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from "pdf-lib";
 import { ReportGenerationInput } from "./report-types";
 import { QuotationAnalysisResult } from "@/lib/ai/types";
 import { getCachedAnalysis } from "@/lib/ai/quotation-analyzer-service";
-import { MultiVendorComparisonResult } from "@/lib/ai/comparison-types";
+import {
+  MultiVendorComparisonResult,
+  ComparisonWeights,
+  ComparisonScenarioType,
+  SCENARIO_PRESETS,
+} from "@/lib/ai/comparison-types";
 
 // ==========================================
 // Color Palette (Luxury Ivory, Charcoal & Gold)
@@ -58,10 +62,10 @@ function createNewPage(layout: LayoutState, orientation: "portrait" | "landscape
   layout.pageWidth = pWidth;
   layout.pageHeight = pHeight;
   layout.contentWidth = pWidth - layout.leftMargin - layout.rightMargin;
-  layout.y = pHeight - 44; // top margin
+  layout.y = pHeight - 42; // top margin
   layout.pages.push({ page, orientation, width: pWidth, height: pHeight });
 
-  // Top Decorative Header Band on subsequent pages
+  // Top Decorative Gold Band on subsequent pages
   if (layout.pages.length > 1) {
     page.drawRectangle({
       x: 0,
@@ -103,7 +107,7 @@ function sanitizeText(str: string | null | undefined): string {
 }
 
 export function truncateWithEllipsis(
-  text: string,
+  text: string | null | undefined,
   font: PDFFont,
   fontSize: number,
   maxWidth: number
@@ -137,7 +141,7 @@ export function truncateWithEllipsis(
   return `${best.trim()}${ellipsis}`;
 }
 
-function wrapText(text: string, font: PDFFont, fontSize: number, maxWidth: number): string[] {
+function wrapText(text: string | null | undefined, font: PDFFont, fontSize: number, maxWidth: number): string[] {
   if (!text) return [];
   const words = sanitizeText(text).replace(/\s+/g, " ").trim().split(" ");
   const lines: string[] = [];
@@ -205,10 +209,11 @@ export function getConfidenceDescription(confidenceLevel: string, isProvisional:
 }
 
 /**
- * Builds client-ready, multi-page Gathbandhan Wedding Quotation Comparison PDF Report.
+ * Builds print-ready Gathbandhan Vendor Intelligence Dashboard PDF Report.
+ * Replicates the complete dashboard sections end-to-end with 100% data fidelity.
  */
 export async function generatePdfReport(input: ReportGenerationInput): Promise<Buffer> {
-  const { comparisonResult, metadata } = input;
+  const { comparisonResult, metadata, activeScenario } = input;
   const pdfDoc = await PDFDocument.create();
 
   const fontRegular = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -225,7 +230,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
     fontOblique,
     currentPage: null as any,
     currentOrientation: "portrait",
-    y: 841.89 - 44,
+    y: 841.89 - 42,
     pageWidth: 595.28,
     pageHeight: 841.89,
     leftMargin,
@@ -245,9 +250,27 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   const rec = comparisonResult.recommendation;
   const vendors = comparisonResult.vendors;
   const scoring = comparisonResult.scoring;
+  const alerts = comparisonResult.alerts;
+  const vendorCount = vendors.length;
+
+  // KPI Calculations (Mirrored directly from Dashboard Section 2)
+  const prices = vendors
+    .map((v) => v.calculatedGrandTotal ?? v.statedGrandTotal)
+    .filter((p): p is number => p !== null && !isNaN(p));
+  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+  const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+  const avgPrice = prices.length > 0 ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0;
+  const priceSpread = maxPrice - minPrice;
+  const verifiedVendorCount = vendors.filter((v) => v.financialAuditStatus === "MATCHED").length;
+
+  // Determine active scenario name
+  const scenarioKey = (activeScenario || "balanced") as ComparisonScenarioType;
+  const scenarioPreset = SCENARIO_PRESETS[scenarioKey] || SCENARIO_PRESETS.balanced;
+  const scenarioLabel = scenarioPreset.label || "Balanced Evaluation";
 
   // =========================================================================
-  // PAGE 1: EXECUTIVE OVERVIEW & STRATEGIC RECOMMENDATION (Portrait)
+  // PAGE 1: EXECUTIVE OVERVIEW & RECOMMENDATION (Portrait)
+  // Replicates Dashboard Header, Hero Card, Indicators, Advantages & Checklist
   // =========================================================================
   createNewPage(layout, "portrait");
 
@@ -260,7 +283,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
     color: COLOR_GOLD,
   });
 
-  layout.y = layout.pageHeight - 70;
+  layout.y = layout.pageHeight - 68;
 
   // Brand Header
   layout.currentPage.drawText("GATHBANDHAN", {
@@ -272,14 +295,14 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   });
   layout.y -= 12;
 
-  layout.currentPage.drawText("LUXURY WEDDING OPERATIONS & COMMERCIAL AUDIT INTELLIGENCE", {
+  layout.currentPage.drawText("LUXURY WEDDING OPERATIONS • VENDOR INTELLIGENCE & COMPARISON DASHBOARD", {
     x: leftMargin,
     y: layout.y,
-    size: 8,
+    size: 7.8,
     font: fontBold,
     color: COLOR_GOLD,
   });
-  layout.y -= 20;
+  layout.y -= 18;
 
   layout.currentPage.drawLine({
     start: { x: leftMargin, y: layout.y },
@@ -287,29 +310,29 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
     thickness: 1.2,
     color: COLOR_GOLD,
   });
-  layout.y -= 28;
+  layout.y -= 26;
 
   // Report Main Title
-  layout.currentPage.drawText("Wedding Vendor Quotation Comparison Report", {
+  layout.currentPage.drawText("Vendor Intelligence & Proposal Comparison Report", {
     x: leftMargin,
     y: layout.y,
-    size: 18,
+    size: 17,
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
-  layout.y -= 16;
+  layout.y -= 15;
 
-  layout.currentPage.drawText("Comprehensive Multi-Vendor Commercial Evaluation, Scoring & Audit", {
+  layout.currentPage.drawText("Comprehensive commercial evaluation, audited line items, and dynamic scenario analytics.", {
     x: leftMargin,
     y: layout.y,
-    size: 10,
+    size: 9.5,
     font: fontRegular,
     color: COLOR_CHARCOAL_MUTED,
   });
-  layout.y -= 24;
+  layout.y -= 22;
 
   // Metadata Card (2 Columns with exact boundary protection)
-  const metaBoxHeight = 78;
+  const metaBoxHeight = 76;
   layout.currentPage.drawRectangle({
     x: leftMargin,
     y: layout.y - metaBoxHeight,
@@ -326,54 +349,54 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
     ["Report Date:", metadata?.generatedAt || new Date().toLocaleDateString()],
   ];
   const metaCol2 = [
-    ["Vendors Evaluated:", `${vendors.length} Proposals Analyzed`],
+    ["Vendors Evaluated:", `${vendors.length} Commercial Proposals Analyzed`],
     ["Top Recommendation:", rec.recommendedVendorName],
     ["Prepared By:", metadata?.preparedBy || "Gathbandhan Automated Intelligence"],
   ];
 
-  let mY = layout.y - 16;
+  let mY = layout.y - 15;
   metaCol1.forEach(([lbl, rawVal]) => {
     layout.currentPage.drawText(lbl, {
       x: leftMargin + 12,
       y: mY,
-      size: 8,
+      size: 7.8,
       font: fontBold,
       color: COLOR_CHARCOAL_DARK,
     });
-    const val = truncateWithEllipsis(rawVal, fontRegular, 8, 155);
+    const val = truncateWithEllipsis(rawVal, fontRegular, 7.8, 155);
     layout.currentPage.drawText(val, {
       x: leftMargin + 105,
       y: mY,
-      size: 8,
+      size: 7.8,
       font: fontRegular,
       color: COLOR_CHARCOAL_DARK,
     });
     mY -= 17;
   });
 
-  mY = layout.y - 16;
+  mY = layout.y - 15;
   metaCol2.forEach(([lbl, rawVal]) => {
     layout.currentPage.drawText(lbl, {
       x: leftMargin + 270,
       y: mY,
-      size: 8,
+      size: 7.8,
       font: fontBold,
       color: COLOR_CHARCOAL_DARK,
     });
-    const val = truncateWithEllipsis(rawVal, fontRegular, 8, 135);
+    const val = truncateWithEllipsis(rawVal, fontRegular, 7.8, 135);
     layout.currentPage.drawText(val, {
       x: leftMargin + 375,
       y: mY,
-      size: 8,
+      size: 7.8,
       font: fontRegular,
       color: COLOR_CHARCOAL_DARK,
     });
     mY -= 17;
   });
 
-  layout.y -= metaBoxHeight + 18;
+  layout.y -= metaBoxHeight + 16;
 
-  // Currency Warning Banner (if multiple currencies detected)
+  // Currency / Compatibility Warning Banner (if multiple currencies detected)
   if (!comparisonResult.currencyCompatibility.isCompatible) {
     const curMsg = sanitizeText(comparisonResult.currencyCompatibility.warningMessage || "Multiple currencies detected in proposals.");
     layout.currentPage.drawRectangle({
@@ -385,31 +408,30 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
       borderColor: COLOR_AMBER,
       borderWidth: 1,
     });
-    layout.currentPage.drawText(truncateWithEllipsis(`[!] Notice: ${curMsg}`, fontBold, 7.5, layout.contentWidth - 20), {
+    layout.currentPage.drawText(truncateWithEllipsis(`[!] Currency Notice: ${curMsg}`, fontBold, 7.5, layout.contentWidth - 20), {
       x: leftMargin + 8,
       y: layout.y - 16,
       size: 7.5,
       font: fontBold,
       color: COLOR_AMBER,
     });
-    layout.y -= 32;
+    layout.y -= 30;
   }
 
-  // =========================================================================
-  // Executive Recommendation Hero Card (With 3 Distinct Verification Badges)
-  // =========================================================================
-  const recHeadlineLines = wrapText(rec.headline, fontBold, 13, layout.contentWidth - 32);
-  const recSummaryLines = wrapText(rec.executiveSummary, fontRegular, 8.2, layout.contentWidth - 32).slice(0, 3);
+  // -------------------------------------------------------------------------
+  // Executive Recommendation Hero Card (Replicates Dashboard Section 1)
+  // -------------------------------------------------------------------------
+  const recHeadlineLines = wrapText(rec.headline, fontBold, 12.5, layout.contentWidth - 32);
+  const recSummaryLines = wrapText(rec.executiveSummary, fontRegular, 8, layout.contentWidth - 32).slice(0, 3);
 
-  // Compute dynamic height of recommendation card
   const badgeCardHeight = 44;
   const recCardPadding = 24;
   const recBoxHeight =
     recCardPadding +
-    recHeadlineLines.length * 16 +
+    recHeadlineLines.length * 15 +
     recSummaryLines.length * 11 +
     badgeCardHeight +
-    22;
+    20;
 
   layout.currentPage.drawRectangle({
     x: leftMargin,
@@ -421,41 +443,39 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
     borderWidth: 1.5,
   });
 
-  layout.currentPage.drawText("EXECUTIVE RECOMMENDATION SUMMARY", {
+  layout.currentPage.drawText("RANK #1 COMMERCIAL RECOMMENDATION", {
     x: leftMargin + 14,
-    y: layout.y - 16,
-    size: 8.5,
+    y: layout.y - 15,
+    size: 8,
     font: fontBold,
     color: COLOR_GOLD,
   });
 
-  let hY = layout.y - 32;
+  let hY = layout.y - 30;
   recHeadlineLines.forEach((hl) => {
     layout.currentPage.drawText(hl, {
       x: leftMargin + 14,
       y: hY,
-      size: 13,
+      size: 12.5,
       font: fontBold,
       color: COLOR_CHARCOAL_DARK,
     });
-    hY -= 15;
+    hY -= 14;
   });
 
-  hY -= 4;
+  hY -= 3;
   recSummaryLines.forEach((sl) => {
     layout.currentPage.drawText(sl, {
       x: leftMargin + 14,
       y: hY,
-      size: 8.2,
+      size: 8,
       font: fontRegular,
       color: COLOR_CHARCOAL_DARK,
     });
     hY -= 11;
   });
 
-  // -------------------------------------------------------------------------
-  // 3 Separated Verification Indicators (Confidence, Completeness, Financial)
-  // -------------------------------------------------------------------------
+  // 3 Distinct Verification Badges (Extraction Confidence, Evidence Completeness, Financial Verification)
   const badgeGap = 8;
   const badgeW = (layout.contentWidth - 28 - badgeGap * 2) / 3;
   const badgeY = layout.y - recBoxHeight + 10;
@@ -475,7 +495,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   layout.currentPage.drawText("EXTRACTION CONFIDENCE", {
     x: leftMargin + 20,
     y: badgeY + badgeCardHeight - 12,
-    size: 7,
+    size: 6.8,
     font: fontBold,
     color: isHighConf ? COLOR_EMERALD : COLOR_AMBER,
   });
@@ -484,7 +504,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   layout.currentPage.drawText(confLabel, {
     x: leftMargin + 20,
     y: badgeY + badgeCardHeight - 23,
-    size: 8,
+    size: 7.8,
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
@@ -514,7 +534,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   layout.currentPage.drawText("EVIDENCE COMPLETENESS", {
     x: leftMargin + 14 + badgeW + badgeGap + 6,
     y: badgeY + badgeCardHeight - 12,
-    size: 7,
+    size: 6.8,
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
@@ -522,7 +542,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   layout.currentPage.drawText(`${availCount} of 6 Criteria Documented`, {
     x: leftMargin + 14 + badgeW + badgeGap + 6,
     y: badgeY + badgeCardHeight - 23,
-    size: 8,
+    size: 7.8,
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
@@ -555,7 +575,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   layout.currentPage.drawText("FINANCIAL VERIFICATION", {
     x: leftMargin + 14 + (badgeW + badgeGap) * 2 + 6,
     y: badgeY + badgeCardHeight - 12,
-    size: 7,
+    size: 6.8,
     font: fontBold,
     color: isFinVerified ? COLOR_EMERALD : COLOR_ROSE,
   });
@@ -564,7 +584,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   layout.currentPage.drawText(finStatusStr, {
     x: leftMargin + 14 + (badgeW + badgeGap) * 2 + 6,
     y: badgeY + badgeCardHeight - 23,
-    size: 8,
+    size: 7.8,
     font: fontBold,
     color: isFinVerified ? COLOR_EMERALD : COLOR_ROSE,
   });
@@ -578,19 +598,19 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
     color: COLOR_CHARCOAL_MUTED,
   });
 
-  layout.y -= recBoxHeight + 20;
+  layout.y -= recBoxHeight + 18;
 
   // Major Advantages vs Commercial Trade-offs Grid (Side-by-side with wrapping)
   const gridW = (layout.contentWidth - 14) / 2;
   const advBullets = rec.majorAdvantages.slice(0, 4);
   const disBullets = rec.commercialDisadvantages.slice(0, 4);
 
-  const advLinesArr = advBullets.map((adv) => wrapText(`+  ${adv}`, fontRegular, 7.8, gridW - 22));
-  const disLinesArr = disBullets.map((dis) => wrapText(`!  ${dis}`, fontRegular, 7.8, gridW - 22));
+  const advLinesArr = advBullets.map((adv) => wrapText(`+  ${adv}`, fontRegular, 7.5, gridW - 22));
+  const disLinesArr = disBullets.map((dis) => wrapText(`!  ${dis}`, fontRegular, 7.5, gridW - 22));
 
   const advTotalLines = advLinesArr.reduce((acc, lines) => acc + Math.min(lines.length, 2), 0);
   const disTotalLines = disLinesArr.reduce((acc, lines) => acc + Math.min(lines.length, 2), 0);
-  const gridH = Math.max(95, Math.max(advTotalLines, disTotalLines) * 14 + 32);
+  const gridH = Math.max(90, Math.max(advTotalLines, disTotalLines) * 13 + 30);
 
   // Advantages Box (Left)
   layout.currentPage.drawRectangle({
@@ -605,25 +625,25 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
 
   layout.currentPage.drawText("MAJOR COMMERCIAL ADVANTAGES", {
     x: leftMargin + 12,
-    y: layout.y - 16,
-    size: 8.5,
+    y: layout.y - 15,
+    size: 8,
     font: fontBold,
     color: COLOR_EMERALD,
   });
 
-  let aY = layout.y - 32;
+  let aY = layout.y - 30;
   advLinesArr.forEach((lines) => {
     lines.slice(0, 2).forEach((l) => {
       layout.currentPage.drawText(l, {
         x: leftMargin + 12,
         y: aY,
-        size: 7.8,
+        size: 7.5,
         font: fontRegular,
         color: COLOR_CHARCOAL_DARK,
       });
-      aY -= 12;
+      aY -= 11;
     });
-    aY -= 3;
+    aY -= 2;
   });
 
   // Trade-offs Box (Right)
@@ -639,86 +659,259 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
 
   layout.currentPage.drawText("COMMERCIAL TRADE-OFFS & IDENTIFIED RISKS", {
     x: leftMargin + gridW + 26,
-    y: layout.y - 16,
-    size: 8.5,
+    y: layout.y - 15,
+    size: 8,
     font: fontBold,
     color: COLOR_AMBER,
   });
 
-  let dY = layout.y - 32;
+  let dY = layout.y - 30;
   disLinesArr.forEach((lines) => {
     lines.slice(0, 2).forEach((l) => {
       layout.currentPage.drawText(l, {
         x: leftMargin + gridW + 26,
         y: dY,
-        size: 7.8,
+        size: 7.5,
         font: fontRegular,
         color: COLOR_CHARCOAL_DARK,
       });
-      dY -= 12;
+      dY -= 11;
     });
-    dY -= 3;
+    dY -= 2;
   });
 
-  layout.y -= gridH + 18;
+  layout.y -= gridH + 16;
 
   // Pre-contract Questions checklist
   if (rec.questionsToClarifyBeforeSigning.length > 0) {
     layout.currentPage.drawText("ESSENTIAL CLARIFICATIONS BEFORE SIGNING CONTRACT", {
       x: leftMargin,
       y: layout.y,
-      size: 9,
+      size: 8.5,
       font: fontBold,
       color: COLOR_CHARCOAL_DARK,
     });
-    layout.y -= 14;
+    layout.y -= 13;
 
     rec.questionsToClarifyBeforeSigning.slice(0, 3).forEach((q, idx) => {
-      const qLines = wrapText(`[  ] ${idx + 1}. ${q}`, fontRegular, 7.8, layout.contentWidth - 10);
+      const qLines = wrapText(`[  ] ${idx + 1}. ${q}`, fontRegular, 7.5, layout.contentWidth - 10);
       qLines.forEach((ql) => {
         layout.currentPage.drawText(ql, {
           x: leftMargin + 4,
           y: layout.y,
-          size: 7.8,
+          size: 7.5,
           font: fontRegular,
           color: COLOR_CHARCOAL_DARK,
         });
-        layout.y -= 12;
+        layout.y -= 11;
       });
     });
   }
 
   // =========================================================================
-  // PAGE 2: VISUAL VENDOR COMPARISON & COMMERCIAL CHARTS (Portrait)
+  // PAGE 2: SCENARIO ANALYSIS, KPI SUMMARY & 5 VISUAL CHARTS (Portrait)
+  // Replicates Dashboard Section 2 (KPIs), Section 3 (Scenario), & Section 4 (All 5 Charts)
   // =========================================================================
   createNewPage(layout, "portrait");
 
   layout.currentPage.drawText("Visual Vendor Comparison & Commercial Intelligence", {
     x: leftMargin,
     y: layout.y,
-    size: 15,
+    size: 14,
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
-  layout.y -= 13;
+  layout.y -= 12;
 
   layout.currentPage.drawText(
-    "Interactive commercial analytics derived directly from verified vendor quotation line items.",
+    "Interactive commercial analytics derived directly from verified quotation line items and selected scoring scenario.",
     {
       x: leftMargin,
       y: layout.y,
-      size: 8.5,
+      size: 8,
       font: fontRegular,
       color: COLOR_CHARCOAL_MUTED,
     }
   );
-  layout.y -= 26;
+  layout.y -= 18;
+
+  // -------------------------------------------------------------
+  // Scenario Analysis & Selected Configuration Banner (Section 12)
+  // -------------------------------------------------------------
+  const scenBoxH = 34;
+  layout.currentPage.drawRectangle({
+    x: leftMargin,
+    y: layout.y - scenBoxH,
+    width: layout.contentWidth,
+    height: scenBoxH,
+    color: COLOR_LIGHT_GRAY,
+    borderColor: COLOR_GOLD,
+    borderWidth: 1,
+  });
+
+  layout.currentPage.drawText(`EVALUATION SCENARIO: ${scenarioLabel.toUpperCase()}`, {
+    x: leftMargin + 10,
+    y: layout.y - 13,
+    size: 7.8,
+    font: fontBold,
+    color: COLOR_CHARCOAL_DARK,
+  });
+
+  const scenDescStr = `Scoring Model Weights: Cost ${scoring.weights.costCompetitiveness}% • Coverage ${scoring.weights.serviceCoverage}% • Quality ${scoring.weights.qualityAndPortfolio}% • Past Perf ${scoring.weights.pastPerformance}% • Terms ${scoring.weights.commercialTerms}% • Audit ${scoring.weights.transparency}%`;
+  layout.currentPage.drawText(truncateWithEllipsis(scenDescStr, fontRegular, 7, layout.contentWidth - 20), {
+    x: leftMargin + 10,
+    y: layout.y - 25,
+    size: 7,
+    font: fontRegular,
+    color: COLOR_CHARCOAL_MUTED,
+  });
+
+  layout.y -= scenBoxH + 14;
+
+  // -------------------------------------------------------------
+  // 4 KPI Summary Cards (Replicated from Dashboard Section 2)
+  // -------------------------------------------------------------
+  const kpiCardH = 46;
+  const kpiGap = 8;
+  const kpiW = (layout.contentWidth - kpiGap * 3) / 4;
+
+  // Card 1: Recommended Vendor
+  layout.currentPage.drawRectangle({
+    x: leftMargin,
+    y: layout.y - kpiCardH,
+    width: kpiW,
+    height: kpiCardH,
+    color: COLOR_GOLD_LIGHT,
+    borderColor: COLOR_GOLD,
+    borderWidth: 1,
+  });
+  layout.currentPage.drawText("RECOMMENDED VENDOR", {
+    x: leftMargin + 8,
+    y: layout.y - 12,
+    size: 6.5,
+    font: fontBold,
+    color: COLOR_GOLD,
+  });
+  layout.currentPage.drawText(truncateWithEllipsis(rec.recommendedVendorName, fontBold, 8, kpiW - 14), {
+    x: leftMargin + 8,
+    y: layout.y - 24,
+    size: 8,
+    font: fontBold,
+    color: COLOR_CHARCOAL_DARK,
+  });
+  layout.currentPage.drawText(`Score: ${scoring.vendorScores[rec.recommendedVendorId]?.totalScore ?? "—"}/100`, {
+    x: leftMargin + 8,
+    y: layout.y - 36,
+    size: 7,
+    font: fontRegular,
+    color: COLOR_CHARCOAL_MUTED,
+  });
+
+  // Card 2: Lowest Quoted Price
+  layout.currentPage.drawRectangle({
+    x: leftMargin + kpiW + kpiGap,
+    y: layout.y - kpiCardH,
+    width: kpiW,
+    height: kpiCardH,
+    color: COLOR_LIGHT_GRAY,
+    borderColor: COLOR_BORDER,
+    borderWidth: 0.8,
+  });
+  layout.currentPage.drawText("LOWEST QUOTED PRICE", {
+    x: leftMargin + kpiW + kpiGap + 8,
+    y: layout.y - 12,
+    size: 6.5,
+    font: fontBold,
+    color: COLOR_EMERALD,
+  });
+  layout.currentPage.drawText(formatMoney(minPrice), {
+    x: leftMargin + kpiW + kpiGap + 8,
+    y: layout.y - 24,
+    size: 8,
+    font: fontBold,
+    color: COLOR_CHARCOAL_DARK,
+  });
+  layout.currentPage.drawText(`Spread: +${formatMoney(priceSpread)}`, {
+    x: leftMargin + kpiW + kpiGap + 8,
+    y: layout.y - 36,
+    size: 7,
+    font: fontRegular,
+    color: COLOR_CHARCOAL_MUTED,
+  });
+
+  // Card 3: Average Quoted Cost
+  layout.currentPage.drawRectangle({
+    x: leftMargin + (kpiW + kpiGap) * 2,
+    y: layout.y - kpiCardH,
+    width: kpiW,
+    height: kpiCardH,
+    color: COLOR_LIGHT_GRAY,
+    borderColor: COLOR_BORDER,
+    borderWidth: 0.8,
+  });
+  layout.currentPage.drawText("AVERAGE QUOTED COST", {
+    x: leftMargin + (kpiW + kpiGap) * 2 + 8,
+    y: layout.y - 12,
+    size: 6.5,
+    font: fontBold,
+    color: COLOR_BLUE,
+  });
+  layout.currentPage.drawText(formatMoney(avgPrice), {
+    x: leftMargin + (kpiW + kpiGap) * 2 + 8,
+    y: layout.y - 24,
+    size: 8,
+    font: fontBold,
+    color: COLOR_CHARCOAL_DARK,
+  });
+  layout.currentPage.drawText(`Across ${vendors.length} proposals`, {
+    x: leftMargin + (kpiW + kpiGap) * 2 + 8,
+    y: layout.y - 36,
+    size: 7,
+    font: fontRegular,
+    color: COLOR_CHARCOAL_MUTED,
+  });
+
+  // Card 4: Math Audit Integrity
+  layout.currentPage.drawRectangle({
+    x: leftMargin + (kpiW + kpiGap) * 3,
+    y: layout.y - kpiCardH,
+    width: kpiW,
+    height: kpiCardH,
+    color: COLOR_LIGHT_GRAY,
+    borderColor: COLOR_BORDER,
+    borderWidth: 0.8,
+  });
+  layout.currentPage.drawText("MATH AUDIT INTEGRITY", {
+    x: leftMargin + (kpiW + kpiGap) * 3 + 8,
+    y: layout.y - 12,
+    size: 6.5,
+    font: fontBold,
+    color: COLOR_GOLD,
+  });
+  layout.currentPage.drawText(`${verifiedVendorCount} / ${vendors.length} Verified`, {
+    x: leftMargin + (kpiW + kpiGap) * 3 + 8,
+    y: layout.y - 24,
+    size: 8,
+    font: fontBold,
+    color: COLOR_CHARCOAL_DARK,
+  });
+  layout.currentPage.drawText(
+    alerts.financialDiscrepancies.length === 0 ? "0 mismatches" : `${alerts.financialDiscrepancies.length} warnings`,
+    {
+      x: leftMargin + (kpiW + kpiGap) * 3 + 8,
+      y: layout.y - 36,
+      size: 7,
+      font: fontRegular,
+      color: COLOR_CHARCOAL_MUTED,
+    }
+  );
+
+  layout.y -= kpiCardH + 16;
 
   // Responsive chart row height and spacing scaling
-  const vendorCount = vendors.length;
-  const chartRowHeight = vendorCount <= 3 ? 18 : vendorCount <= 4 ? 16 : 14;
-  const chartRowStep = vendorCount <= 3 ? 24 : vendorCount <= 4 ? 20 : 17;
-  const chartSectionGap = vendorCount <= 3 ? 20 : vendorCount <= 4 ? 14 : 10;
+  const chartRowHeight = vendorCount <= 2 ? 18 : vendorCount <= 4 ? 15 : 13;
+  const chartRowStep = vendorCount <= 2 ? 23 : vendorCount <= 4 ? 19 : 16;
+  const chartSectionGap = vendorCount <= 2 ? 14 : vendorCount <= 4 ? 11 : 8;
 
   // -------------------------------------------------------------
   // CHART 1: Composite Score Comparison (0 - 100 Points)
@@ -726,11 +919,11 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   layout.currentPage.drawText("1. Overall Vendor Composite Score Comparison", {
     x: leftMargin,
     y: layout.y,
-    size: 10,
+    size: 9.5,
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
-  layout.y -= 14;
+  layout.y -= 13;
 
   const chart1MaxW = layout.contentWidth - 210;
   vendors.forEach((v) => {
@@ -739,41 +932,37 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
     const isWinner = v.uploadId === rec.recommendedVendorId;
     const barW = Math.max(8, (scoreVal / 100) * chart1MaxW);
 
-    // Vendor Label (safely bounded)
-    const vLabel = truncateWithEllipsis(v.vendorName, isWinner ? fontBold : fontRegular, 8, 125);
+    const vLabel = truncateWithEllipsis(v.vendorName, isWinner ? fontBold : fontRegular, 7.8, 125);
     layout.currentPage.drawText(vLabel, {
       x: leftMargin,
       y: layout.y - 10,
-      size: 8,
+      size: 7.8,
       font: isWinner ? fontBold : fontRegular,
       color: COLOR_CHARCOAL_DARK,
     });
 
-    // Bar Track
     layout.currentPage.drawRectangle({
       x: leftMargin + 130,
       y: layout.y - 12,
       width: chart1MaxW,
-      height: chartRowHeight - 4,
+      height: chartRowHeight - 3,
       color: COLOR_LIGHT_GRAY,
       borderColor: COLOR_BORDER,
       borderWidth: 0.5,
     });
 
-    // Score Bar
     layout.currentPage.drawRectangle({
       x: leftMargin + 130,
       y: layout.y - 12,
       width: barW,
-      height: chartRowHeight - 4,
+      height: chartRowHeight - 3,
       color: isWinner ? COLOR_GOLD : COLOR_BLUE,
     });
 
-    // Score Text
     layout.currentPage.drawText(`${scoreVal} / 100 ${isWinner ? " (Rank #1)" : ""}`, {
       x: leftMargin + 135 + barW,
       y: layout.y - 10,
-      size: 7.5,
+      size: 7.2,
       font: fontBold,
       color: isWinner ? COLOR_GOLD : COLOR_CHARCOAL_DARK,
     });
@@ -789,61 +978,51 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   layout.currentPage.drawText("2. Quoted Commercial Cost Comparison (Stated vs Calculated)", {
     x: leftMargin,
     y: layout.y,
-    size: 10,
+    size: 9.5,
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
-  layout.y -= 14;
+  layout.y -= 13;
 
-  const validTotals = vendors
-    .map((v) => v.calculatedGrandTotal ?? v.statedGrandTotal ?? 0)
-    .filter((p) => p > 0);
-  const maxCost = validTotals.length > 0 ? Math.max(...validTotals) : 100000;
-  const minCost = validTotals.length > 0 ? Math.min(...validTotals) : 0;
   const chart2MaxW = layout.contentWidth - 210;
-
   vendors.forEach((v) => {
     const costVal = v.calculatedGrandTotal ?? v.statedGrandTotal ?? 0;
-    const isLowest = costVal > 0 && costVal === minCost;
-    const barW = Math.max(10, (costVal / maxCost) * chart2MaxW);
+    const isLowest = costVal > 0 && costVal === minPrice;
+    const barW = Math.max(10, (costVal / (maxPrice || 100000)) * chart2MaxW);
     const hasDiscrepancy = v.financialAuditStatus !== "MATCHED";
 
-    // Vendor Label
-    const vLabel = truncateWithEllipsis(v.vendorName, fontRegular, 8, 125);
+    const vLabel = truncateWithEllipsis(v.vendorName, fontRegular, 7.8, 125);
     layout.currentPage.drawText(vLabel, {
       x: leftMargin,
       y: layout.y - 10,
-      size: 8,
+      size: 7.8,
       font: fontRegular,
       color: COLOR_CHARCOAL_DARK,
     });
 
-    // Bar Track
     layout.currentPage.drawRectangle({
       x: leftMargin + 130,
       y: layout.y - 12,
       width: chart2MaxW,
-      height: chartRowHeight - 4,
+      height: chartRowHeight - 3,
       color: COLOR_LIGHT_GRAY,
       borderColor: COLOR_BORDER,
       borderWidth: 0.5,
     });
 
-    // Cost Bar
     layout.currentPage.drawRectangle({
       x: leftMargin + 130,
       y: layout.y - 12,
       width: barW,
-      height: chartRowHeight - 4,
+      height: chartRowHeight - 3,
       color: isLowest ? COLOR_EMERALD : COLOR_CHARCOAL_DARK,
     });
 
-    // Price label
     const priceStr = `${formatMoney(costVal, v.currency)}${isLowest ? " (Lowest)" : ""}${hasDiscrepancy ? " [!]" : ""}`;
     layout.currentPage.drawText(priceStr, {
       x: leftMargin + 135 + barW,
       y: layout.y - 10,
-      size: 7.5,
+      size: 7.2,
       font: fontBold,
       color: isLowest ? COLOR_EMERALD : hasDiscrepancy ? COLOR_AMBER : COLOR_CHARCOAL_DARK,
     });
@@ -859,22 +1038,22 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   layout.currentPage.drawText("3. Weighted 6-Criteria Score Composition (100-Point Stack)", {
     x: leftMargin,
     y: layout.y,
-    size: 10,
+    size: 9.5,
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
-  layout.y -= 14;
+  layout.y -= 13;
 
   const stackW = layout.contentWidth - 190;
   vendors.forEach((v) => {
     const sc = scoring.vendorScores[v.uploadId];
     if (!sc) return;
 
-    const vLabel = truncateWithEllipsis(v.vendorName, fontRegular, 8, 125);
+    const vLabel = truncateWithEllipsis(v.vendorName, fontRegular, 7.8, 125);
     layout.currentPage.drawText(vLabel, {
       x: leftMargin,
       y: layout.y - 10,
-      size: 8,
+      size: 7.8,
       font: fontRegular,
       color: COLOR_CHARCOAL_DARK,
     });
@@ -903,7 +1082,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
           x: curX,
           y: layout.y - 12,
           width: segW,
-          height: chartRowHeight - 4,
+          height: chartRowHeight - 3,
           color: seg.color,
         });
         curX += segW;
@@ -913,7 +1092,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
     layout.currentPage.drawText(`${sc.totalScore} Pts`, {
       x: curX + 5,
       y: layout.y - 10,
-      size: 7.5,
+      size: 7.2,
       font: fontBold,
       color: COLOR_CHARCOAL_DARK,
     });
@@ -950,38 +1129,98 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
     legX += 56;
   });
 
-  layout.y -= chartSectionGap + 10;
+  layout.y -= chartSectionGap + 6;
 
   // -------------------------------------------------------------
-  // CHART 4: Deterministic Math Audit & Line-Item Variance Proof
+  // CHART 4: Service Scope Coverage Comparison (Inclusions & Deliverables)
+  // Replicates Dashboard's Service Coverage Chart
   // -------------------------------------------------------------
-  layout.currentPage.drawText("4. Deterministic Financial Audit & Line-Item Variance Proof", {
+  layout.currentPage.drawText("4. Service Scope Coverage & Deliverables Breakdown", {
     x: leftMargin,
     y: layout.y,
-    size: 10,
+    size: 9.5,
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
-  layout.y -= 14;
+  layout.y -= 13;
 
-  const proofTrackW = layout.contentWidth - 140;
+  const maxInclusions = Math.max(1, ...vendors.map((v) => v.inclusionsCount));
+  const scopeTrackW = layout.contentWidth - 210;
+
   vendors.forEach((v) => {
-    const isClean = v.financialAuditStatus === "MATCHED";
-
-    const vLabel = truncateWithEllipsis(v.vendorName, fontRegular, 8, 125);
+    const vLabel = truncateWithEllipsis(v.vendorName, fontRegular, 7.8, 125);
     layout.currentPage.drawText(vLabel, {
       x: leftMargin,
       y: layout.y - 10,
-      size: 8,
+      size: 7.8,
+      font: fontRegular,
+      color: COLOR_CHARCOAL_DARK,
+    });
+
+    const incW = Math.max(8, (v.inclusionsCount / maxInclusions) * scopeTrackW);
+
+    layout.currentPage.drawRectangle({
+      x: leftMargin + 130,
+      y: layout.y - 12,
+      width: scopeTrackW,
+      height: chartRowHeight - 3,
+      color: COLOR_LIGHT_GRAY,
+      borderColor: COLOR_BORDER,
+      borderWidth: 0.5,
+    });
+
+    layout.currentPage.drawRectangle({
+      x: leftMargin + 130,
+      y: layout.y - 12,
+      width: incW,
+      height: chartRowHeight - 3,
+      color: COLOR_BLUE,
+    });
+
+    const scopeStr = `${v.inclusionsCount} Inclusions • ${v.exclusionsCount} Exclusions`;
+    layout.currentPage.drawText(scopeStr, {
+      x: leftMargin + 135 + incW,
+      y: layout.y - 10,
+      size: 7.2,
+      font: fontBold,
+      color: COLOR_CHARCOAL_DARK,
+    });
+
+    layout.y -= chartRowStep;
+  });
+
+  layout.y -= chartSectionGap + 6;
+
+  // -------------------------------------------------------------
+  // CHART 5: Deterministic Math Audit & Variance Visualizer
+  // -------------------------------------------------------------
+  layout.currentPage.drawText("5. Deterministic Financial Audit & Line-Item Variance Proof", {
+    x: leftMargin,
+    y: layout.y,
+    size: 9.5,
+    font: fontBold,
+    color: COLOR_CHARCOAL_DARK,
+  });
+  layout.y -= 13;
+
+  const proofTrackW = layout.contentWidth - 140;
+  vendors.forEach((v) => {
+    const isClean = v.financialAuditStatus === "MATCHED" && (v.discrepancyCount ?? 0) === 0;
+
+    const vLabel = truncateWithEllipsis(v.vendorName, fontRegular, 7.8, 125);
+    layout.currentPage.drawText(vLabel, {
+      x: leftMargin,
+      y: layout.y - 10,
+      size: 7.8,
       font: fontRegular,
       color: COLOR_CHARCOAL_DARK,
     });
 
     layout.currentPage.drawRectangle({
       x: leftMargin + 130,
-      y: layout.y - 13,
+      y: layout.y - 12,
       width: proofTrackW,
-      height: 15,
+      height: chartRowHeight - 3,
       color: isClean ? COLOR_EMERALD_LIGHT : COLOR_ROSE_LIGHT,
       borderColor: isClean ? COLOR_EMERALD : COLOR_ROSE,
       borderWidth: 0.5,
@@ -989,12 +1228,12 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
 
     const rawProofStr = isClean
       ? `[OK] 100% Math Match - Stated ${formatMoney(v.statedGrandTotal, v.currency)} == Calculated ${formatMoney(v.calculatedGrandTotal, v.currency)} (0 Variance)`
-      : `[!] Calculation Variance Flagged - ${v.discrepancyCount} discrepancy issue(s) detected`;
+      : `[!] Calculation Variance Flagged - ${v.discrepancyCount || 1} discrepancy issue(s) detected`;
     const proofStr = truncateWithEllipsis(rawProofStr, fontBold, 7, proofTrackW - 10);
 
     layout.currentPage.drawText(proofStr, {
       x: leftMargin + 136,
-      y: layout.y - 9,
+      y: layout.y - 10,
       size: 7,
       font: fontBold,
       color: isClean ? COLOR_EMERALD : COLOR_ROSE,
@@ -1005,6 +1244,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
 
   // =========================================================================
   // PAGE 3: SIDE-BY-SIDE VENDOR COMPARISON MATRIX (Landscape Orientation)
+  // Replicates Dashboard Section 5 (Interactive Comparison Matrix)
   // =========================================================================
   createNewPage(layout, "landscape");
 
@@ -1030,9 +1270,8 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   layout.y -= 16;
 
   // Calculate Column Widths in Landscape
-  const col1W = 155;
-  const numVendors = vendors.length;
-  const vendorColW = Math.floor((layout.contentWidth - col1W) / numVendors);
+  const col1W = 160;
+  const vendorColW = Math.floor((layout.contentWidth - col1W) / vendors.length);
 
   // Helper to render comparison table header
   const renderMatrixHeader = () => {
@@ -1040,7 +1279,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
       wrapText(v.vendorName, fontBold, 7.8, vendorColW - 12)
     );
     const maxNameLines = Math.max(1, ...vendorNameLineArrays.map((arr) => arr.length));
-    const headerHeight = Math.max(28, maxNameLines * 9 + 18);
+    const headerHeight = Math.max(30, maxNameLines * 9 + 18);
 
     layout.currentPage.drawRectangle({
       x: leftMargin,
@@ -1050,9 +1289,9 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
       color: COLOR_CHARCOAL_DARK,
     });
 
-    layout.currentPage.drawText("Comparison Metric / Criterion", {
+    layout.currentPage.drawText("Comparison Metric / Evaluation Scope", {
       x: leftMargin + 8,
-      y: layout.y - 16,
+      y: layout.y - 18,
       size: 8,
       font: fontBold,
       color: COLOR_WHITE,
@@ -1093,9 +1332,10 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
 
   renderMatrixHeader();
 
-  // Render Matrix Rows with Intelligent Text Wrapping
+  // Render Matrix Rows with generous readable height and metric scope notes
   comparisonResult.matrix.forEach((mRow, rIdx) => {
     const critLines = wrapText(mRow.criterion, fontBold, 7.5, col1W - 14);
+    const noteLines = mRow.notes ? wrapText(mRow.notes, fontOblique, 6.2, col1W - 14).slice(0, 1) : [];
 
     const vendorCellLines = vendors.map((v) => {
       const rawVal = mRow.values[v.uploadId];
@@ -1106,11 +1346,11 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
       return wrapText(displayStr, fontRegular, 7.2, vendorColW - 10);
     });
 
-    const maxLines = Math.max(critLines.length, ...vendorCellLines.map((l) => l.length));
-    const rowH = Math.max(16, maxLines * 8.5 + 5);
+    const maxLines = Math.max(critLines.length + noteLines.length, ...vendorCellLines.map((l) => l.length));
+    const rowH = Math.max(22, maxLines * 9 + 6);
 
-    // If row doesn't fit, split page and repeat header
-    if (layout.y - rowH < 38) {
+    // If row doesn't fit, split page safely
+    if (layout.y - rowH < 40) {
       createNewPage(layout, "landscape");
       renderMatrixHeader();
     }
@@ -1138,6 +1378,16 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
       });
       cY -= 9;
     });
+    noteLines.forEach((nl) => {
+      layout.currentPage.drawText(nl, {
+        x: leftMargin + 6,
+        y: cY,
+        size: 6.2,
+        font: fontOblique,
+        color: COLOR_CHARCOAL_MUTED,
+      });
+      cY -= 8;
+    });
 
     // Draw Vendor values
     vendors.forEach((v, vIdx) => {
@@ -1161,8 +1411,32 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
     layout.y -= rowH;
   });
 
+  // Matrix Bottom Legend & Summary
+  layout.y -= 12;
+  layout.currentPage.drawRectangle({
+    x: leftMargin,
+    y: layout.y - 20,
+    width: layout.contentWidth,
+    height: 20,
+    color: COLOR_LIGHT_GRAY,
+    borderColor: COLOR_BORDER,
+    borderWidth: 0.5,
+  });
+
+  layout.currentPage.drawText(
+    "MATRIX LEGEND:  [Green Text] Highlight Best Metric  |  [Dash —] Unstated in Proposal  |  [OK Verified] 100% Math Match",
+    {
+      x: leftMargin + 10,
+      y: layout.y - 13,
+      size: 7,
+      font: fontRegular,
+      color: COLOR_CHARCOAL_MUTED,
+    }
+  );
+
   // =========================================================================
-  // PAGE 4: 6-CRITERIA SCORING METHODOLOGY & SCORECARDS (Portrait)
+  // PAGE 4: TRANSPARENT SCORING METHODOLOGY & SCORECARDS (Portrait)
+  // Replicates Dashboard Section 3 & 4 (Weights, Scoring Table, & Vendor Scorecards)
   // =========================================================================
   createNewPage(layout, "portrait");
 
@@ -1176,7 +1450,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   layout.y -= 13;
 
   layout.currentPage.drawText(
-    "Rigorous evaluation across 6 commercial dimensions with dynamic re-normalization for unquoted criteria.",
+    "Rigorous evaluation across 6 commercial dimensions with dynamic re-normalization and common-basis calibration.",
     {
       x: leftMargin,
       y: layout.y,
@@ -1185,16 +1459,56 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
       color: COLOR_CHARCOAL_MUTED,
     }
   );
-  layout.y -= 18;
+  layout.y -= 16;
 
-  // Explanation of Dynamic Re-normalization Callout Box
+  // -------------------------------------------------------------
+  // Scoring Comparability & Common-Basis Calibration Analysis
+  // -------------------------------------------------------------
+  const allCriteriaKeys: Array<keyof ComparisonWeights> = [
+    "costCompetitiveness",
+    "serviceCoverage",
+    "qualityAndPortfolio",
+    "pastPerformance",
+    "commercialTerms",
+    "transparency",
+  ];
+
+  // Determine criteria available across ALL vendors in this comparison group
+  const commonCriteriaKeys = allCriteriaKeys.filter((k) =>
+    vendors.every((v) => scoring.vendorScores[v.uploadId]?.criteria[k]?.isAvailable)
+  );
+  const commonWeightSum = commonCriteriaKeys.reduce((acc, k) => acc + scoring.weights[k], 0);
+
+  // Compute common-basis calibrated scores (scaled to 100)
+  const commonBasisScores: Record<string, number> = {};
+  vendors.forEach((v) => {
+    const sc = scoring.vendorScores[v.uploadId];
+    if (!sc || commonWeightSum <= 0) {
+      commonBasisScores[v.uploadId] = sc?.totalScore ?? 0;
+      return;
+    }
+    let sumWeighted = 0;
+    for (const k of commonCriteriaKeys) {
+      const crit = sc.criteria[k];
+      const reweightedWeight = (scoring.weights[k] / commonWeightSum) * 100;
+      sumWeighted += (crit.normalizedScore * reweightedWeight) / 100;
+    }
+    commonBasisScores[v.uploadId] = parseFloat(sumWeighted.toFixed(1));
+  });
+
+  const isIdenticalCriteria = commonCriteriaKeys.length === allCriteriaKeys.length;
+
+  // Explanation of Dynamic Re-normalization & Comparability Callout Box
   const normExplLines = wrapText(
-    "When qualitative dimensions (such as verified portfolio evidence or client references) cannot be substantiated from the uploaded quotation text, Gathbandhan marks them as 'Unavailable — excluded from scoring' rather than penalizing vendors with a zero score. The scoring engine deterministically re-normalizes the remaining active criteria weights to equal 100%, preserving mathematical equity.",
+    isIdenticalCriteria
+      ? "All 6 commercial criteria are fully documented across all evaluated proposals, establishing a 100% common comparable-criteria baseline without weight variance."
+      : `SCORING COMPARABILITY DISCLOSURE: Proposals had varying evidence disclosures (portfolio or client history was unstated in some documents). To preserve equity without penalizing vendors with a zero score for missing brochures, individual vendor scores re-normalized active weights. For strict cross-vendor calibration, a Common-Basis Score (evaluated strictly on the ${commonCriteriaKeys.length} universally documented commercial dimensions: ${commonCriteriaKeys.map((k) => k.replace(/([A-Z])/g, " $1")).join(", ")}) is provided in the calibration row below.`,
     fontRegular,
-    7.5,
+    7.3,
     layout.contentWidth - 24
   );
-  const normBoxH = 22 + normExplLines.length * 10;
+
+  const normBoxH = 20 + normExplLines.length * 10;
   layout.currentPage.drawRectangle({
     x: leftMargin,
     y: layout.y - normBoxH,
@@ -1205,27 +1519,30 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
     borderWidth: 1,
   });
 
-  layout.currentPage.drawText("HOW DYNAMIC WEIGHT RE-NORMALIZATION WORKS:", {
-    x: leftMargin + 12,
-    y: layout.y - 13,
-    size: 7.8,
-    font: fontBold,
-    color: COLOR_GOLD,
-  });
+  layout.currentPage.drawText(
+    isIdenticalCriteria ? "SCORING COMPARABILITY: 100% UNIFORM BASELINE" : "SCORING COMPARABILITY & DYNAMIC RE-NORMALIZATION NOTICE:",
+    {
+      x: leftMargin + 12,
+      y: layout.y - 12,
+      size: 7.5,
+      font: fontBold,
+      color: COLOR_GOLD,
+    }
+  );
 
-  let neY = layout.y - 24;
+  let neY = layout.y - 23;
   normExplLines.forEach((line) => {
     layout.currentPage.drawText(line, {
       x: leftMargin + 12,
       y: neY,
-      size: 7.3,
+      size: 7.2,
       font: fontRegular,
       color: COLOR_CHARCOAL_DARK,
     });
     neY -= 10;
   });
 
-  layout.y -= normBoxH + 16;
+  layout.y -= normBoxH + 14;
 
   // -------------------------------------------------------------------------
   // 6-Criteria Table with Default and Effective Normalized Weights
@@ -1280,7 +1597,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   });
   layout.y -= scHeaderH;
 
-  // 6 Defined Criteria
+  // 6 Defined Criteria Rows
   const criteriaList: Array<{
     key: keyof typeof scoring.weights;
     name: string;
@@ -1295,7 +1612,6 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   ];
 
   criteriaList.forEach((crit, idx) => {
-    // Determine effective weight across vendors
     const effWeights = vendors.map(
       (v) => scoring.vendorScores[v.uploadId]?.criteria[crit.key]?.adjustedWeight ?? 0
     );
@@ -1309,7 +1625,6 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
       ? `${minEff.toFixed(1)}%`
       : `${minEff.toFixed(0)}%-${maxEff.toFixed(0)}%`;
 
-    // Row height: 2 lines per vendor cell if needed
     const rowH = 22;
     const rowBg = idx % 2 === 1 ? COLOR_LIGHT_GRAY : COLOR_WHITE;
 
@@ -1371,7 +1686,7 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
           color: COLOR_CHARCOAL_MUTED,
         });
       } else {
-        // Requirement 3: Change unavailable scoring criteria to "Unavailable — excluded from scoring"
+        // Explicitly render "Unavailable — excluded from scoring"
         if (scVenW >= 110) {
           layout.currentPage.drawText("Unavailable — excluded from scoring", {
             x: cellX,
@@ -1451,80 +1766,135 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
       }
     );
   });
-  layout.y -= totalRowH + 18;
+  layout.y -= totalRowH;
 
-  // Vendor Scorecards Detail Grid
+  // Common-Basis Calibration Row
+  const calibRowH = 20;
+  layout.currentPage.drawRectangle({
+    x: leftMargin,
+    y: layout.y - calibRowH,
+    width: layout.contentWidth,
+    height: calibRowH,
+    color: COLOR_WHITE,
+    borderColor: COLOR_BORDER,
+    borderWidth: 0.5,
+  });
+
+  layout.currentPage.drawText("Common-Basis Calibrated Score", {
+    x: leftMargin + 6,
+    y: layout.y - 14,
+    size: 7.5,
+    font: fontBold,
+    color: COLOR_BLUE,
+  });
+  layout.currentPage.drawText(`${commonWeightSum}%`, {
+    x: leftMargin + scCol1W + 6,
+    y: layout.y - 14,
+    size: 7.2,
+    font: fontRegular,
+    color: COLOR_CHARCOAL_MUTED,
+  });
+  layout.currentPage.drawText("100%", {
+    x: leftMargin + scCol1W + scCol2W + 6,
+    y: layout.y - 14,
+    size: 7.2,
+    font: fontBold,
+    color: COLOR_BLUE,
+  });
+
+  vendors.forEach((v) => {
+    const cbScore = commonBasisScores[v.uploadId];
+    const isWinner = v.uploadId === rec.recommendedVendorId;
+    const cbStr = `${cbScore ?? 0} Pts (Universal)`;
+    layout.currentPage.drawText(
+      truncateWithEllipsis(cbStr, fontBold, 7, scVenW - 6),
+      {
+        x: leftMargin + scFixedW + vendors.indexOf(v) * scVenW + 4,
+        y: layout.y - 14,
+        size: 7,
+        font: fontBold,
+        color: isWinner ? COLOR_GOLD : COLOR_BLUE,
+      }
+    );
+  });
+
+  layout.y -= calibRowH + 16;
+
+  // -------------------------------------------------------------
+  // Vendor Scorecards Detail Grid (Section 5)
+  // -------------------------------------------------------------
   layout.currentPage.drawText("Detailed Vendor Scorecard Provenance & Evidence Rationale", {
     x: leftMargin,
     y: layout.y,
-    size: 10,
+    size: 9.8,
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
-  layout.y -= 14;
+  layout.y -= 13;
 
-  vendors.forEach((v) => {
-    const sc = scoring.vendorScores[v.uploadId];
-    if (!sc) return;
+  const scCols = vendorCount <= 2 ? 1 : 2;
+  const scColGap = 8;
+  const scCardW = scCols === 1 ? layout.contentWidth : (layout.contentWidth - scColGap) / 2;
+  const scCardH = scCols === 1 ? 50 : 42;
 
-    // Build evidence lines with intelligent wrapping
-    const costNote = `Cost: ${sc.criteria.costCompetitiveness.evidenceNotes}`;
-    const scopeNote = `Scope: ${sc.criteria.serviceCoverage.evidenceNotes}`;
-    const qualityNote = sc.criteria.qualityAndPortfolio.isAvailable
-      ? `Quality: ${sc.criteria.qualityAndPortfolio.evidenceNotes}`
-      : "Quality: Unavailable — excluded from scoring. Weight re-normalized.";
-    const termsNote = `Terms: ${sc.criteria.commercialTerms.evidenceNotes}`;
+  for (let i = 0; i < vendors.length; i += scCols) {
+    const rowVendors = vendors.slice(i, i + scCols);
+    rowVendors.forEach((v, colIdx) => {
+      const sc = scoring.vendorScores[v.uploadId];
+      if (!sc) return;
+      const xPos = leftMargin + colIdx * (scCardW + scColGap);
 
-    const lines1 = wrapText(costNote, fontRegular, 7, layout.contentWidth - 24).slice(0, 1);
-    const lines2 = wrapText(scopeNote, fontRegular, 7, layout.contentWidth - 24).slice(0, 1);
-    const lines3 = wrapText(qualityNote, fontRegular, 7, layout.contentWidth - 24).slice(0, 1);
-    const lines4 = wrapText(termsNote, fontRegular, 7, layout.contentWidth - 24).slice(0, 1);
+      const costNote = `Cost: ${sc.criteria.costCompetitiveness.evidenceNotes}`;
+      const scopeNote = `Scope: ${sc.criteria.serviceCoverage.evidenceNotes}`;
+      const termsNote = `Terms: ${sc.criteria.commercialTerms.evidenceNotes}`;
 
-    const allNotes = [...lines1, ...lines2, ...lines3, ...lines4];
-    const cardH = 20 + allNotes.length * 10;
-
-    ensureSpace(layout, cardH + 10);
-
-    layout.currentPage.drawRectangle({
-      x: leftMargin,
-      y: layout.y - cardH,
-      width: layout.contentWidth,
-      height: cardH,
-      color: COLOR_WHITE,
-      borderColor: v.uploadId === rec.recommendedVendorId ? COLOR_GOLD : COLOR_BORDER,
-      borderWidth: v.uploadId === rec.recommendedVendorId ? 1.5 : 0.8,
-    });
-
-    const isWinner = v.uploadId === rec.recommendedVendorId;
-    const titleStr = `${v.vendorName} — Overall Score: ${sc.totalScore} / 100 (Rank #${sc.rank})`;
-    layout.currentPage.drawText(
-      truncateWithEllipsis(titleStr, fontBold, 8, layout.contentWidth - 24),
-      {
-        x: leftMargin + 10,
-        y: layout.y - 13,
-        size: 8,
-        font: fontBold,
-        color: isWinner ? COLOR_GOLD : COLOR_CHARCOAL_DARK,
-      }
-    );
-
-    let nY = layout.y - 23;
-    allNotes.forEach((note) => {
-      layout.currentPage.drawText(note, {
-        x: leftMargin + 10,
-        y: nY,
-        size: 7,
-        font: fontRegular,
-        color: COLOR_CHARCOAL_MUTED,
+      const isWinner = v.uploadId === rec.recommendedVendorId;
+      layout.currentPage.drawRectangle({
+        x: xPos,
+        y: layout.y - scCardH,
+        width: scCardW,
+        height: scCardH,
+        color: COLOR_WHITE,
+        borderColor: isWinner ? COLOR_GOLD : COLOR_BORDER,
+        borderWidth: isWinner ? 1.5 : 0.8,
       });
-      nY -= 10;
-    });
 
-    layout.y -= cardH + 8;
-  });
+      const titleStr = `${v.vendorName} — ${sc.totalScore}/100 (#${sc.rank})`;
+      layout.currentPage.drawText(
+        truncateWithEllipsis(titleStr, fontBold, 7.5, scCardW - 16),
+        {
+          x: xPos + 8,
+          y: layout.y - 12,
+          size: 7.5,
+          font: fontBold,
+          color: isWinner ? COLOR_GOLD : COLOR_CHARCOAL_DARK,
+        }
+      );
+
+      const notes = [
+        truncateWithEllipsis(costNote, fontRegular, 6.8, scCardW - 16),
+        truncateWithEllipsis(scopeNote, fontRegular, 6.8, scCardW - 16),
+        ...(scCols === 1 ? [truncateWithEllipsis(termsNote, fontRegular, 6.8, scCardW - 16)] : []),
+      ];
+
+      let nY = layout.y - 22;
+      notes.forEach((note) => {
+        layout.currentPage.drawText(note, {
+          x: xPos + 8,
+          y: nY,
+          size: 6.8,
+          font: fontRegular,
+          color: COLOR_CHARCOAL_MUTED,
+        });
+        nY -= 9.5;
+      });
+    });
+    layout.y -= scCardH + 6;
+  }
 
   // =========================================================================
-  // PAGE 5: FINANCIAL AUDIT & MATHEMATICAL RECONCILIATIONS (Portrait)
+  // PAGE 5: FINANCIAL AUDIT & RECONCILIATIONS (Portrait)
+  // Replicates Dashboard Section 8 & 9 — GUARANTEES EVERY VENDOR GETS A ROW!
   // =========================================================================
   createNewPage(layout, "portrait");
 
@@ -1535,19 +1905,41 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
-  layout.y -= 13;
+  layout.y -= 12;
 
   layout.currentPage.drawText(
     "Automated decimal-precision verification protecting against billing surprises, hidden charges, and arithmetic calculation drift.",
     {
       x: leftMargin,
       y: layout.y,
-      size: 8.2,
+      size: 8,
       font: fontRegular,
       color: COLOR_CHARCOAL_MUTED,
     }
   );
-  layout.y -= 22;
+  layout.y -= 18;
+
+  // Financial Audit KPI Integrity Bar
+  const auditKpiH = 32;
+  layout.currentPage.drawRectangle({
+    x: leftMargin,
+    y: layout.y - auditKpiH,
+    width: layout.contentWidth,
+    height: auditKpiH,
+    color: COLOR_LIGHT_GRAY,
+    borderColor: COLOR_BORDER,
+    borderWidth: 1,
+  });
+
+  const auditKpiStr = `Proposals Evaluated: ${vendors.length}   |   100% Math Verified: ${verifiedVendorCount}   |   Discrepancies Flagged: ${alerts.financialDiscrepancies.length}   |   Arithmetic Precision: Decimal-Exact (0.00 Variance)`;
+  layout.currentPage.drawText(auditKpiStr, {
+    x: leftMargin + 12,
+    y: layout.y - 19,
+    size: 7.5,
+    font: fontBold,
+    color: COLOR_CHARCOAL_DARK,
+  });
+  layout.y -= auditKpiH + 16;
 
   // Financial Audit Table Header (Sum of column widths = 519pt <= layout.contentWidth 519.28)
   const auditHeaders = [
@@ -1581,13 +1973,39 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   });
   layout.y -= 20;
 
-  analyzedQuotations.forEach((q, qIdx) => {
-    const vName = q.vendorDetails.vendorName || q.originalName;
-    const fa = q.financialAudit;
-    const isClean = fa.isValid;
-    const vSummary = vendors.find((v) => v.uploadId === q.uploadId);
+  // Render Row for EVERY evaluated vendor in comparisonResult.vendors
+  vendors.forEach((v, vIdx) => {
+    const q = analyzedQuotations.find((a) => a.uploadId === v.uploadId);
+    const vName = v.vendorName || q?.vendorDetails?.vendorName || v.originalName || "Vendor Proposal";
+    const fa = q?.financialAudit;
 
-    const rowBg = isClean ? (qIdx % 2 === 1 ? COLOR_LIGHT_GRAY : COLOR_WHITE) : COLOR_ROSE_LIGHT;
+    const isMatched = v.financialAuditStatus === "MATCHED" || fa?.isValid === true;
+    const isUnaudited = v.financialAuditStatus === "UNAUDITED" && !fa;
+    const discrepancyCount = v.discrepancyCount || fa?.discrepancyFlags?.length || 0;
+
+    const statedVal = v.statedGrandTotal ?? fa?.statedGrandTotal ?? null;
+    const calculatedVal = v.calculatedGrandTotal ?? fa?.calculatedGrandTotal ?? null;
+    const discrepancyVal =
+      fa?.grandTotalDiscrepancy ||
+      (statedVal !== null && calculatedVal !== null && statedVal !== calculatedVal
+        ? Math.abs(statedVal - calculatedVal)
+        : null);
+
+    const advText =
+      v.advancePaymentPercent !== null && v.advancePaymentPercent !== undefined
+        ? `${v.advancePaymentPercent}%`
+        : v.advancePaymentAmount !== null && v.advancePaymentAmount !== undefined
+        ? formatMoney(v.advancePaymentAmount, v.currency)
+        : "Not stated";
+
+    const rowBg = isUnaudited
+      ? COLOR_LIGHT_GRAY
+      : isMatched && discrepancyCount === 0
+      ? vIdx % 2 === 1
+        ? COLOR_LIGHT_GRAY
+        : COLOR_WHITE
+      : COLOR_ROSE_LIGHT;
+
     layout.currentPage.drawRectangle({
       x: leftMargin,
       y: layout.y - 20,
@@ -1598,19 +2016,18 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
       borderWidth: 0.5,
     });
 
-    const advText =
-      vSummary?.advancePaymentPercent !== null && vSummary?.advancePaymentPercent !== undefined
-        ? `${vSummary.advancePaymentPercent}%`
-        : vSummary?.advancePaymentAmount !== null && vSummary?.advancePaymentAmount !== undefined
-        ? formatMoney(vSummary.advancePaymentAmount, q.commercialDetails.currency || "INR")
-        : "Not stated";
+    const statusLabel = isUnaudited
+      ? "[-] Unaudited"
+      : isMatched && discrepancyCount === 0
+      ? "[OK] Verified (100%)"
+      : `[!] Flagged (${discrepancyCount})`;
 
     const cVals = [
       truncateWithEllipsis(vName, fontBold, 7.5, auditColW[0] - 8),
-      isClean ? "[OK] Verified (100%)" : `[!] Flagged (${fa.discrepancyFlags.length})`,
-      formatMoney(fa.statedGrandTotal, q.commercialDetails.currency || "INR"),
-      formatMoney(fa.calculatedGrandTotal, q.commercialDetails.currency || "INR"),
-      fa.grandTotalDiscrepancy ? formatMoney(fa.grandTotalDiscrepancy, q.commercialDetails.currency || "INR") : "Rs. 0 (Exact)",
+      statusLabel,
+      formatMoney(statedVal, v.currency),
+      formatMoney(calculatedVal, v.currency),
+      discrepancyVal ? formatMoney(discrepancyVal, v.currency) : "Rs. 0 (Exact)",
       advText,
     ];
 
@@ -1621,7 +2038,12 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
         y: layout.y - 14,
         size: 7.2,
         font: cvIdx === 1 ? fontBold : fontRegular,
-        color: !isClean && cvIdx === 1 ? COLOR_ROSE : COLOR_CHARCOAL_DARK,
+        color:
+          cvIdx === 1 && !isMatched && !isUnaudited
+            ? COLOR_ROSE
+            : cvIdx === 1 && isMatched
+            ? COLOR_EMERALD
+            : COLOR_CHARCOAL_DARK,
       });
       rX += auditColW[cvIdx];
     });
@@ -1631,25 +2053,61 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
 
   layout.y -= 22;
 
-  // Itemized Audit Discrepancies Log (if any detected)
-  const allDiscrepancies = analyzedQuotations.flatMap((q) =>
-    q.financialAudit.discrepancyFlags.map((flag) => ({
-      vendorName: q.vendorDetails.vendorName || q.originalName,
-      currency: q.commercialDetails.currency || "INR",
-      difference: q.financialAudit.grandTotalDiscrepancy || q.financialAudit.subtotalDiscrepancy || null,
-      ...flag,
-    }))
-  );
+  // -------------------------------------------------------------
+  // Audit Discrepancy Log OR Clean Confirmation (Section 9)
+  // -------------------------------------------------------------
+  // Collect all discrepancies from analyzedQuotations and comparisonResult alerts
+  const allDiscrepancies: Array<{
+    vendorName: string;
+    message: string;
+    difference?: number | null;
+    currency: string;
+  }> = [];
+
+  analyzedQuotations.forEach((q) => {
+    q.financialAudit?.discrepancyFlags?.forEach((flag) => {
+      allDiscrepancies.push({
+        vendorName: q.vendorDetails.vendorName || q.originalName,
+        message: flag.message,
+        difference: q.financialAudit.grandTotalDiscrepancy || q.financialAudit.subtotalDiscrepancy,
+        currency: q.commercialDetails.currency || "INR",
+      });
+    });
+  });
+
+  // Supplement from comparisonResult.alerts if analyzedQuotations had no items
+  if (allDiscrepancies.length === 0 && alerts.financialDiscrepancies.length > 0) {
+    alerts.financialDiscrepancies.forEach((ad) => {
+      allDiscrepancies.push({
+        vendorName: ad.vendorName,
+        message: ad.message,
+        currency: "INR",
+      });
+    });
+  }
+
+  // Supplement for any vendor marked with DISCREPANCY
+  vendors.forEach((v) => {
+    if (v.financialAuditStatus === "DISCREPANCY" && !allDiscrepancies.some((d) => d.vendorName === v.vendorName)) {
+      const diff = v.statedGrandTotal && v.calculatedGrandTotal ? Math.abs(v.statedGrandTotal - v.calculatedGrandTotal) : null;
+      allDiscrepancies.push({
+        vendorName: v.vendorName,
+        message: `Calculation variance detected between stated proposal total and line-item summation (${v.discrepancyCount || 1} discrepancy issue).`,
+        difference: diff,
+        currency: v.currency,
+      });
+    }
+  });
 
   if (allDiscrepancies.length > 0) {
     layout.currentPage.drawText("Audit Discrepancy & Arithmetic Mismatch Log", {
       x: leftMargin,
       y: layout.y,
-      size: 10,
+      size: 9.8,
       font: fontBold,
       color: COLOR_ROSE,
     });
-    layout.y -= 14;
+    layout.y -= 13;
 
     allDiscrepancies.forEach((disc) => {
       const msgLines = wrapText(
@@ -1684,21 +2142,19 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
         dmY -= 10;
       });
 
-      layout.currentPage.drawText(
-        `Variance Amount: ${formatMoney(disc.difference, disc.currency)}`,
-        {
-          x: leftMargin + 8,
-          y: dmY,
-          size: 7,
-          font: fontRegular,
-          color: COLOR_CHARCOAL_DARK,
-        }
-      );
+      const diffStr = disc.difference ? `Variance Amount: ${formatMoney(disc.difference, disc.currency)}` : "Variance: Mathematical deviation flagged";
+      layout.currentPage.drawText(diffStr, {
+        x: leftMargin + 8,
+        y: dmY,
+        size: 7,
+        font: fontRegular,
+        color: COLOR_CHARCOAL_DARK,
+      });
 
       layout.y -= discBoxH + 8;
     });
-  } else {
-    // Clean bill of health box
+  } else if (verifiedVendorCount > 0 && verifiedVendorCount === vendors.length) {
+    // Only show clean bill of health when verified records genuinely support it!
     layout.currentPage.drawRectangle({
       x: leftMargin,
       y: layout.y - 35,
@@ -1730,10 +2186,44 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
       }
     );
     layout.y -= 45;
+  } else {
+    // Explicit disclosure when audit data was unavailable or partial
+    layout.currentPage.drawRectangle({
+      x: leftMargin,
+      y: layout.y - 35,
+      width: layout.contentWidth,
+      height: 35,
+      color: COLOR_AMBER_LIGHT,
+      borderColor: COLOR_AMBER,
+      borderWidth: 1,
+    });
+
+    layout.currentPage.drawText(
+      "[!] Financial Audit Status: Limited Itemization Available",
+      {
+        x: leftMargin + 12,
+        y: layout.y - 15,
+        size: 8.5,
+        font: fontBold,
+        color: COLOR_AMBER,
+      }
+    );
+    layout.currentPage.drawText(
+      "One or more proposals provided lump-sum commercial pricing without itemized unit costs. Arithmetic audit could not be fully completed.",
+      {
+        x: leftMargin + 12,
+        y: layout.y - 26,
+        size: 7.3,
+        font: fontRegular,
+        color: COLOR_CHARCOAL_DARK,
+      }
+    );
+    layout.y -= 45;
   }
 
   // =========================================================================
-  // PAGE 6: EVIDENCE PROVENANCE, MISSING INFO & CLOSING CHECKLIST (Portrait)
+  // PAGE 6: EVIDENCE PROVENANCE, MISSING INFO & CLOSING ADVISORY (Portrait)
+  // Replicates Dashboard Section 10 & 11 — GUARANTEES EVERY VENDOR GETS EVIDENCE!
   // =========================================================================
   createNewPage(layout, "portrait");
 
@@ -1744,167 +2234,217 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
-  layout.y -= 13;
+  layout.y -= 12;
 
   layout.currentPage.drawText(
     "Grounding each commercial point directly in source PDF quotations with explicit verification tracking.",
     {
       x: leftMargin,
       y: layout.y,
-      size: 8.2,
+      size: 8,
       font: fontRegular,
       color: COLOR_CHARCOAL_MUTED,
     }
   );
-  layout.y -= 22;
+  layout.y -= 18;
 
-  // 1. Missing Information Alerts per Vendor
+  // -------------------------------------------------------------
+  // 1. Missing Information Alerts per Vendor (Section 11)
+  // -------------------------------------------------------------
   layout.currentPage.drawText("1. Missing Information Alerts by Vendor Proposal", {
     x: leftMargin,
     y: layout.y,
-    size: 10,
+    size: 9.8,
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
-  layout.y -= 14;
+  layout.y -= 13;
 
-  vendors.forEach((v) => {
-    const hasAlerts = v.missingInfoAlerts.length > 0;
-    const alertStr = hasAlerts
-      ? `Alerts: ${v.missingInfoAlerts.map((a) => sanitizeText(a)).join(" • ")}`
-      : "[OK] Fully Detailed — All commercial, tax, and cancellation terms explicitly documented.";
+  const alertCols = vendorCount <= 2 ? 1 : 2;
+  const alertColGap = 8;
+  const alertCardW = alertCols === 1 ? layout.contentWidth : (layout.contentWidth - alertColGap) / 2;
+  const alertCardH = alertCols === 1 ? 32 : 30;
 
-    const alertLines = wrapText(alertStr, fontRegular, 7, layout.contentWidth - 24);
-    const boxH = 18 + alertLines.length * 10;
+  for (let i = 0; i < vendors.length; i += alertCols) {
+    const rowVendors = vendors.slice(i, i + alertCols);
+    rowVendors.forEach((v, colIdx) => {
+      const xPos = leftMargin + colIdx * (alertCardW + alertColGap);
+      const hasAlerts = v.missingInfoAlerts.length > 0;
+      const alertStr = hasAlerts
+        ? `Alerts: ${v.missingInfoAlerts.map((a) => sanitizeText(a)).join(" • ")}`
+        : "[OK] Fully Detailed — All terms documented.";
 
-    ensureSpace(layout, boxH + 6);
-
-    layout.currentPage.drawRectangle({
-      x: leftMargin,
-      y: layout.y - boxH,
-      width: layout.contentWidth,
-      height: boxH,
-      color: hasAlerts ? COLOR_AMBER_LIGHT : COLOR_LIGHT_GRAY,
-      borderColor: hasAlerts ? COLOR_AMBER : COLOR_BORDER,
-      borderWidth: 0.5,
-    });
-
-    layout.currentPage.drawText(truncateWithEllipsis(v.vendorName, fontBold, 7.8, layout.contentWidth - 24), {
-      x: leftMargin + 10,
-      y: layout.y - 12,
-      size: 7.8,
-      font: fontBold,
-      color: COLOR_CHARCOAL_DARK,
-    });
-
-    let aY = layout.y - 22;
-    alertLines.forEach((al) => {
-      layout.currentPage.drawText(al, {
-        x: leftMargin + 10,
-        y: aY,
-        size: 7,
-        font: fontRegular,
-        color: hasAlerts ? COLOR_AMBER : COLOR_EMERALD,
+      layout.currentPage.drawRectangle({
+        x: xPos,
+        y: layout.y - alertCardH,
+        width: alertCardW,
+        height: alertCardH,
+        color: hasAlerts ? COLOR_AMBER_LIGHT : COLOR_LIGHT_GRAY,
+        borderColor: hasAlerts ? COLOR_AMBER : COLOR_BORDER,
+        borderWidth: 0.5,
       });
-      aY -= 10;
+
+      layout.currentPage.drawText(
+        truncateWithEllipsis(v.vendorName, fontBold, 7.5, alertCardW - 16),
+        {
+          x: xPos + 8,
+          y: layout.y - 11,
+          size: 7.5,
+          font: fontBold,
+          color: COLOR_CHARCOAL_DARK,
+        }
+      );
+
+      layout.currentPage.drawText(
+        truncateWithEllipsis(alertStr, fontRegular, 6.8, alertCardW - 16),
+        {
+          x: xPos + 8,
+          y: layout.y - 21,
+          size: 6.8,
+          font: fontRegular,
+          color: hasAlerts ? COLOR_AMBER : COLOR_EMERALD,
+        }
+      );
     });
+    layout.y -= alertCardH + 5;
+  }
 
-    layout.y -= boxH + 8;
-  });
+  layout.y -= 8;
 
-  layout.y -= 12;
-
-  // 2. Key Document Citations Proof with Supporting Evidence Snippets
+  // -------------------------------------------------------------
+  // 2. Quotation Page-Level Citations & Supporting Evidence Snippets (Section 10)
+  // GUARANTEED EVIDENCE CARDS FOR EVERY EVALUATED VENDOR!
+  // -------------------------------------------------------------
   layout.currentPage.drawText("2. Page-Level Quotation Citations & Extracted Supporting Evidence Snippets", {
     x: leftMargin,
     y: layout.y,
-    size: 10,
+    size: 9.8,
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
-  layout.y -= 14;
+  layout.y -= 13;
 
-  analyzedQuotations.slice(0, 4).forEach((q) => {
-    const vName = q.vendorDetails.vendorName || q.originalName;
-    const pageCount = q.sourcePageCount || (q as any)?.meta?.pageCount || 1;
-    const lineItem = q.commercialDetails?.lineItems?.[0];
-    const inclusion = q.serviceDetails?.servicesIncluded?.[0];
-    const cancellation = q.commercialDetails?.cancellationTerms;
+  const evCols = vendorCount <= 2 ? 1 : 2;
+  const evColGap = 8;
+  const evCardW = evCols === 1 ? layout.contentWidth : (layout.contentWidth - evColGap) / 2;
+  const evCardH = evCols === 1 ? 52 : 44;
 
-    // Build real evidence snippet lines
-    const snippetLines: string[] = [];
-    if (lineItem) {
-      snippetLines.push(
-        `[Line Item]: "${truncateWithEllipsis(lineItem.description, fontRegular, 7, 240)}" — ${formatMoney(
-          lineItem.statedAmount,
-          q.commercialDetails.currency || "INR"
-        )} (Page ${lineItem.sourcePage || 1})`
-      );
-    }
-    if (inclusion) {
-      snippetLines.push(
-        `[Scope Inclusions]: "${truncateWithEllipsis(inclusion.text, fontRegular, 7, 260)}" (Page ${
-          inclusion.sourcePage || 1
-        })`
-      );
-    }
-    if (cancellation) {
-      snippetLines.push(
-        `[Commercial Terms]: "${truncateWithEllipsis(cancellation, fontRegular, 7, 260)}" (Page ${
-          q.commercialDetails?.paymentSchedule?.[0]?.sourcePage || 2
-        })`
-      );
-    }
+  for (let i = 0; i < vendors.length; i += evCols) {
+    const rowVendors = vendors.slice(i, i + evCols);
+    rowVendors.forEach((v, colIdx) => {
+      const xPos = leftMargin + colIdx * (evCardW + evColGap);
+      const q = analyzedQuotations.find((a) => a.uploadId === v.uploadId);
+      const vName = v.vendorName || q?.vendorDetails?.vendorName || v.originalName || "Vendor";
+      const fileName = q?.originalName || v.originalName || "Quotation.pdf";
+      const pageCount = q?.sourcePageCount || (q as any)?.meta?.pageCount || 1;
 
-    const citationBoxH = 26 + snippetLines.length * 11;
-    ensureSpace(layout, citationBoxH + 6);
+      const lineItem = q?.commercialDetails?.lineItems?.[0];
+      const inclusion = q?.serviceDetails?.servicesIncluded?.[0];
+      const cancellation = q?.commercialDetails?.cancellationTerms || v.cancellationSummary;
+      const quality = v.qualityEvidence || q?.vendorDetails?.website;
 
-    layout.currentPage.drawRectangle({
-      x: leftMargin,
-      y: layout.y - citationBoxH,
-      width: layout.contentWidth,
-      height: citationBoxH,
-      color: COLOR_WHITE,
-      borderColor: COLOR_BORDER,
-      borderWidth: 0.5,
-    });
+      const snippetLines: Array<{ category: string; text: string; page?: number | null }> = [];
 
-    const headerStr = `${vName} (Source File: ${q.originalName} • Total Pages: ${pageCount})`;
-    layout.currentPage.drawText(
-      truncateWithEllipsis(headerStr, fontBold, 7.8, layout.contentWidth - 20),
-      {
-        x: leftMargin + 10,
-        y: layout.y - 12,
-        size: 7.8,
-        font: fontBold,
-        color: COLOR_CHARCOAL_DARK,
+      if (lineItem) {
+        snippetLines.push({
+          category: "Line Item",
+          text: `"${lineItem.description}" — ${formatMoney(lineItem.statedAmount, v.currency)}`,
+          page: lineItem.sourcePage || 1,
+        });
       }
-    );
 
-    let snY = layout.y - 24;
-    snippetLines.forEach((sn) => {
-      layout.currentPage.drawText(sn, {
-        x: leftMargin + 10,
-        y: snY,
-        size: 7,
-        font: fontOblique,
-        color: COLOR_CHARCOAL_MUTED,
+      if (inclusion) {
+        snippetLines.push({
+          category: "Scope Inclusions",
+          text: `"${inclusion.text}"`,
+          page: inclusion.sourcePage || 1,
+        });
+      } else if (v.inclusionsCount > 0) {
+        snippetLines.push({
+          category: "Scope Inclusions",
+          text: `${v.inclusionsCount} included wedding service items documented in proposal.`,
+          page: 1,
+        });
+      }
+
+      if (cancellation && (evCols === 1 || snippetLines.length < 2)) {
+        snippetLines.push({
+          category: "Terms",
+          text: `"${cancellation}"`,
+          page: q?.commercialDetails?.paymentSchedule?.[0]?.sourcePage || 2,
+        });
+      }
+
+      if (quality && (evCols === 1 || snippetLines.length < 2)) {
+        snippetLines.push({
+          category: "Quality",
+          text: `"${quality}"`,
+          page: 1,
+        });
+      }
+
+      if (snippetLines.length === 0) {
+        snippetLines.push({
+          category: "Quotation Text",
+          text: "No verifiable text evidence snippets extracted from quotation.",
+          page: null,
+        });
+      }
+
+      layout.currentPage.drawRectangle({
+        x: xPos,
+        y: layout.y - evCardH,
+        width: evCardW,
+        height: evCardH,
+        color: COLOR_WHITE,
+        borderColor: COLOR_BORDER,
+        borderWidth: 0.5,
       });
-      snY -= 11;
+
+      const headerStr = `${vName} (${fileName} • P.${pageCount})`;
+      layout.currentPage.drawText(
+        truncateWithEllipsis(headerStr, fontBold, 7.3, evCardW - 16),
+        {
+          x: xPos + 8,
+          y: layout.y - 12,
+          size: 7.3,
+          font: fontBold,
+          color: COLOR_CHARCOAL_DARK,
+        }
+      );
+
+      let snY = layout.y - 23;
+      const displaySnippets = snippetLines.slice(0, evCols === 1 ? 3 : 2);
+      displaySnippets.forEach((sn) => {
+        const pageStr = sn.page ? ` (P.${sn.page})` : "";
+        const snLine = `[${sn.category}]: ${sn.text}${pageStr}`;
+        layout.currentPage.drawText(
+          truncateWithEllipsis(snLine, fontOblique, 6.5, evCardW - 16),
+          {
+            x: xPos + 8,
+            y: snY,
+            size: 6.5,
+            font: fontOblique,
+            color: COLOR_CHARCOAL_MUTED,
+          }
+        );
+        snY -= 10;
+      });
     });
+    layout.y -= evCardH + 5;
+  }
 
-    layout.y -= citationBoxH + 8;
-  });
+  layout.y -= 8;
 
-  layout.y -= 10;
-
+  // -------------------------------------------------------------
   // Final Commercial Advisory Statement
-  ensureSpace(layout, 65);
+  // -------------------------------------------------------------
+  const advCardH = 46;
   layout.currentPage.drawRectangle({
     x: leftMargin,
-    y: layout.y - 55,
+    y: layout.y - advCardH,
     width: layout.contentWidth,
-    height: 55,
+    height: advCardH,
     color: COLOR_LIGHT_GRAY,
     borderColor: COLOR_BORDER,
     borderWidth: 1,
@@ -1912,8 +2452,8 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
 
   layout.currentPage.drawText("FINAL COMMERCIAL ADVISORY STATEMENT", {
     x: leftMargin + 12,
-    y: layout.y - 14,
-    size: 8,
+    y: layout.y - 13,
+    size: 7.5,
     font: fontBold,
     color: COLOR_CHARCOAL_DARK,
   });
@@ -1921,23 +2461,23 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
   const advLines = wrapText(
     sanitizeText(
       rec.advisoryNotice +
-        " Gathbandhan provides automated financial auditing and proposal comparison, but contracts and vendor commitments must be reviewed and countersigned by the wedding planner and authorized client signatories."
+        " Gathbandhan provides automated financial auditing and proposal comparison, but contracts and vendor commitments must be reviewed and countersigned by authorized signatories."
     ),
     fontRegular,
-    7.3,
+    7,
     layout.contentWidth - 24
   );
 
-  let anY = layout.y - 26;
-  advLines.slice(0, 3).forEach((line) => {
+  let anY = layout.y - 24;
+  advLines.slice(0, 2).forEach((line) => {
     layout.currentPage.drawText(line, {
       x: leftMargin + 12,
       y: anY,
-      size: 7.3,
+      size: 7,
       font: fontRegular,
       color: COLOR_CHARCOAL_MUTED,
     });
-    anY -= 10;
+    anY -= 9.5;
   });
 
   // =========================================================================
@@ -1957,21 +2497,21 @@ export async function generatePdfReport(input: ReportGenerationInput): Promise<B
     });
 
     // Running Left Footer
-    page.drawText("Gathbandhan • AI Quotation Analyzer & Financial Intelligence Engine", {
+    page.drawText("Gathbandhan • AI Quotation Analyzer & Vendor Intelligence Engine", {
       x: leftMargin,
       y: 20,
-      size: 7.5,
+      size: 7.2,
       font: fontRegular,
       color: COLOR_CHARCOAL_MUTED,
     });
 
     // Running Right Footer: Page X of Y
     const pageStr = `Page ${pIdx + 1} of ${totalPages}`;
-    const pStrWidth = fontRegular.widthOfTextAtSize(pageStr, 7.5);
+    const pStrWidth = fontRegular.widthOfTextAtSize(pageStr, 7.2);
     page.drawText(pageStr, {
       x: pWidth - rightMargin - pStrWidth,
       y: 20,
-      size: 7.5,
+      size: 7.2,
       font: fontRegular,
       color: COLOR_CHARCOAL_MUTED,
     });

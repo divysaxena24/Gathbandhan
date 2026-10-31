@@ -75,7 +75,7 @@ export function VendorComparisonDashboard({
     : null;
 
   const drilldownQuotationResult = selectedDrilldownVendorId
-    ? analyzedQuotations.find((q) => (q?.uploadId || q?.meta?.uploadId) === selectedDrilldownVendorId) || null
+? analyzedQuotations.find((q) => (q?.uploadId || (q as any)?.meta?.uploadId) === selectedDrilldownVendorId) || null
     : null;
 
   const drilldownVendorScore = selectedDrilldownVendorId
@@ -127,6 +127,8 @@ export function VendorComparisonDashboard({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           comparisonResult,
+          analyzedQuotations,
+          activeScenario,
           metadata: {
             eventName: "Wedding Proposal Comparison",
             generatedAt: new Date().toLocaleDateString(),

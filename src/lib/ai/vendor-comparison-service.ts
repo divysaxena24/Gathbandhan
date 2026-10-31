@@ -115,7 +115,7 @@ export function calculateVendorScores(
 
   // 1. Gather all prices to determine minimum positive price
   const validPrices: number[] = quotations
-    .map((q) => q.commercialDetails.statedGrandTotal ?? q.financialAudit.calculatedGrandTotal)
+    .map((q) => q.commercialDetails.statedGrandTotal ?? q.financialAudit?.calculatedGrandTotal)
     .filter((p): p is number => typeof p === "number" && p > 0);
 
   const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : null;
@@ -131,7 +131,7 @@ export function calculateVendorScores(
   for (const q of quotations) {
     const uploadId = q.uploadId;
     const vendorName = q.vendorDetails.vendorName || q.originalName;
-    const price = q.commercialDetails.statedGrandTotal ?? q.financialAudit.calculatedGrandTotal;
+    const price = q.commercialDetails.statedGrandTotal ?? q.financialAudit?.calculatedGrandTotal;
 
     // --- A. Cost Competitiveness (Weight: default 30%) ---
     let costCriterion: CriterionScore;
@@ -349,11 +349,11 @@ export function calculateVendorScores(
 
     // --- F. Transparency & Financial Audit (Weight: default 5%) ---
     let transparencyScore = 100;
-    const discrepancyCount = q.financialAudit.discrepancyFlags.length;
+    const discrepancyCount = q.financialAudit?.discrepancyFlags?.length ?? 0;
     if (discrepancyCount > 0) {
       transparencyScore -= discrepancyCount * 25;
     }
-    if (!q.financialAudit.isValid) {
+    if (q.financialAudit && !q.financialAudit.isValid) {
       transparencyScore -= 20;
     }
     if (q.missingFields && q.missingFields.length > 3) {
@@ -370,11 +370,13 @@ export function calculateVendorScores(
       adjustedWeight: weights.transparency,
       weightedScore: 0,
       isAvailable: true,
-      evidenceNotes: q.financialAudit.isValid
-        ? "100% deterministic math match across line items, subtotals, and taxes. Zero discrepancies."
-        : `Deterministic financial audit flagged ${discrepancyCount} discrepancy issue(s).`,
+      evidenceNotes: q.financialAudit
+        ? q.financialAudit.isValid
+          ? "100% deterministic math match across line items, subtotals, and taxes. Zero discrepancies."
+          : `Deterministic financial audit flagged ${discrepancyCount} discrepancy issue(s).`
+        : "Financial audit unverified — limited itemization provided in quotation.",
       dataPoints: {
-        isValid: q.financialAudit.isValid,
+        isValid: q.financialAudit?.isValid ?? false,
         discrepancyCount,
         missingFieldsCount: q.missingFields?.length || 0,
       },
@@ -457,7 +459,7 @@ export function buildDeterministicProsAndCons(
   const pros: string[] = [];
   const cons: string[] = [];
 
-  const price = q.commercialDetails.statedGrandTotal ?? q.financialAudit.calculatedGrandTotal;
+  const price = q.commercialDetails.statedGrandTotal ?? q.financialAudit?.calculatedGrandTotal;
   const currency = q.commercialDetails.currency || "INR";
 
   if (price && minPrice && price === minPrice) {
@@ -481,10 +483,12 @@ export function buildDeterministicProsAndCons(
     cons.push(`Explicitly excludes ${q.serviceDetails.servicesExcluded.length} service components`);
   }
 
-  if (q.financialAudit.isValid) {
+  if (q.financialAudit?.isValid) {
     pros.push("100% mathematically verified: line items, subtotals, and taxes strictly match");
+  } else if (q.financialAudit) {
+    cons.push(`Financial audit flagged ${q.financialAudit.discrepancyFlags?.length || 1} discrepancy warning(s) in totals`);
   } else {
-    cons.push(`Financial audit flagged ${q.financialAudit.discrepancyFlags.length} discrepancy warning(s) in totals`);
+    cons.push("Financial audit unperformed — proposal lacks line-item itemization");
   }
 
   const adv = q.commercialDetails.advancePayment;
@@ -526,7 +530,7 @@ export async function generateVendorProsAndCons(
   const result: Record<string, { pros: string[]; cons: string[] }> = {};
 
   const validPrices = quotations
-    .map((q) => q.commercialDetails.statedGrandTotal ?? q.financialAudit.calculatedGrandTotal)
+    .map((q) => q.commercialDetails.statedGrandTotal ?? q.financialAudit?.calculatedGrandTotal)
     .filter((p): p is number => typeof p === "number" && p > 0);
   const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : null;
 
@@ -557,8 +561,8 @@ export async function generateVendorProsAndCons(
       advancePercent: q.commercialDetails.advancePayment?.percentage,
       cancellation: q.commercialDetails.cancellationTerms,
       overtime: q.serviceDetails.overtimeCharges,
-      mathAuditValid: q.financialAudit.isValid,
-      discrepancies: q.financialAudit.discrepancyFlags.map((d) => d.message),
+      mathAuditValid: q.financialAudit?.isValid ?? false,
+      discrepancies: q.financialAudit?.discrepancyFlags?.map((d) => d.message) || [],
     }));
 
     const systemPrompt = `You are the Lead Wedding Commercial Auditor for Gathbandhan.
@@ -624,14 +628,14 @@ export function buildComparisonMatrix(
     criterion: "Total Quoted Cost",
     category: "commercial",
     values: getValues((q) => {
-      const p = q.commercialDetails.statedGrandTotal ?? q.financialAudit.calculatedGrandTotal;
+      const p = q.commercialDetails.statedGrandTotal ?? q.financialAudit?.calculatedGrandTotal;
       return p ? `${q.commercialDetails.currency || "INR"} ${p.toLocaleString()}` : "Not Stated";
     }),
     notes: "Total proposal amount including taxes and fees",
   };
   if (minPrice) {
     const bestVendor = quotations.find(
-      (q) => (q.commercialDetails.statedGrandTotal ?? q.financialAudit.calculatedGrandTotal) === minPrice
+      (q) => (q.commercialDetails.statedGrandTotal ?? q.financialAudit?.calculatedGrandTotal) === minPrice
     );
     if (bestVendor) totalRow.highlightBest = bestVendor.uploadId;
   }
@@ -720,9 +724,11 @@ export function buildComparisonMatrix(
     criterion: "Deterministic Math Audit",
     category: "financial_audit",
     values: getValues((q) =>
-      q.financialAudit.isValid
-        ? "100% Math Verified"
-        : `Flagged (${q.financialAudit.discrepancyFlags.length} issues)`
+      q.financialAudit
+        ? q.financialAudit.isValid
+          ? "100% Math Verified"
+          : `Flagged (${q.financialAudit.discrepancyFlags?.length || 1} issues)`
+        : "[-] Unaudited"
     ),
     notes: "Deterministic verification of line items, subtotals, and taxes",
   };
@@ -760,7 +766,7 @@ export function generateFinalRecommendation(
   else if (isProvisional) confidenceLevel = "MEDIUM";
 
   const currency = topQuotation.commercialDetails.currency || "INR";
-  const price = topQuotation.commercialDetails.statedGrandTotal ?? topQuotation.financialAudit.calculatedGrandTotal;
+  const price = topQuotation.commercialDetails.statedGrandTotal ?? topQuotation.financialAudit?.calculatedGrandTotal;
   const formattedPrice = price ? `${currency} ${price.toLocaleString()}` : "Price TBD";
 
   const headline = `${top.vendorName} — Ranked #1 Overall (${top.totalScore}/100)`;
@@ -778,7 +784,7 @@ export function generateFinalRecommendation(
   const majorAdvantages = topPC.pros.length > 0 ? topPC.pros : [
     `Strong balance of cost and deliverables (${formattedPrice})`,
     `${topQuotation.serviceDetails.servicesIncluded.length} explicit service inclusions`,
-    topQuotation.financialAudit.isValid ? "Zero mathematical discrepancies in commercial audit" : "Itemized proposal structure",
+    topQuotation.financialAudit?.isValid ? "Zero mathematical discrepancies in commercial audit" : "Itemized proposal structure",
   ];
 
   const commercialDisadvantages = topPC.cons.length > 0 ? topPC.cons : [
@@ -787,10 +793,12 @@ export function generateFinalRecommendation(
   ];
 
   const financialAuditAssessment = {
-    status: (topQuotation.financialAudit.isValid ? "VERIFIED" : "WARNING") as "VERIFIED" | "WARNING" | "UNCHECKED",
-    details: topQuotation.financialAudit.isValid
-      ? `Deterministic math audit fully verified. Calculated grand total (${formattedPrice}) strictly matches stated quotation.`
-      : `Audit flagged ${topQuotation.financialAudit.discrepancyFlags.length} discrepancy warning(s). Line items should be reconciled prior to execution.`,
+    status: (topQuotation.financialAudit ? (topQuotation.financialAudit.isValid ? "VERIFIED" : "WARNING") : "UNCHECKED") as "VERIFIED" | "WARNING" | "UNCHECKED",
+    details: topQuotation.financialAudit
+      ? topQuotation.financialAudit.isValid
+        ? `Deterministic math audit fully verified. Calculated grand total (${formattedPrice}) strictly matches stated quotation.`
+        : `Audit flagged ${topQuotation.financialAudit.discrepancyFlags?.length || 1} discrepancy warning(s). Line items should be reconciled prior to execution.`
+      : "Financial audit unperformed — proposal lacks detailed line item pricing.",
   };
 
   const criticalUncertainties: string[] = [];
@@ -813,7 +821,7 @@ export function generateFinalRecommendation(
     `Are setup/dismantling hours and crew meal provisions fully included in the ${formattedPrice} total?`,
   ];
 
-  if (!topQuotation.financialAudit.isValid) {
+  if (topQuotation.financialAudit && !topQuotation.financialAudit.isValid) {
     questionsToClarifyBeforeSigning.unshift(
       `Please reconcile the mathematical discrepancy in line item totals before signing final contract.`
     );
@@ -855,7 +863,7 @@ export async function compareAnalyzedQuotations(
   const scoring = calculateVendorScores(quotations, customWeights);
 
   const validPrices = quotations
-    .map((q) => q.commercialDetails.statedGrandTotal ?? q.financialAudit.calculatedGrandTotal)
+    .map((q) => q.commercialDetails.statedGrandTotal ?? q.financialAudit?.calculatedGrandTotal)
     .filter((p): p is number => typeof p === "number" && p > 0);
   const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : null;
 
@@ -882,13 +890,13 @@ export async function compareAnalyzedQuotations(
       vendorName: q.vendorDetails.vendorName || q.originalName,
       category: q.vendorDetails.category || "General Services",
       statedGrandTotal: q.commercialDetails.statedGrandTotal,
-      calculatedGrandTotal: q.financialAudit.calculatedGrandTotal,
+      calculatedGrandTotal: q.financialAudit?.calculatedGrandTotal ?? q.commercialDetails.statedGrandTotal,
       currency: q.commercialDetails.currency || "INR",
       lineItemCount: q.commercialDetails.lineItems.length,
       inclusionsCount: q.serviceDetails.servicesIncluded.length,
       exclusionsCount: q.serviceDetails.servicesExcluded.length,
-      financialAuditStatus: q.financialAudit.isValid ? "MATCHED" : "DISCREPANCY",
-      discrepancyCount: q.financialAudit.discrepancyFlags.length,
+      financialAuditStatus: q.financialAudit ? (q.financialAudit.isValid ? "MATCHED" : "DISCREPANCY") : "UNAUDITED",
+      discrepancyCount: q.financialAudit?.discrepancyFlags?.length ?? 0,
       advancePaymentPercent: q.commercialDetails.advancePayment?.percentage ?? null,
       advancePaymentAmount: q.commercialDetails.advancePayment?.amount ?? null,
       cancellationSummary: q.commercialDetails.cancellationTerms || null,
@@ -910,8 +918,8 @@ export async function compareAnalyzedQuotations(
 
   for (const q of quotations) {
     const vName = q.vendorDetails.vendorName || q.originalName;
-    if (!q.financialAudit.isValid) {
-      for (const flag of q.financialAudit.discrepancyFlags) {
+    if (q.financialAudit && !q.financialAudit.isValid) {
+      for (const flag of q.financialAudit.discrepancyFlags || []) {
         financialDiscrepancies.push({
           vendorName: vName,
           message: flag.message,
@@ -1159,8 +1167,8 @@ export function extractAllEvidenceRecords(
     }
 
     // Math Discrepancies
-    if (!q.financialAudit.isValid) {
-      for (const flag of q.financialAudit.discrepancyFlags) {
+    if (q.financialAudit && !q.financialAudit.isValid) {
+      for (const flag of q.financialAudit.discrepancyFlags || []) {
         records.push({
           vendorId: vId,
           vendorName: vName,
@@ -1228,7 +1236,7 @@ export function simulateComparisonScenario(
   const scenarioWinnerId = scenarioScoring.rankings[0]?.uploadId;
 
   const validPrices = quotations
-    .map((q) => q.commercialDetails.statedGrandTotal ?? q.financialAudit.calculatedGrandTotal)
+    .map((q) => q.commercialDetails.statedGrandTotal ?? q.financialAudit?.calculatedGrandTotal)
     .filter((p): p is number => typeof p === "number" && p > 0);
   const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : null;
 
