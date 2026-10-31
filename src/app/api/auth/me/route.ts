@@ -77,53 +77,51 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 2. If client, find their active booking request or wedding
+    // 2. Find their active booking request or wedding
     let activeBookingRequestId: string | null = null;
     let activeWeddingId: string | null = null;
 
     try {
-      if (dbUser.role === "CLIENT") {
-        // Find latest booking request
-        const [latestRequest] = await db
-          .select({ id: bookingRequests.id, weddingId: bookingRequests.weddingId })
-          .from(bookingRequests)
+      // Find latest booking request
+      const [latestRequest] = await db
+        .select({ id: bookingRequests.id, weddingId: bookingRequests.weddingId })
+        .from(bookingRequests)
+        .where(
+          or(
+            eq(bookingRequests.userId, dbUser.id),
+            eq(bookingRequests.contactEmail, dbUser.email)
+          )
+        )
+        .orderBy(desc(bookingRequests.createdAt))
+        .limit(1);
+
+      if (latestRequest) {
+        activeBookingRequestId = latestRequest.id;
+        activeWeddingId = latestRequest.weddingId || null;
+      }
+
+      // If no wedding from request, check clients table
+      if (!activeWeddingId) {
+        const [clientRecord] = await db
+          .select({ id: clients.id })
+          .from(clients)
           .where(
             or(
-              eq(bookingRequests.userId, dbUser.id),
-              eq(bookingRequests.contactEmail, dbUser.email)
+              eq(clients.portalUserId, dbUser.id),
+              eq(clients.partnerOneEmail, dbUser.email)
             )
           )
-          .orderBy(desc(bookingRequests.createdAt))
           .limit(1);
 
-        if (latestRequest) {
-          activeBookingRequestId = latestRequest.id;
-          activeWeddingId = latestRequest.weddingId || null;
-        }
-
-        // If no wedding from request, check clients table
-        if (!activeWeddingId) {
-          const [clientRecord] = await db
-            .select({ id: clients.id })
-            .from(clients)
-            .where(
-              or(
-                eq(clients.portalUserId, dbUser.id),
-                eq(clients.partnerOneEmail, dbUser.email)
-              )
-            )
+        if (clientRecord) {
+          const [weddingRecord] = await db
+            .select({ id: weddings.id })
+            .from(weddings)
+            .where(eq(weddings.clientId, clientRecord.id))
             .limit(1);
 
-          if (clientRecord) {
-            const [weddingRecord] = await db
-              .select({ id: weddings.id })
-              .from(weddings)
-              .where(eq(weddings.clientId, clientRecord.id))
-              .limit(1);
-
-            if (weddingRecord) {
-              activeWeddingId = weddingRecord.id;
-            }
+          if (weddingRecord) {
+            activeWeddingId = weddingRecord.id;
           }
         }
       }

@@ -31,6 +31,7 @@ import {
   Music,
   Loader2,
   UserCheck,
+  RefreshCw,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
@@ -120,6 +121,11 @@ export default function BookingRequestsPage() {
 
   useEffect(() => {
     fetchRequests();
+    // Auto-poll for new inbound booking requests every 8 seconds
+    const interval = setInterval(() => {
+      fetchRequests();
+    }, 8000);
+    return () => clearInterval(interval);
   }, [fetchRequests]);
 
   const loadRequestDetail = async (id: string) => {
@@ -233,10 +239,22 @@ export default function BookingRequestsPage() {
       <PageHeader
         title="Inbound Booking Requests"
         description="Review 14-step bespoke wedding plans submitted by clients. Accept consultations into production, request changes, or message couples directly."
-        >
-        <Badge variant="outline" className="text-xs border-primary text-primary">
-          {pendingRequests} Pending Review
-        </Badge>
+      >
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchRequests}
+            disabled={loading}
+            className="flex items-center gap-1.5 h-8 text-xs font-semibold cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-primary" : ""}`} />
+            <span>Refresh</span>
+          </Button>
+          <Badge variant="outline" className="text-xs border-primary text-primary">
+            {pendingRequests} Pending Review
+          </Badge>
+        </div>
       </PageHeader>
 
       {/* KPI Cards */}

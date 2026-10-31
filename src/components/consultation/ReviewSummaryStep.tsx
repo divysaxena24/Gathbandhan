@@ -5,9 +5,10 @@
 // Comprehensive overview with live budget calculation & PDF generator
 // ============================================================
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 import { useConsultation } from '@/hooks/useConsultation';
 import StepNavigation from '@/components/consultation-ui/StepNavigation';
 import { calculateWeddingBudget } from '@/lib/services/budget-calculator';
@@ -26,10 +27,12 @@ import {
   ChevronRight,
   ShieldCheck,
   Send,
+  AlertCircle,
 } from 'lucide-react';
 
 export default function ReviewSummaryStep() {
   const router = useRouter();
+  const { user } = useUser();
   const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
   const { state, goToStep } = useConsultation();
   const { selections } = state;
@@ -45,9 +48,47 @@ export default function ReviewSummaryStep() {
   const [submittingLead, setSubmittingLead] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const handleLeadSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!leadName || (!leadEmail && !leadPhone)) return;
+  // Pre-fill contact details from Clerk if user is logged in
+  useEffect(() => {
+    if (user) {
+      if (!leadName && user.fullName) {
+        setLeadName(user.fullName);
+      }
+      if (!leadEmail && user.primaryEmailAddress?.emailAddress) {
+        setLeadEmail(user.primaryEmailAddress.emailAddress);
+      }
+      if (!leadPhone && user.primaryPhoneNumber?.phoneNumber) {
+        setLeadPhone(user.primaryPhoneNumber.phoneNumber);
+      }
+    }
+  }, [user, leadName, leadEmail, leadPhone]);
+
+  const handleLeadSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const finalName = (leadName || user?.fullName || selections.contactName || '').trim();
+    const finalEmail = (leadEmail || user?.primaryEmailAddress?.emailAddress || selections.contactEmail || '').trim();
+    const finalPhone = (leadPhone || user?.primaryPhoneNumber?.phoneNumber || selections.contactPhone || '').trim();
+
+    if (!finalName) {
+      setSubmitError("Please provide your name or couple's name.");
+      const input = document.getElementById("leadNameInput");
+      if (input) {
+        input.focus();
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
+    if (!finalEmail && !finalPhone) {
+      setSubmitError("Please provide an email address or WhatsApp phone number so the organizers can reach you.");
+      const input = document.getElementById("leadEmailInput");
+      if (input) {
+        input.focus();
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
     setSubmittingLead(true);
     setSubmitError(null);
     try {
@@ -55,9 +96,9 @@ export default function ReviewSummaryStep() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          leadName,
-          leadEmail,
-          leadPhone,
+          leadName: finalName,
+          leadEmail: finalEmail,
+          leadPhone: finalPhone,
           preferredContactMethod: selections.preferredContactMethod || "whatsapp",
           selections,
           budget,
@@ -67,6 +108,10 @@ export default function ReviewSummaryStep() {
       if (res.ok && data.bookingRequestId) {
         setCreatedRequestId(data.bookingRequestId);
         setLeadCaptured(true);
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("activeBookingRequestId", data.bookingRequestId);
+          localStorage.setItem("activeBookingRequestId", data.bookingRequestId);
+        }
         setTimeout(() => {
           router.push(`/client/portal?requestId=${data.bookingRequestId}`);
         }, 1200);
@@ -254,12 +299,20 @@ export default function ReviewSummaryStep() {
                 Connect with The Royal Knot Concierge
               </h3>
             </div>
-            <p className="text-xs sm:text-sm text-warm-gray mb-6">
-              Receive your bespoke proposal PDF, lock in preferred dates, and schedule a complimentary 1-on-1 consultation with our senior wedding designers.
+            <p className="text-xs sm:text-sm text-warm-gray mb-4">
+              Submit your bespoke plan directly to the Gathbandhan planning team. We lock in preferred dates, check luxury venue availability, and schedule your private consultation.
             </p>
+
+            {submitError && (
+              <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <span>{submitError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleLeadSubmit} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <input
+                id="leadNameInput"
                 type="text"
                 required
                 placeholder="Couple / Contact Name *"
@@ -268,6 +321,7 @@ export default function ReviewSummaryStep() {
                 className="px-4 py-3 rounded-xl border border-gold/30 text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-soft-white"
               />
               <input
+                id="leadEmailInput"
                 type="email"
                 placeholder="Email Address"
                 value={leadEmail}
@@ -275,6 +329,7 @@ export default function ReviewSummaryStep() {
                 className="px-4 py-3 rounded-xl border border-gold/30 text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-soft-white"
               />
               <input
+                id="leadPhoneInput"
                 type="tel"
                 placeholder="Phone / WhatsApp Number *"
                 value={leadPhone}
@@ -285,10 +340,10 @@ export default function ReviewSummaryStep() {
                 <button
                   type="submit"
                   disabled={submittingLead}
-                  className="px-8 py-3 rounded-full bg-maroon hover:bg-maroon-deep disabled:opacity-60 text-soft-white font-bold text-sm transition-all shadow-md flex items-center gap-2"
+                  className="px-8 py-3 rounded-full bg-maroon hover:bg-maroon-deep disabled:opacity-60 text-soft-white font-bold text-sm transition-all shadow-md flex items-center gap-2 cursor-pointer"
                 >
                   <Send className="w-4 h-4 text-gold-light" />
-                  {submittingLead ? "Saving to The Royal Knot CRM..." : "Request Full Proposal & Dates"}
+                  {submittingLead ? "Submitting to Organizers..." : "Submit 14-Step Wedding Plan"}
                 </button>
               </div>
             </form>
@@ -327,13 +382,35 @@ export default function ReviewSummaryStep() {
           Back to Adjust Selections
         </button>
 
-        <Link
-          href={createdRequestId ? `/client/portal?requestId=${createdRequestId}` : "/client/portal"}
-          className="px-6 py-2.5 rounded-full bg-maroon text-soft-white text-xs font-semibold hover:bg-maroon-deep transition-all shadow flex items-center gap-1.5"
-        >
-          <span>View Wedding Portal</span>
-          <ChevronRight className="w-3.5 h-3.5" />
-        </Link>
+        {!leadCaptured ? (
+          <button
+            type="button"
+            onClick={() => handleLeadSubmit()}
+            disabled={submittingLead}
+            className="px-8 py-3 rounded-full bg-maroon hover:bg-maroon-deep disabled:opacity-60 text-soft-white text-sm font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-2 cursor-pointer"
+          >
+            {submittingLead ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Sending to Organizer...</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4 text-gold-light" />
+                <span>Submit Wedding Plan to Organizer</span>
+                <ChevronRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        ) : (
+          <Link
+            href={createdRequestId ? `/client/portal?requestId=${createdRequestId}` : "/client/portal"}
+            className="px-8 py-3 rounded-full bg-emerald-700 text-soft-white text-sm font-bold hover:bg-emerald-800 transition-all shadow-md flex items-center gap-2"
+          >
+            <span>Enter Your Wedding Portal</span>
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        )}
       </div>
     </div>
   );
