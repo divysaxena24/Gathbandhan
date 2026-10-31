@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { users, weddingVendors, weddings } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -19,7 +19,9 @@ export interface AppUser {
 
 /**
  * Get the current app user from the database.
- * Returns `null` if not authenticated or user not found in DB.
+ * If authenticated with Clerk but not yet present or clerkId is updated,
+ * automatically self-heals by linking email or auto-provisioning as FOUNDER_ADMIN.
+ * Returns `null` if not authenticated.
  */
 export async function getCurrentUser(): Promise<AppUser | null> {
   const { userId } = await auth();
@@ -38,7 +40,77 @@ export async function getCurrentUser(): Promise<AppUser | null> {
     .where(eq(users.authProviderId, userId))
     .limit(1);
 
-  return (user as AppUser) ?? null;
+  if (user) {
+    return user as AppUser;
+  }
+
+  // If user is authenticated in Clerk but not yet mapped in DB
+  try {
+    const clerkUser = await currentUser();
+    if (clerkUser) {
+      const primaryEmail =
+        clerkUser.emailAddresses?.[0]?.emailAddress?.toLowerCase() ||
+        `${userId}@gathbandhan.internal`;
+      const name =
+        `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
+        clerkUser.username ||
+        "Gathbandhan Member";
+
+      // 1. Check if user already exists by email
+      const [existingByEmail] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, primaryEmail))
+        .limit(1);
+
+      if (existingByEmail) {
+        const [updated] = await db
+          .update(users)
+          .set({
+            authProviderId: userId,
+            avatarUrl: clerkUser.imageUrl || existingByEmail.avatarUrl,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.id, existingByEmail.id))
+          .returning({
+            id: users.id,
+            clerkId: users.authProviderId,
+            email: users.email,
+            name: users.name,
+            role: users.role,
+            avatarUrl: users.avatarUrl,
+          });
+        return (updated as AppUser) ?? null;
+      }
+
+      // 2. Otherwise insert as FOUNDER_ADMIN so local/admin access is seamless
+      const [created] = await db
+        .insert(users)
+        .values({
+          authProviderId: userId,
+          name,
+          email: primaryEmail,
+          phone: clerkUser.phoneNumbers?.[0]?.phoneNumber || null,
+          role: "FOUNDER_ADMIN",
+          avatarUrl: clerkUser.imageUrl || null,
+          isActive: true,
+        })
+        .returning({
+          id: users.id,
+          clerkId: users.authProviderId,
+          email: users.email,
+          name: users.name,
+          role: users.role,
+          avatarUrl: users.avatarUrl,
+        });
+
+      return (created as AppUser) ?? null;
+    }
+  } catch (err) {
+    console.error("Auto-syncing Clerk user in getCurrentUser failed:", err);
+  }
+
+  return null;
 }
 
 /**
