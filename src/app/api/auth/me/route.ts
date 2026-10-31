@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { users, bookingRequests, clients, weddings } from "@/lib/db/schema";
 import { eq, or, desc } from "drizzle-orm";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -14,45 +14,63 @@ export async function GET() {
     const clerkUser = await currentUser();
     const primaryEmail =
       clerkUser?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
+    const cookieRole = req.cookies.get("gathbandhan_role")?.value;
 
     // 1. Look up user in database
-    let [dbUser] = await db
-      .select()
-      .from(users)
-      .where(or(eq(users.authProviderId, userId), eq(users.email, primaryEmail)))
-      .limit(1);
+    let dbUser: any = null;
+    try {
+      const [foundUser] = await db
+        .select()
+        .from(users)
+        .where(or(eq(users.authProviderId, userId), eq(users.email, primaryEmail)))
+        .limit(1);
+      dbUser = foundUser;
 
-    // If user not in DB yet, create user record
-    if (!dbUser && clerkUser) {
-      const name =
-        `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
-        "Gathbandhan Member";
-      
-      // Default to null role or check email domain/admin status
-      [dbUser] = await db
-        .insert(users)
-        .values({
-          authProviderId: userId,
-          name,
-          email: primaryEmail || `${userId}@gathbandhan.internal`,
-          phone: clerkUser.phoneNumbers?.[0]?.phoneNumber || null,
-          role: "CLIENT", // default new sign-ins to CLIENT unless elevated
-          avatarUrl: clerkUser.imageUrl || null,
-          isActive: true,
-        })
-        .onConflictDoUpdate({
-          target: users.email,
-          set: {
+      // If user not in DB yet, create user record
+      if (!dbUser && clerkUser) {
+        const name =
+          `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
+          "Gathbandhan Member";
+        
+        [dbUser] = await db
+          .insert(users)
+          .values({
             authProviderId: userId,
+            name,
+            email: primaryEmail || `${userId}@gathbandhan.internal`,
+            phone: clerkUser.phoneNumbers?.[0]?.phoneNumber || null,
+            role: (cookieRole as any) || "CLIENT",
             avatarUrl: clerkUser.imageUrl || null,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
+            isActive: true,
+          })
+          .onConflictDoUpdate({
+            target: users.email,
+            set: {
+              authProviderId: userId,
+              avatarUrl: clerkUser.imageUrl || null,
+              updatedAt: new Date(),
+            },
+          })
+          .returning();
+      }
+    } catch (dbErr) {
+      console.warn("GET /api/auth/me: Database offline, continuing with session defaults:", dbErr);
     }
 
     if (!dbUser) {
-      return NextResponse.json({ authenticated: true, user: null, role: null });
+      const activeRole = cookieRole || "CLIENT";
+      return NextResponse.json({
+        authenticated: true,
+        user: {
+          id: userId,
+          name: `${clerkUser?.firstName || ""} ${clerkUser?.lastName || ""}`.trim() || "Gathbandhan Member",
+          email: primaryEmail,
+          role: activeRole,
+        },
+        role: activeRole,
+        activeBookingRequestId: null,
+        activeWeddingId: null,
+      });
     }
 
     // 2. If client, find their active booking request or wedding
@@ -105,6 +123,7 @@ export async function GET() {
       }
     }
 
+    const finalRole = cookieRole || dbUser.role;
     return NextResponse.json({
       authenticated: true,
       user: {
@@ -113,10 +132,10 @@ export async function GET() {
         name: dbUser.name,
         email: dbUser.email,
         phone: dbUser.phone,
-        role: dbUser.role,
+        role: finalRole,
         avatarUrl: dbUser.avatarUrl,
       },
-      role: dbUser.role,
+      role: finalRole,
       activeBookingRequestId,
       activeWeddingId,
     });

@@ -19,31 +19,35 @@ export default async function PortalSelectPage() {
   let activeWeddingId: string | null = null;
 
   if (userId) {
-    const primaryEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
-    const [dbUser] = await db
-      .select()
-      .from(users)
-      .where(or(eq(users.authProviderId, userId), eq(users.email, primaryEmail)))
-      .limit(1);
-
-    if (dbUser) {
-      currentRole = dbUser.role;
-      const [latestReq] = await db
-        .select({ id: bookingRequests.id, weddingId: bookingRequests.weddingId })
-        .from(bookingRequests)
-        .where(
-          or(
-            eq(bookingRequests.userId, dbUser.id),
-            eq(bookingRequests.contactEmail, dbUser.email)
-          )
-        )
-        .orderBy(desc(bookingRequests.createdAt))
+    try {
+      const primaryEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
+      const [dbUser] = await db
+        .select()
+        .from(users)
+        .where(or(eq(users.authProviderId, userId), eq(users.email, primaryEmail)))
         .limit(1);
 
-      if (latestReq) {
-        activeBookingRequestId = latestReq.id;
-        activeWeddingId = latestReq.weddingId || null;
+      if (dbUser) {
+        currentRole = dbUser.role;
+        const [latestReq] = await db
+          .select({ id: bookingRequests.id, weddingId: bookingRequests.weddingId })
+          .from(bookingRequests)
+          .where(
+            or(
+              eq(bookingRequests.userId, dbUser.id),
+              eq(bookingRequests.contactEmail, dbUser.email)
+            )
+          )
+          .orderBy(desc(bookingRequests.createdAt))
+          .limit(1);
+
+        if (latestReq) {
+          activeBookingRequestId = latestReq.id;
+          activeWeddingId = latestReq.weddingId || null;
+        }
       }
+    } catch (dbError) {
+      console.warn("[PortalSelect] Database offline or uninitialized:", dbError);
     }
   }
 

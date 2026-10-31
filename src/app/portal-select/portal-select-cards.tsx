@@ -30,6 +30,11 @@ export function PortalSelectCards({
   const handleSelectRole = async (targetRole: "CLIENT" | "PLANNER", destination: string) => {
     setLoadingRole(targetRole);
     try {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("gathbandhan_role", targetRole);
+        localStorage.setItem("gathbandhan_role", targetRole);
+        document.cookie = `gathbandhan_role=${targetRole}; path=/; max-age=2592000; SameSite=Lax`;
+      }
       await fetch("/api/auth/role", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

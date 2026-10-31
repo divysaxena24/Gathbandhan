@@ -60,19 +60,25 @@ export default function WorkspaceLayout({
   useEffect(() => {
     if (typeof window === "undefined") return;
     const cachedRole = sessionStorage.getItem("gathbandhan_role");
+    
+    // If the user explicitly chose PLANNER or FOUNDER_ADMIN, keep them in organizer workspace
+    if (cachedRole === "PLANNER" || cachedRole === "FOUNDER_ADMIN") {
+      return;
+    }
+
     if (cachedRole === "CLIENT") {
       router.replace("/client/portal");
       return;
     }
-    if (cachedRole) return;
 
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((data) => {
-        if (data.role) {
+        const activeRole = sessionStorage.getItem("gathbandhan_role") || data.role;
+        if (data.role && !sessionStorage.getItem("gathbandhan_role")) {
           sessionStorage.setItem("gathbandhan_role", data.role);
         }
-        if (data.role === "CLIENT") {
+        if (activeRole === "CLIENT") {
           router.replace("/client/portal");
         }
       })

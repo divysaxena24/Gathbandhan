@@ -29,33 +29,46 @@ export async function POST(req: NextRequest) {
       "Gathbandhan Member";
 
     // Update or insert user with chosen role
-    const [updatedUser] = await db
-      .insert(users)
-      .values({
-        authProviderId: userId,
-        name,
-        email: primaryEmail || `${userId}@gathbandhan.internal`,
-        phone: clerkUser?.phoneNumbers?.[0]?.phoneNumber || null,
-        role: role as any,
-        avatarUrl: clerkUser?.imageUrl || null,
-        isActive: true,
-      })
-      .onConflictDoUpdate({
-        target: users.email,
-        set: {
-          role: role as any,
+    try {
+      const [updatedUser] = await db
+        .insert(users)
+        .values({
           authProviderId: userId,
+          name,
+          email: primaryEmail || `${userId}@gathbandhan.internal`,
+          phone: clerkUser?.phoneNumbers?.[0]?.phoneNumber || null,
+          role: role as any,
           avatarUrl: clerkUser?.imageUrl || null,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
+          isActive: true,
+        })
+        .onConflictDoUpdate({
+          target: users.email,
+          set: {
+            role: role as any,
+            authProviderId: userId,
+            avatarUrl: clerkUser?.imageUrl || null,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
 
-    return NextResponse.json({
-      success: true,
-      role: updatedUser.role,
-      user: updatedUser,
-    });
+      const res = NextResponse.json({
+        success: true,
+        role: updatedUser.role,
+        user: updatedUser,
+      });
+      res.cookies.set("gathbandhan_role", role, { path: "/", maxAge: 2592000, sameSite: "lax" });
+      return res;
+    } catch (dbError) {
+      console.warn("POST /api/auth/role: Database offline, defaulting gracefully:", dbError);
+      const res = NextResponse.json({
+        success: true,
+        role,
+        user: { id: userId, email: primaryEmail, role, name },
+      });
+      res.cookies.set("gathbandhan_role", role, { path: "/", maxAge: 2592000, sameSite: "lax" });
+      return res;
+    }
   } catch (error: any) {
     console.error("POST /api/auth/role error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
