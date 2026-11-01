@@ -89,6 +89,7 @@ interface ClientOption {
   partnerOneName: string;
   partnerOneEmail?: string | null;
   partnerOnePhone?: string | null;
+  estimatedBudgetPaise?: string | null;
 }
 
 function cleanClientName(name: string): string {
@@ -115,46 +116,6 @@ interface WeddingOption {
   clientName?: string | null;
 }
 
-const INITIAL_ACCEPTED_CLIENTS: ClientOption[] = [
-  {
-    id: "client-demo-1",
-    aliasIds: ["client-demo-1", "b908759d-f633-47a3-b5f7-66a7b744d2e1", "user_offline_client"],
-    coupleName: "Divya & Knox",
-    partnerOneName: "Divya Saxena",
-    partnerOneEmail: "divya_saxena@srmap.edu.in",
-    partnerOnePhone: "+91 98765 43210",
-  },
-  {
-    id: "173f48fd-48c6-41d3-8af5-e22ba8f3db6c",
-    aliasIds: ["173f48fd-48c6-41d3-8af5-e22ba8f3db6c", "client-ap24110011570"],
-    coupleName: "Divya Saxena | AP24110011570",
-    partnerOneName: "Divya Saxena",
-    partnerOneEmail: "divya_saxena@srmap.edu.in",
-    partnerOnePhone: "+91 98765 43210",
-  },
-];
-
-const INITIAL_ACCEPTED_WEDDINGS: WeddingOption[] = [
-  {
-    id: "wedding-demo-1",
-    title: "The Royal Udaipur Heritage Wedding",
-    clientId: "client-demo-1",
-    clientName: "Divya & Knox",
-  },
-  {
-    id: "b908759d-f633-47a3-b5f7-66a7b744d2e1",
-    title: "Bespoke Royal Rajputana Palace Wedding (Udaipur)",
-    clientId: "b908759d-f633-47a3-b5f7-66a7b744d2e1",
-    clientName: "Divya & Knox",
-  },
-  {
-    id: "wedding-ap24110011570",
-    title: "The Heritage Palace Wedding (Divya Saxena)",
-    clientId: "173f48fd-48c6-41d3-8af5-e22ba8f3db6c",
-    clientName: "Divya Saxena | AP24110011570",
-  },
-];
-
 export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) {
   const [bills, setBills] = useState<ClientBillRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,8 +123,8 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Clients & Weddings from all accepted projects
-  const [clientsList, setClientsList] = useState<ClientOption[]>(INITIAL_ACCEPTED_CLIENTS);
-  const [weddingsList, setWeddingsList] = useState<WeddingOption[]>(INITIAL_ACCEPTED_WEDDINGS);
+  const [clientsList, setClientsList] = useState<ClientOption[]>([]);
+  const [weddingsList, setWeddingsList] = useState<WeddingOption[]>([]);
   const [selectedFilterClientId, setSelectedFilterClientId] = useState<string>("ALL");
 
   // Modal State
@@ -171,8 +132,8 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
 
   // Form Fields
-  const [modalClientId, setModalClientId] = useState<string>("client-demo-1");
-  const [modalWeddingId, setModalWeddingId] = useState<string>("wedding-demo-1");
+  const [modalClientId, setModalClientId] = useState<string>("");
+  const [modalWeddingId, setModalWeddingId] = useState<string>("");
   const [title, setTitle] = useState("Full Wedding Planning & Execution Package");
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(
@@ -212,114 +173,18 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
     };
   }, [totalAmountINR, advancePercentage]);
 
-  // Load clients and weddings with deduplication
+  // Load ONLY accepted clients from Neon DB booking requests
   const loadClientsAndWeddings = useCallback(async () => {
     try {
-      const [clientsRes, weddingsRes, bookingsRes] = await Promise.allSettled([
-        fetch("/api/clients"),
-        fetch("/api/weddings"),
-        fetch("/api/booking-requests"),
-      ]);
+      // Fetch ONLY accepted booking requests from Neon DB
+      const bookingsRes = await fetch("/api/booking-requests?status=ACCEPTED");
 
       const clientMap = new Map<string, ClientOption>();
       const weddingMap = new Map<string, WeddingOption>();
 
-      const addOrMergeClient = (
-        id: string,
-        rawName: string,
-        email?: string | null,
-        phone?: string | null
-      ) => {
-        if (!id && !rawName && !email) return;
-        const cleanedName = cleanClientName(rawName || "Client") || "Client";
-        const key = getCanonicalClientKey(id, cleanedName, email);
-        if (clientMap.has(key)) {
-          const existing = clientMap.get(key)!;
-          if (id && existing.aliasIds && !existing.aliasIds.includes(id)) {
-            existing.aliasIds.push(id);
-          }
-          if (!existing.partnerOneEmail && email) existing.partnerOneEmail = email;
-          if (!existing.partnerOnePhone && phone) existing.partnerOnePhone = phone;
-        } else {
-          clientMap.set(key, {
-            id: id || `client-${key}`,
-            aliasIds: id ? [id] : [],
-            coupleName: cleanedName,
-            partnerOneName: cleanedName,
-            partnerOneEmail: email || null,
-            partnerOnePhone: phone || null,
-          });
-        }
-      };
-
-      // Seed initial defaults
-      for (const c of INITIAL_ACCEPTED_CLIENTS) {
-        addOrMergeClient(c.id, c.coupleName, c.partnerOneEmail, c.partnerOnePhone);
-        if (c.aliasIds) {
-          const key = getCanonicalClientKey(c.id, c.coupleName, c.partnerOneEmail);
-          const item = clientMap.get(key);
-          if (item) {
-            item.aliasIds = Array.from(new Set([...(item.aliasIds || []), ...c.aliasIds]));
-          }
-        }
-      }
-      for (const w of INITIAL_ACCEPTED_WEDDINGS) weddingMap.set(w.id, w);
-
-      // 1. Ingest direct clients
-      if (clientsRes.status === "fulfilled" && clientsRes.value.ok) {
+      if (bookingsRes.ok) {
         try {
-          const cJson = await clientsRes.value.json();
-          if (Array.isArray(cJson.data)) {
-            for (const c of cJson.data) {
-              if (c && c.id) {
-                addOrMergeClient(
-                  c.id,
-                  c.coupleName || c.partnerOneName || "Client",
-                  c.partnerOneEmail || null,
-                  c.partnerOnePhone || null
-                );
-              }
-            }
-          }
-        } catch (e) {
-          console.warn("Parsing /api/clients failed:", e);
-        }
-      }
-
-      // 2. Ingest wedding projects
-      if (weddingsRes.status === "fulfilled" && weddingsRes.value.ok) {
-        try {
-          const wJson = await weddingsRes.value.json();
-          if (Array.isArray(wJson.data)) {
-            for (const w of wJson.data) {
-              if (w && w.id) {
-                weddingMap.set(w.id, {
-                  id: w.id,
-                  title: w.title || "Wedding Project",
-                  clientId: w.clientId || null,
-                  clientName: w.clientName || null,
-                });
-
-                if (w.clientId || w.clientName) {
-                  addOrMergeClient(
-                    w.clientId || `client-${w.id}`,
-                    w.clientName || w.title,
-                    w.clientEmail || null,
-                    w.clientPhone || null
-                  );
-                }
-              }
-            }
-          }
-        } catch (e) {
-          console.warn("Parsing /api/weddings failed:", e);
-        }
-      }
-
-      // 3. Ingest booking requests
-      if (bookingsRes.status === "fulfilled" && bookingsRes.value.ok) {
-        try {
-          const bJson = await bookingsRes.value.json();
+          const bJson = await bookingsRes.json();
           const reqList = Array.isArray(bJson)
             ? bJson
             : Array.isArray(bJson.data)
@@ -327,22 +192,40 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
             : [];
 
           for (const b of reqList) {
-            if (b && b.id) {
-              const cId = b.userId || b.id;
-              const coupleTitle = b.coupleName || b.contactName || "Client";
-              addOrMergeClient(cId, coupleTitle, b.contactEmail || null, b.contactPhone || null);
+            if (!b || !b.id) continue;
 
-              const wId = b.weddingId || b.id;
+            // Use booking request ID as the canonical client identifier
+            const cId = b.id;
+            const coupleTitle = cleanClientName(
+              b.coupleName || b.contactName || "Client"
+            ) || "Client";
+            const key = getCanonicalClientKey(cId, coupleTitle, b.contactEmail);
+
+            if (!clientMap.has(key)) {
+              clientMap.set(key, {
+                id: cId,
+                aliasIds: b.userId ? [cId, b.userId] : [cId],
+                coupleName: coupleTitle,
+                partnerOneName: b.contactName || coupleTitle,
+                partnerOneEmail: b.contactEmail || null,
+                partnerOnePhone: b.contactPhone || null,
+                estimatedBudgetPaise: b.estimatedBudgetPaise || null,
+              });
+            }
+
+            // Create a wedding entry for this accepted booking
+            const wId = b.weddingId || `wedding-${cId}`;
+            if (!weddingMap.has(wId)) {
               weddingMap.set(wId, {
                 id: wId,
-                title: `The Wedding of ${cleanClientName(coupleTitle)} (${b.destinationCity || "Udaipur"})`,
+                title: `The Wedding of ${coupleTitle} (${b.destinationCity || "Udaipur"})`,
                 clientId: cId,
-                clientName: cleanClientName(coupleTitle),
+                clientName: coupleTitle,
               });
             }
           }
         } catch (e) {
-          console.warn("Parsing /api/booking-requests failed:", e);
+          console.warn("Parsing /api/booking-requests?status=ACCEPTED failed:", e);
         }
       }
 
@@ -351,17 +234,10 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
 
       setClientsList(finalClients);
       setWeddingsList(finalWeddings);
-
-      if (!modalClientId && finalClients.length > 0) {
-        setModalClientId(finalClients[0].id);
-      }
-      if (!modalWeddingId && finalWeddings.length > 0) {
-        setModalWeddingId(finalWeddings[0].id);
-      }
     } catch (err) {
-      console.warn("Could not load clients and weddings for tagging:", err);
+      console.warn("Could not load accepted clients for tagging:", err);
     }
-  }, [modalClientId, modalWeddingId]);
+  }, []);
 
   // Load Bills
   const loadBills = useCallback(async () => {
@@ -431,7 +307,14 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
     setIssueDate(new Date().toISOString().split("T")[0]);
     setDueDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
     setBalanceDueAt(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
-    setTotalAmountINR("500000");
+    // Prefill from selected client's estimated budget (in paise, convert to INR)
+    const firstClient = selectedFilterClientId !== "ALL"
+      ? clientsList.find((c) => c.id === selectedFilterClientId)
+      : clientsList[0];
+    const budgetINR = firstClient?.estimatedBudgetPaise && Number(firstClient.estimatedBudgetPaise) > 0
+      ? (Number(firstClient.estimatedBudgetPaise) / 100).toString()
+      : "500000";
+    setTotalAmountINR(budgetINR);
     setAdvancePercentage("20");
     setNotes("");
 
@@ -462,17 +345,22 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
       initialWeddingId = weddingsList[0].id;
     }
 
-    setModalClientId(initialClientId || "client-demo-1");
-    setModalWeddingId(initialWeddingId || "wedding-demo-1");
+    setModalClientId(initialClientId || (clientsList[0]?.id ?? ""));
+    setModalWeddingId(initialWeddingId || (weddingsList[0]?.id ?? ""));
     setIsModalOpen(true);
   };
 
-  // Handle client selection change in modal
+  // Handle client selection change in modal — also prefills budget from estimatedBudgetPaise
   const handleClientSelectChange = (newClientId: string) => {
     setModalClientId(newClientId);
     const selected = clientsList.find((c) => c.id === newClientId);
-    const matchingIds = selected ? [selected.id, ...(selected.aliasIds || [])] : [newClientId];
 
+    // Update total amount from this client's estimated budget
+    if (selected?.estimatedBudgetPaise && Number(selected.estimatedBudgetPaise) > 0) {
+      setTotalAmountINR((Number(selected.estimatedBudgetPaise) / 100).toString());
+    }
+
+    const matchingIds = selected ? [selected.id, ...(selected.aliasIds || [])] : [newClientId];
     const matchedWedding = weddingsList.find(
       (w) =>
         (w.clientId && matchingIds.includes(w.clientId)) ||
