@@ -247,7 +247,14 @@ export default function WorkspaceLayout({
       {/* Main Content Area */}
       <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
         {/* Top Operational Status Bar */}
-        <header className="hidden lg:flex h-16 bg-white/70 backdrop-blur-md border-b border-border/60 sticky top-0 z-30 items-center justify-end px-8">
+        <header className="hidden lg:flex h-16 bg-white/70 backdrop-blur-md border-b border-border/60 sticky top-0 z-30 items-center justify-between px-8">
+          {/* Tagline parallely opposite the notifications bell icon */}
+          <div className="flex items-center gap-2.5 text-xs sm:text-sm font-serif italic text-maroon-deep bg-gradient-to-r from-gold/15 via-gold/10 to-gold/5 px-4 py-1.5 rounded-full border border-gold/30 shadow-xs">
+            <span className="text-gold font-bold text-xs">✦</span>
+            <span className="tracking-wide select-none">हर पल को इतना खूबसूरत बनाओ कि वो याद बन जाए।</span>
+            <span className="text-gold font-bold text-xs">✦</span>
+          </div>
+
           <div className="flex items-center gap-4">
             <NotificationsDrawer />
           </div>

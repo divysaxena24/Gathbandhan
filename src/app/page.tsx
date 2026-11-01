@@ -31,6 +31,13 @@ export default async function HomePage() {
               </span>
             </div>
           </div>
+
+          <div className="hidden md:flex items-center gap-2 text-xs font-serif italic text-maroon-deep/90 bg-gold/10 px-3.5 py-1 rounded-full border border-gold/25 shadow-2xs">
+            <span className="text-gold text-[10px]">✦</span>
+            <span>हर पल को इतना खूबसूरत बनाओ कि वो याद बन जाए।</span>
+            <span className="text-gold text-[10px]">✦</span>
+          </div>
+
           <div className="flex items-center gap-3">
             <Link href="/client">
               <Button variant="ghost" size="sm" className="text-charcoal hover:bg-gold/10 hidden sm:inline-flex">
