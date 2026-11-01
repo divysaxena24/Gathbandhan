@@ -92,7 +92,7 @@ interface PaymentSessionData {
   qrDataUrl: string;
 }
 
-export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
+export function ClientBillsUpiView({ weddingId, requestId }: { weddingId?: string; requestId?: string }) {
   const [bills, setBills] = useState<ClientBill[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -113,8 +113,11 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
   const loadBills = useCallback(async () => {
     try {
       setRefreshing(true);
-      const url = weddingId
-        ? `/api/client/bills?weddingId=${encodeURIComponent(weddingId)}`
+      const queryParams = new URLSearchParams();
+      if (weddingId) queryParams.set("weddingId", weddingId);
+      if (requestId) queryParams.set("requestId", requestId);
+      const url = queryParams.toString()
+        ? `/api/client/bills?${queryParams.toString()}`
         : "/api/client/bills";
       const res = await fetch(url);
       const json = await res.json();
@@ -127,7 +130,7 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [weddingId]);
+  }, [weddingId, requestId]);
 
   useEffect(() => {
     loadBills();

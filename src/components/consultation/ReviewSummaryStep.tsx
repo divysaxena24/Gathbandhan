@@ -30,7 +30,6 @@ import {
   ShieldCheck,
   Send,
   AlertCircle,
-  Lock,
 } from 'lucide-react';
 
 export default function ReviewSummaryStep() {
@@ -52,7 +51,7 @@ export default function ReviewSummaryStep() {
   const [submittingLead, setSubmittingLead] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Fetch contact details: email is strictly fetched from user account and is non-editable
+  // Fetch contact details (pre-filled from user account if available, editable)
   useEffect(() => {
     const accountEmail =
       user?.primaryEmailAddress?.emailAddress ||
@@ -63,7 +62,7 @@ export default function ReviewSummaryStep() {
       `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
     const accountPhone = user?.primaryPhoneNumber?.phoneNumber || '';
 
-    if (accountEmail) {
+    if (accountEmail && !leadEmail) {
       setLeadEmail(accountEmail);
     }
     if (accountName && !leadName) {
@@ -376,33 +375,20 @@ export default function ReviewSummaryStep() {
                 />
               </div>
 
-              {/* User Account Email (Non-editable, fetched from user account) */}
+              {/* Contact Email (Editable) */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-[11px] font-semibold text-maroon-deep">
-                  <span>Account Email</span>
-                  <span className="text-[10px] text-warm-gray font-normal flex items-center gap-1">
-                    <Lock className="w-3 h-3 text-gold" />
-                    Non-editable
-                  </span>
+                  <span>Email Address *</span>
+                  <span className="text-[10px] text-warm-gray font-normal">Editable</span>
                 </div>
-                <div className="relative">
-                  <input
-                    id="leadEmailInput"
-                    type="email"
-                    readOnly
-                    tabIndex={-1}
-                    placeholder="Account Email (Auto-filled)"
-                    value={leadEmail}
-                    className="w-full px-4 py-3 rounded-xl border border-gold/25 text-sm bg-cream/60 text-charcoal/70 cursor-not-allowed focus:outline-none select-none font-medium pr-9 shadow-inner"
-                    title="Email is automatically fetched from your user account and cannot be edited."
-                  />
-                  <div
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gold/70"
-                    title="Linked to your registered account (Non-editable)"
-                  >
-                    <Lock className="w-4 h-4" />
-                  </div>
-                </div>
+                <input
+                  id="leadEmailInput"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={leadEmail}
+                  onChange={(e) => setLeadEmail(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gold/30 text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-soft-white text-charcoal font-medium shadow-sm"
+                />
               </div>
 
               {/* Phone / WhatsApp Number (Editable) */}
@@ -424,7 +410,7 @@ export default function ReviewSummaryStep() {
               <div className="sm:col-span-3 flex items-center justify-between mt-2 pt-1">
                 <span className="text-[11px] text-warm-gray flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-gold" />
-                  Email is locked to your account for private booking security.
+                  Direct communication with dedicated Gathbandhan planners.
                 </span>
                 <button
                   type="submit"

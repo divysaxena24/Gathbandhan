@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { requireAuth } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { respondToBill } from "@/modules/finance/services/bill-service";
 import { successResponse, errorResponse } from "@/lib/errors/api-response";
 import { ValidationError } from "@/lib/errors";
@@ -12,12 +12,19 @@ function serializeBigInt<T>(obj: T): any {
   );
 }
 
+function isValidUuid(val?: string | null): boolean {
+  return Boolean(
+    val &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)
+  );
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireAuth();
+    const user = await getCurrentUser();
     const { id } = await params;
     const body = await req.json();
 
@@ -25,11 +32,13 @@ export async function POST(
       throw new ValidationError("Action must be either 'ACCEPT' or 'DECLINE'");
     }
 
+    const actorId = isValidUuid(user?.id) ? user!.id : undefined;
+
     const updated = await respondToBill(
       id,
       body.action,
       body.reason,
-      user.id
+      actorId
     );
 
     return successResponse(serializeBigInt(updated));

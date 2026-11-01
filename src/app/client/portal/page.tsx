@@ -1572,7 +1572,7 @@ function ClientPortalContent() {
 
           {/* TAB 6: Bills & Virtual UPI Payments */}
           <TabsContent value="bills-upi" className="space-y-6">
-            <ClientBillsUpiView weddingId={bookingData.weddingId || undefined} />
+            <ClientBillsUpiView weddingId={bookingData.weddingId || undefined} requestId={bookingData.id || undefined} />
           </TabsContent>
         </Tabs>
         </div>

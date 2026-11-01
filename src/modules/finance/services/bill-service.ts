@@ -31,6 +31,11 @@ import {
   ForbiddenError,
 } from "@/lib/errors";
 
+function toValidUuidOrNull(val?: string | null): string | null {
+  if (!val) return null;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val) ? val : null;
+}
+
 export interface CreateBillItemInput {
   description: string;
   quantity?: number;
@@ -243,6 +248,18 @@ export async function createBill(
     throw new NotFoundError(`Wedding ${data.weddingId} not found`);
   }
 
+  // Ensure clientId references a valid record in the clients table
+  let clientIdToUse = data.clientId;
+  const [existingClient] = await db
+    .select({ id: clients.id })
+    .from(clients)
+    .where(eq(clients.id, data.clientId))
+    .limit(1);
+
+  if (!existingClient && wedding.clientId) {
+    clientIdToUse = wedding.clientId;
+  }
+
   const billNumber =
     data.billNumber ||
     `BILL-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -253,7 +270,7 @@ export async function createBill(
       .insert(clientBills)
       .values({
         weddingId: data.weddingId,
-        clientId: data.clientId,
+        clientId: clientIdToUse,
         billNumber,
         title: data.title,
         issueDate: data.issueDate,
@@ -267,7 +284,7 @@ export async function createBill(
         balanceDueAt: balanceDueDate,
         status: "DRAFT",
         notes: data.notes || null,
-        createdBy: actorId || null,
+        createdBy: toValidUuidOrNull(actorId),
       })
       .returning();
 
@@ -316,9 +333,10 @@ export async function createBill(
     }
 
     // Audit Log
-    if (actorId) {
+    const safeActorIdCreate = toValidUuidOrNull(actorId);
+    if (safeActorIdCreate) {
       await tx.insert(auditLogs).values({
-        actorId,
+        actorId: safeActorIdCreate,
         action: "CREATE_CLIENT_BILL",
         entityType: "CLIENT_BILL",
         entityId: bill.id,
@@ -407,7 +425,7 @@ export async function createBill(
       declineReason: null,
       publishedAt: null,
       notes: data.notes || null,
-      createdBy: actorId || null,
+      createdBy: toValidUuidOrNull(actorId),
       createdAt: new Date(),
       updatedAt: new Date(),
       items: fallbackItems,
@@ -599,9 +617,10 @@ export async function updateBill(
       });
     }
 
-    if (actorId) {
+    const safeActorIdUpd = toValidUuidOrNull(actorId);
+    if (safeActorIdUpd) {
       await tx.insert(auditLogs).values({
-        actorId,
+        actorId: safeActorIdUpd,
         action: "UPDATE_CLIENT_BILL",
         entityType: "CLIENT_BILL",
         entityId: billId,
@@ -666,9 +685,10 @@ export async function publishBill(
       })
       .where(eq(clientBills.id, billId));
 
-    if (actorId) {
+    const safeActorIdPub = toValidUuidOrNull(actorId);
+    if (safeActorIdPub) {
       await db.insert(auditLogs).values({
-        actorId,
+        actorId: safeActorIdPub,
         action: "PUBLISH_CLIENT_BILL",
         entityType: "CLIENT_BILL",
         entityId: bill.id,
@@ -723,9 +743,10 @@ export async function respondToBill(
       })
       .where(eq(clientBills.id, billId));
 
-    if (actorId) {
+    const safeActorIdDecline = toValidUuidOrNull(actorId);
+    if (safeActorIdDecline) {
       await db.insert(auditLogs).values({
-        actorId,
+        actorId: safeActorIdDecline,
         action: "DECLINE_CLIENT_BILL",
         entityType: "CLIENT_BILL",
         entityId: bill.id,
@@ -778,9 +799,10 @@ export async function respondToBill(
         .where(eq(clientBillInstallments.id, inst.id));
     }
 
-    if (actorId) {
+    const safeActorIdAccept = toValidUuidOrNull(actorId);
+    if (safeActorIdAccept) {
       await tx.insert(auditLogs).values({
-        actorId,
+        actorId: safeActorIdAccept,
         action: "ACCEPT_CLIENT_BILL",
         entityType: "CLIENT_BILL",
         entityId: bill.id,
