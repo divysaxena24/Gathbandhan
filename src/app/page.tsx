@@ -34,7 +34,7 @@ export default async function HomePage() {
 
           <div className="hidden md:flex items-center gap-2 text-xs font-serif italic text-maroon-deep/90 bg-gold/10 px-3.5 py-1 rounded-full border border-gold/25 shadow-2xs">
             <span className="text-gold text-[10px]">✦</span>
-            <span>हर पल को इतना खूबसूरत बनाओ कि वो याद बन जाए।</span>
+            <span>Where every celebration comes together</span>
             <span className="text-gold text-[10px]">✦</span>
           </div>
 

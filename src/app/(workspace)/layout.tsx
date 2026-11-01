@@ -380,7 +380,7 @@ export default function WorkspaceLayout({
           {/* Tagline parallely opposite the notifications bell icon */}
           <div className="flex items-center gap-2.5 text-xs sm:text-sm font-serif italic text-maroon-deep bg-gradient-to-r from-gold/15 via-gold/10 to-gold/5 px-4 py-1.5 rounded-full border border-gold/30 shadow-xs">
             <span className="text-gold font-bold text-xs">✦</span>
-            <span className="tracking-wide select-none">हर पल को इतना खूबसूरत बनाओ कि वो याद बन जाए।</span>
+            <span className="tracking-wide select-none">Where every celebration comes together</span>
             <span className="text-gold font-bold text-xs">✦</span>
           </div>
 
