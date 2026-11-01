@@ -98,14 +98,14 @@ function cleanClientName(name: string): string {
     .trim();
 }
 
-function getCanonicalClientKey(email?: string | null, name?: string | null): string {
-  if (email && email.trim() && email.includes("@")) {
-    return email.trim().toLowerCase();
-  }
+function getCanonicalClientKey(id?: string | null, name?: string | null, email?: string | null): string {
   const clean = cleanClientName(name || "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
-  return clean || (name || "").toLowerCase().trim();
+  if (clean) return `name_${clean}`;
+  if (id && id.trim()) return `id_${id.trim()}`;
+  if (email && email.trim() && email.includes("@")) return `email_${email.trim().toLowerCase()}`;
+  return "unknown_client";
 }
 
 interface WeddingOption {
@@ -124,6 +124,14 @@ const INITIAL_ACCEPTED_CLIENTS: ClientOption[] = [
     partnerOneEmail: "divya_saxena@srmap.edu.in",
     partnerOnePhone: "+91 98765 43210",
   },
+  {
+    id: "173f48fd-48c6-41d3-8af5-e22ba8f3db6c",
+    aliasIds: ["173f48fd-48c6-41d3-8af5-e22ba8f3db6c", "client-ap24110011570"],
+    coupleName: "Divya Saxena | AP24110011570",
+    partnerOneName: "Divya Saxena",
+    partnerOneEmail: "divya_saxena@srmap.edu.in",
+    partnerOnePhone: "+91 98765 43210",
+  },
 ];
 
 const INITIAL_ACCEPTED_WEDDINGS: WeddingOption[] = [
@@ -138,6 +146,12 @@ const INITIAL_ACCEPTED_WEDDINGS: WeddingOption[] = [
     title: "Bespoke Royal Rajputana Palace Wedding (Udaipur)",
     clientId: "b908759d-f633-47a3-b5f7-66a7b744d2e1",
     clientName: "Divya & Knox",
+  },
+  {
+    id: "wedding-ap24110011570",
+    title: "The Heritage Palace Wedding (Divya Saxena)",
+    clientId: "173f48fd-48c6-41d3-8af5-e22ba8f3db6c",
+    clientName: "Divya Saxena | AP24110011570",
   },
 ];
 
@@ -218,7 +232,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
       ) => {
         if (!id && !rawName && !email) return;
         const cleanedName = cleanClientName(rawName || "Client") || "Client";
-        const key = getCanonicalClientKey(email, cleanedName);
+        const key = getCanonicalClientKey(id, cleanedName, email);
         if (clientMap.has(key)) {
           const existing = clientMap.get(key)!;
           if (id && existing.aliasIds && !existing.aliasIds.includes(id)) {
@@ -242,7 +256,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
       for (const c of INITIAL_ACCEPTED_CLIENTS) {
         addOrMergeClient(c.id, c.coupleName, c.partnerOneEmail, c.partnerOnePhone);
         if (c.aliasIds) {
-          const key = getCanonicalClientKey(c.partnerOneEmail, c.coupleName);
+          const key = getCanonicalClientKey(c.id, c.coupleName, c.partnerOneEmail);
           const item = clientMap.get(key);
           if (item) {
             item.aliasIds = Array.from(new Set([...(item.aliasIds || []), ...c.aliasIds]));
@@ -456,8 +470,16 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
   // Handle client selection change in modal
   const handleClientSelectChange = (newClientId: string) => {
     setModalClientId(newClientId);
+    const selected = clientsList.find((c) => c.id === newClientId);
+    const matchingIds = selected ? [selected.id, ...(selected.aliasIds || [])] : [newClientId];
+
     const matchedWedding = weddingsList.find(
-      (w) => w.clientId === newClientId || w.id === newClientId
+      (w) =>
+        (w.clientId && matchingIds.includes(w.clientId)) ||
+        matchingIds.includes(w.id) ||
+        (selected?.coupleName &&
+          w.clientName &&
+          cleanClientName(selected.coupleName).toLowerCase() === cleanClientName(w.clientName).toLowerCase())
     );
     if (matchedWedding) {
       setModalWeddingId(matchedWedding.id);
@@ -516,7 +538,9 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             weddingId: weddingIdToUse,
+            weddingTitle: weddingsList.find((w) => w.id === weddingIdToUse)?.title,
             clientId: clientToTag,
+            clientName: selectedClientDetails?.coupleName || selectedClientDetails?.partnerOneName,
             title: title.trim(),
             issueDate,
             dueDate,
@@ -624,7 +648,17 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
               </option>
               {clientsList.map((client) => {
                 const clientIds = [client.id, ...(client.aliasIds || [])];
-                const count = bills.filter((b) => clientIds.includes(b.clientId)).length;
+                const count = bills.filter((b) => {
+                  if (clientIds.includes(b.clientId)) return true;
+                  if (
+                    client.coupleName &&
+                    b.clientName &&
+                    cleanClientName(client.coupleName).toLowerCase() === cleanClientName(b.clientName).toLowerCase()
+                  ) {
+                    return true;
+                  }
+                  return false;
+                }).length;
                 return (
                   <option key={client.id} value={client.id} className="bg-stone-950 text-white">
                     {client.coupleName} ({count})

@@ -14,14 +14,14 @@ function cleanClientName(name: string): string {
     .trim();
 }
 
-function normalizeClientKey(email?: string | null, name?: string | null): string {
-  if (email && email.trim() && email.includes("@")) {
-    return email.trim().toLowerCase();
-  }
+function normalizeClientKey(id?: string | null, name?: string | null, email?: string | null): string {
   const clean = cleanClientName(name || "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
-  return clean || (name || "").toLowerCase().trim();
+  if (clean) return `name_${clean}`;
+  if (id && id.trim()) return `id_${id.trim()}`;
+  if (email && email.trim() && email.includes("@")) return `email_${email.trim().toLowerCase()}`;
+  return "unknown_client";
 }
 
 export async function GET(_req: NextRequest) {
@@ -89,7 +89,7 @@ export async function GET(_req: NextRequest) {
       const addCanonicalClient = (item: any) => {
         const email = item.partnerOneEmail || item.contactEmail || item.clientEmail || null;
         const name = cleanClientName(item.coupleName || item.partnerOneName || item.contactName || item.clientName || "Client");
-        const key = normalizeClientKey(email, name);
+        const key = normalizeClientKey(item.id, name, email);
         if (!key) return;
 
         if (clientMap.has(key)) {
@@ -160,7 +160,7 @@ export async function GET(_req: NextRequest) {
       const addFallbackClient = (item: any) => {
         const email = item.partnerOneEmail || item.contactEmail || null;
         const name = cleanClientName(item.coupleName || item.partnerOneName || item.contactName || "Client");
-        const key = normalizeClientKey(email, name);
+        const key = normalizeClientKey(item.id, name, email);
         if (!key) return;
 
         if (clientMap.has(key)) {
@@ -191,6 +191,21 @@ export async function GET(_req: NextRequest) {
         portalUserId: null,
         address: "Udaipur, Rajasthan",
         notes: "Grand Heritage Palace Wedding (Accepted Project)",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      addFallbackClient({
+        id: "173f48fd-48c6-41d3-8af5-e22ba8f3db6c",
+        coupleName: "Divya Saxena | AP24110011570",
+        partnerOneName: "Divya Saxena",
+        partnerOneEmail: "divya_saxena@srmap.edu.in",
+        partnerOnePhone: "+91 98765 43210",
+        partnerTwoName: null,
+        partnerTwoEmail: null,
+        portalUserId: null,
+        address: "Udaipur, Rajasthan",
+        notes: "Accepted Booking Project (AP24110011570)",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });

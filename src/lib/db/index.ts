@@ -13,6 +13,11 @@ const client =
   globalForDb.conn ??
   postgres(connectionString, {
     prepare: false,
+    ssl:
+      connectionString?.includes("sslmode=require") ||
+      connectionString?.includes("neon.tech")
+        ? "require"
+        : undefined,
     max: 10,
     idle_timeout: 20,
     connect_timeout: 10,
@@ -27,7 +32,7 @@ export type Database = typeof db;
 
 /**
  * Clean logger for database fallback events.
- * Formats ECONNREFUSED as a concise notice rather than printing full multi-line stack traces.
+ * Formats offline database connection errors as a concise notice.
  */
 export function logDbFallbackWarning(context: string, error: unknown) {
   const errStr = String(
@@ -36,8 +41,12 @@ export function logDbFallbackWarning(context: string, error: unknown) {
       (error as any)?.message ||
       error
   );
-  if (errStr.includes("ECONNREFUSED")) {
-    console.warn(`[${context}] PostgreSQL offline on localhost:5432 (serving fallback data).`);
+  if (
+    errStr.includes("ECONNREFUSED") ||
+    errStr.includes("ENOTFOUND") ||
+    errStr.includes("CONNECT_TIMEOUT")
+  ) {
+    console.warn(`[${context}] Database offline or unreachable (serving fallback data).`);
   } else {
     console.warn(`[${context}] Database query notice:`, (error as any)?.message || error);
   }

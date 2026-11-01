@@ -90,7 +90,9 @@ export async function POST(req: NextRequest) {
     const bill = await createBill(
       {
         weddingId: body.weddingId,
+        weddingTitle: body.weddingTitle,
         clientId: body.clientId,
+        clientName: body.clientName,
         billNumber: body.billNumber,
         title: body.title,
         issueDate: body.issueDate,

@@ -48,7 +48,9 @@ export interface CreateBillInstallmentInput {
 
 export interface CreateBillInput {
   weddingId: string;
+  weddingTitle?: string;
   clientId: string;
+  clientName?: string;
   billNumber?: string;
   title: string;
   issueDate: string;
@@ -383,7 +385,9 @@ export async function createBill(
     const fallbackRecord: ClientBillRecord = {
       id: billId,
       weddingId: data.weddingId,
+      weddingTitle: data.weddingTitle || "Wedding Project",
       clientId: data.clientId,
+      clientName: data.clientName || (data.clientId === "client-demo-1" ? "Divya & Knox" : "Valued Client"),
       billNumber,
       title: data.title,
       issueDate: data.issueDate,
