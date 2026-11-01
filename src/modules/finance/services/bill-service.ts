@@ -423,15 +423,28 @@ export async function updateBill(
   data: UpdateBillInput,
   actorId?: string
 ): Promise<ClientBillRecord> {
-  const [existingBill] = await db
-    .select()
-    .from(clientBills)
-    .where(eq(clientBills.id, billId))
-    .limit(1);
+  try {
+    const [existingBill] = await db
+      .select()
+      .from(clientBills)
+      .where(eq(clientBills.id, billId))
+      .limit(1);
 
-  if (!existingBill) {
-    throw new NotFoundError(`Client bill ${billId} not found`);
-  }
+    if (!existingBill) {
+      const fb = getFallbackBillById(billId);
+      if (fb) {
+        return (
+          updateFallbackBill(billId, {
+            title: data.title || fb.title,
+            issueDate: data.issueDate || fb.issueDate,
+            dueDate: data.dueDate || fb.dueDate,
+            totalPaise: data.totalPaise || fb.totalPaise,
+            notes: data.notes !== undefined ? data.notes : fb.notes,
+          }) || fb
+        );
+      }
+      throw new NotFoundError(`Client bill ${billId} not found`);
+    }
 
   // Critical requirement: Once a payment has been made, prevent editing the bill in a way that
   // silently changes the paid amount or creates an inconsistent balance.
@@ -598,47 +611,78 @@ export async function updateBill(
 
     return await getBillById(billId);
   });
+  } catch (err: any) {
+    if (err instanceof ValidationError || err instanceof ForbiddenError) {
+      throw err;
+    }
+    logDbFallbackWarning("BillService.updateBill", err);
+    const fb = getFallbackBillById(billId);
+    if (fb) {
+      return (
+        updateFallbackBill(billId, {
+          title: data.title || fb.title,
+          issueDate: data.issueDate || fb.issueDate,
+          dueDate: data.dueDate || fb.dueDate,
+          totalPaise: data.totalPaise || fb.totalPaise,
+          notes: data.notes !== undefined ? data.notes : fb.notes,
+        }) || fb
+      );
+    }
+    throw err;
+  }
 }
 
 export async function publishBill(
   billId: string,
   actorId?: string
 ): Promise<ClientBillRecord> {
-  const [bill] = await db
-    .select()
-    .from(clientBills)
-    .where(eq(clientBills.id, billId))
-    .limit(1);
+  try {
+    const [bill] = await db
+      .select()
+      .from(clientBills)
+      .where(eq(clientBills.id, billId))
+      .limit(1);
 
-  if (!bill) {
-    throw new NotFoundError(`Client bill ${billId} not found`);
+    if (!bill) {
+      const fb = publishFallbackBill(billId);
+      if (fb) return fb;
+      throw new NotFoundError(`Client bill ${billId} not found`);
+    }
+
+    if (bill.status !== "DRAFT" && bill.status !== "DECLINED") {
+      throw new ValidationError(`Cannot publish bill in ${bill.status} status`);
+    }
+
+    await db
+      .update(clientBills)
+      .set({
+        status: "AWAITING_ACCEPTANCE",
+        publishedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(clientBills.id, billId));
+
+    if (actorId) {
+      await db.insert(auditLogs).values({
+        actorId,
+        action: "PUBLISH_CLIENT_BILL",
+        entityType: "CLIENT_BILL",
+        entityId: bill.id,
+        oldValue: { status: bill.status },
+        newValue: { status: "AWAITING_ACCEPTANCE" },
+      });
+    }
+
+    return await getBillById(billId);
+  } catch (err: any) {
+    if (err instanceof ValidationError || err instanceof ForbiddenError) {
+      throw err;
+    }
+    logDbFallbackWarning("BillService.publishBill", err);
+    const fb = publishFallbackBill(billId);
+    if (fb) return fb;
+    throw err;
   }
-
-  if (bill.status !== "DRAFT" && bill.status !== "DECLINED") {
-    throw new ValidationError(`Cannot publish bill in ${bill.status} status`);
-  }
-
-  await db
-    .update(clientBills)
-    .set({
-      status: "AWAITING_ACCEPTANCE",
-      publishedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(clientBills.id, billId));
-
-  if (actorId) {
-    await db.insert(auditLogs).values({
-      actorId,
-      action: "PUBLISH_CLIENT_BILL",
-      entityType: "CLIENT_BILL",
-      entityId: bill.id,
-      oldValue: { status: bill.status },
-      newValue: { status: "AWAITING_ACCEPTANCE" },
-    });
-  }
-
-  return await getBillById(billId);
 }
 
 export async function respondToBill(
@@ -647,15 +691,18 @@ export async function respondToBill(
   reason?: string,
   actorId?: string
 ): Promise<ClientBillRecord> {
-  const [bill] = await db
-    .select()
-    .from(clientBills)
-    .where(eq(clientBills.id, billId))
-    .limit(1);
+  try {
+    const [bill] = await db
+      .select()
+      .from(clientBills)
+      .where(eq(clientBills.id, billId))
+      .limit(1);
 
-  if (!bill) {
-    throw new NotFoundError(`Client bill ${billId} not found`);
-  }
+    if (!bill) {
+      const fb = respondFallbackBill(billId, action, reason);
+      if (fb) return fb;
+      throw new NotFoundError(`Client bill ${billId} not found`);
+    }
 
   if (bill.status !== "AWAITING_ACCEPTANCE") {
     throw new ValidationError(`Bill is not awaiting acceptance (current: ${bill.status})`);
@@ -739,11 +786,21 @@ export async function respondToBill(
 
     return await getBillById(billId);
   });
+  } catch (err: any) {
+    if (err instanceof ValidationError || err instanceof ForbiddenError) {
+      throw err;
+    }
+    logDbFallbackWarning("BillService.respondToBill", err);
+    const fb = respondFallbackBill(billId, action, reason);
+    if (fb) return fb;
+    throw err;
+  }
 }
 
 export async function getBillById(billId: string): Promise<ClientBillRecord> {
-  const [bill] = await db
-    .select({
+  try {
+    const [bill] = await db
+      .select({
       id: clientBills.id,
       weddingId: clientBills.weddingId,
       weddingTitle: weddings.title,
@@ -779,6 +836,8 @@ export async function getBillById(billId: string): Promise<ClientBillRecord> {
     .limit(1);
 
   if (!bill) {
+    const fb = getFallbackBillById(billId);
+    if (fb) return fb;
     throw new NotFoundError(`Client bill ${billId} not found`);
   }
 
@@ -820,6 +879,15 @@ export async function getBillById(billId: string): Promise<ClientBillRecord> {
     items,
     installments: installmentsWithRemaining,
   };
+  } catch (err: any) {
+    if (err instanceof NotFoundError || err instanceof ValidationError) {
+      throw err;
+    }
+    logDbFallbackWarning("BillService.getBillById", err);
+    const fb = getFallbackBillById(billId);
+    if (fb) return fb;
+    throw new NotFoundError(`Client bill ${billId} not found`);
+  }
 }
 
 export async function getBillsForWedding(weddingId: string): Promise<ClientBillRecord[]> {
