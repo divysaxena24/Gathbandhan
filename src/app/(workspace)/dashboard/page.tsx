@@ -226,7 +226,7 @@ export default function DashboardPage() {
                   {stats.anchorWedding.vendorCount} Vendors · {stats.anchorWedding.budgetFormatted} Budget
                 </p>
               </div>
-              <Link href="/control-room">
+              <Link href={stats?.anchorWedding?.id ? `/control-room?weddingId=${stats.anchorWedding.id}` : "/control-room"}>
                 <Button size="sm" variant="outline" className="border-gold/40 text-charcoal gap-1.5 hover:bg-gold/10">
                   Launch Control Room
                   <ArrowRight className="w-3.5 h-3.5" />

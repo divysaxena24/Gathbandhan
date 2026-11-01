@@ -45,9 +45,7 @@ const navItems: NavItem[] = [
   { title: "Planning & Tasks", href: "/planning", icon: CheckSquare },
   { title: "Vendors", href: "/vendors", icon: Building2 },
   { title: "AI Quotation Analyzer", href: "/quotation-analyzer", icon: Sparkles, badge: "AI" },
-  { title: "Event Control Room", href: "/control-room", icon: Radio, badge: "Live" },
   { title: "Finance", href: "/finance", icon: IndianRupee },
-  { title: "Guests & Logistics", href: "/guests", icon: UserCheck },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Settings", href: "/settings", icon: Settings },
 ];

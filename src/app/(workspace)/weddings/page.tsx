@@ -386,24 +386,15 @@ export default function WeddingsPage() {
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-border/50 flex items-center justify-between gap-2">
-                  <Link href="/control-room" className="flex-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full text-xs gap-1 border-border hover:bg-muted"
-                    >
-                      <Radio className="w-3 h-3 text-gold" />
-                      Control Room
-                    </Button>
-                  </Link>
-                  <Link href="/planning" className="flex-1">
+                <div className="pt-3 border-t border-border/50">
+                  <Link href={`/control-room?weddingId=${w.id}`} className="block w-full">
                     <Button
                       size="sm"
-                      className="w-full text-xs gap-1 bg-charcoal text-ivory hover:bg-charcoal-700"
+                      className="w-full text-xs font-semibold gap-2 bg-charcoal text-ivory hover:bg-charcoal-800 transition-all shadow-sm py-2"
                     >
-                      Tasks
-                      <ArrowRight className="w-3 h-3" />
+                      <Radio className="w-3.5 h-3.5 text-gold animate-pulse shrink-0" />
+                      <span>Open Wedding Control Room</span>
+                      <ArrowRight className="w-3.5 h-3.5 ml-auto text-gold shrink-0" />
                     </Button>
                   </Link>
                 </div>
