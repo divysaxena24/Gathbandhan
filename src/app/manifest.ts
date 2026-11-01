@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Gathbandhan — Luxury Wedding Platform",
     short_name: "Gathbandhan",
-    description: "Operating system for luxury destination wedding planning agencies in Rajasthan",
+    description: "Where Every Celebration Comes Together — for luxury destination wedding planning in Rajasthan",
     start_url: "/dashboard",
     display: "standalone",
     background_color: "#1A1A1A",

@@ -31,11 +31,15 @@ import {
   Home,
   Check,
   CreditCard,
+  ArrowRight,
+  FileCheck2,
+  QrCode,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ClientBillsUpiView } from "@/components/finance/client-bills-upi-view";
+import { RoyalRsvpInvitationCard } from "@/components/guests/royal-rsvp-invitation-card";
 
 interface BookingRequestData {
   id: string;
@@ -92,14 +96,27 @@ interface BookingRequestData {
 function ClientPortalContent() {
   const searchParams = useSearchParams();
   const requestIdParam = searchParams.get("requestId");
+  const tabParam = searchParams.get("tab");
   const { user } = useUser();
 
   const [loading, setLoading] = useState(true);
   const [bookingData, setBookingData] = useState<BookingRequestData | null>(null);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState(tabParam || "rsvp");
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
+
+  // Milestone Journey & Stage Progression State
+  const [currentStage, setCurrentStage] = useState<number>(3);
+  const [activeViewingStage, setActiveViewingStage] = useState<number>(3);
+  const [signerName, setSignerName] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
+  const [signedRecord, setSignedRecord] = useState<{
+    signerName: string;
+    signedAt: string;
+    agreementId: string;
+  } | null>(null);
 
   const fetchPortalData = useCallback(async () => {
     try {
@@ -143,6 +160,37 @@ function ClientPortalContent() {
   useEffect(() => {
     fetchPortalData();
   }, [fetchPortalData]);
+
+  // Sync Stage & Signature State from localStorage & booking data
+  useEffect(() => {
+    if (typeof window !== "undefined" && bookingData?.id) {
+      const savedStage = localStorage.getItem(`gathbandhan_stage_${bookingData.id}`);
+      if (savedStage) {
+        const num = parseInt(savedStage, 10);
+        if (!isNaN(num) && num >= 1 && num <= 5) {
+          setCurrentStage(num);
+          setActiveViewingStage(num);
+        }
+      } else {
+        const initial = bookingData.status === "ACCEPTED" ? 3 : 2;
+        setCurrentStage(initial);
+        setActiveViewingStage(initial);
+      }
+
+      const savedSig = localStorage.getItem(`gathbandhan_agreement_sig_${bookingData.id}`);
+      if (savedSig) {
+        try {
+          setSignedRecord(JSON.parse(savedSig));
+        } catch {
+          // ignore
+        }
+      }
+
+      if (bookingData.contactName) {
+        setSignerName((prev) => prev || bookingData.contactName);
+      }
+    }
+  }, [bookingData?.id, bookingData?.status, bookingData?.contactName]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,7 +272,7 @@ function ClientPortalContent() {
         </main>
 
         <footer className="border-t border-gold/15 py-6 text-center text-xs text-warm-gray">
-          © 2026 Gathbandhan — The Royal Knot Client Experience
+          © 2026 Gathbandhan — Where Every Celebration Comes Together.
         </footer>
       </div>
     );
@@ -353,126 +401,775 @@ function ClientPortalContent() {
               </div>
             </div>
           )}
+
+          {/* Quick Action: Royal RSVP & Guest Pass */}
+          <div className="mt-6 pt-5 border-t border-white/15 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-gold-light" />
+              <span className="text-xs text-soft-white/90 font-medium">
+                Digital Royal RSVP & Entry QR Pass Ready
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setActiveTab("rsvp");
+                  document.getElementById("portal-tabs-section")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="bg-gold hover:bg-gold-light text-maroon-deep font-bold text-xs h-9 px-4 rounded-xl shadow-md cursor-pointer"
+              >
+                <Crown className="w-3.5 h-3.5 mr-1.5" />
+                View & Share Royal RSVP Card
+              </Button>
+
+              <Link
+                href={`/rsvp/invite/${bookingData.id}`}
+                target="_blank"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold text-soft-white border border-white/20 transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-gold-light" />
+                Open Guest Link
+              </Link>
+            </div>
+          </div>
         </section>
 
         {/* 5-Stage Milestone Progress */}
-        <section className="bg-white rounded-3xl p-6 sm:p-8 border border-gold/20 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
+        <section className="bg-white rounded-3xl p-6 sm:p-8 border border-gold/20 shadow-sm space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="font-heading font-bold text-lg sm:text-xl text-maroon-deep">
-                Planning Journey & Milestones
+              <h2 className="font-heading font-bold text-lg sm:text-xl text-maroon-deep flex items-center gap-2">
+                <span>Planning Journey & Milestones</span>
+                <span className="text-xs font-sans font-medium px-2 py-0.5 rounded-full bg-gold/15 text-gold-900 border border-gold/30">
+                  Stage {currentStage} of 5 Active
+                </span>
               </h2>
-              <p className="text-xs text-warm-gray">
-                Follow every step from your initial 14-step consultation to execution day.
+              <p className="text-xs text-warm-gray mt-0.5">
+                Follow every step from your initial 14-step consultation to live execution day. Click any milestone to view details or proceed.
               </p>
             </div>
-            <Badge
-              variant="outline"
-              className={
-                isAccepted
-                  ? "border-emerald-500 text-emerald-700 bg-emerald-50"
-                  : "border-gold text-gold-700 bg-gold/10"
-              }
-            >
-              {isAccepted ? "Accepted & Active" : "In Review"}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className={
+                  currentStage >= 5
+                    ? "border-emerald-500 text-emerald-700 bg-emerald-50 font-bold"
+                    : currentStage === 4
+                    ? "border-amber-500 text-amber-800 bg-amber-50 font-bold"
+                    : isAccepted
+                    ? "border-emerald-500 text-emerald-700 bg-emerald-50 font-semibold"
+                    : "border-gold text-gold-700 bg-gold/10"
+                }
+              >
+                {currentStage >= 5
+                  ? "🚀 Royal Knot Live Execution Active"
+                  : currentStage === 4
+                  ? "✍️ Contract Signing Active"
+                  : isAccepted
+                  ? "Accepted & Active"
+                  : "In Review"}
+              </Badge>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 pt-2">
+          {/* 5 Milestone Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 pt-1">
             {[
-              { title: "1. Consultation", subtitle: "14-Step Form", status: "completed" },
               {
+                stage: 1,
+                title: "1. Consultation",
+                subtitle: "14-Step Form",
+                status: "completed" as const,
+              },
+              {
+                stage: 2,
                 title: "2. Planner Review",
-                subtitle: isAccepted ? "Completed" : "Under Review",
-                status: isAccepted ? "completed" : "active",
+                subtitle: isAccepted || currentStage >= 2 ? "Completed" : "Under Review",
+                status: isAccepted || currentStage >= 2 ? ("completed" as const) : ("active" as const),
               },
               {
+                stage: 3,
                 title: "3. Bespoke Proposal",
-                subtitle: isAccepted ? "In Preparation" : "Queued",
-                status: isAccepted ? "active" : "upcoming",
+                subtitle:
+                  currentStage > 3
+                    ? "Approved"
+                    : currentStage === 3
+                    ? "Action Required"
+                    : isAccepted
+                    ? "Ready"
+                    : "Queued",
+                status:
+                  currentStage > 3
+                    ? ("completed" as const)
+                    : currentStage === 3
+                    ? ("active" as const)
+                    : ("upcoming" as const),
               },
               {
+                stage: 4,
                 title: "4. Contract & Signing",
-                subtitle: "Agreement",
-                status: "upcoming",
+                subtitle:
+                  currentStage > 4
+                    ? "Signed & Executed"
+                    : currentStage === 4
+                    ? "Signature Required"
+                    : "Agreement",
+                status:
+                  currentStage > 4
+                    ? ("completed" as const)
+                    : currentStage === 4
+                    ? ("active" as const)
+                    : ("upcoming" as const),
               },
               {
+                stage: 5,
                 title: "5. Royal Knot Execution",
-                subtitle: "Control Room",
-                status: "upcoming",
+                subtitle:
+                  currentStage >= 5
+                    ? "Live Control Room"
+                    : "Control Room",
+                status:
+                  currentStage >= 5
+                    ? ("active" as const)
+                    : ("upcoming" as const),
               },
-            ].map((step, idx) => (
-              <div
-                key={idx}
-                className={`p-4 rounded-2xl border transition-all ${
-                  step.status === "completed"
-                    ? "bg-emerald-50/60 border-emerald-300 text-emerald-900"
-                    : step.status === "active"
-                    ? "bg-gold/10 border-gold text-maroon-deep ring-2 ring-gold/20"
-                    : "bg-charcoal/5 border-border/50 text-warm-gray"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider">
-                    Stage {idx + 1}
-                  </span>
-                  {step.status === "completed" ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  ) : step.status === "active" ? (
-                    <Clock className="w-4 h-4 text-gold animate-spin" />
-                  ) : (
-                    <div className="w-3 h-3 rounded-full border border-warm-gray/40" />
+            ].map((step, idx) => {
+              const isViewing = activeViewingStage === step.stage;
+              const isCurrent = currentStage === step.stage;
+
+              return (
+                <div
+                  key={idx}
+                  onClick={() => setActiveViewingStage(step.stage)}
+                  role="button"
+                  tabIndex={0}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer text-left relative ${
+                    isViewing ? "ring-2 ring-maroon shadow-md " : ""
+                  }${
+                    step.status === "completed"
+                      ? "bg-emerald-50/70 border-emerald-300 text-emerald-950 hover:bg-emerald-100/60"
+                      : step.status === "active"
+                      ? "bg-gold/15 border-gold text-maroon-deep ring-2 ring-gold/40 shadow-xs hover:bg-gold/25"
+                      : "bg-cream/40 border-gold/15 text-warm-gray opacity-80 hover:opacity-100 hover:bg-cream/70"
+                  }`}
+                >
+                  {isViewing && (
+                    <span className="absolute -top-2.5 right-3 bg-maroon-deep text-[9px] font-bold text-soft-white px-2 py-0.5 rounded-full shadow-xs">
+                      Viewing
+                    </span>
+                  )}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                      Stage {step.stage}
+                      {isCurrent && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-gold animate-ping" />
+                      )}
+                    </span>
+                    {step.status === "completed" ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    ) : step.status === "active" ? (
+                      <Clock className="w-4 h-4 text-gold animate-spin" />
+                    ) : (
+                      <div className="w-3.5 h-3.5 rounded-full border border-warm-gray/40" />
+                    )}
+                  </div>
+                  <h4 className="font-bold text-xs">{step.title}</h4>
+                  <p className="text-[11px] opacity-80 mt-0.5 font-medium">{step.subtitle}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Interactive Stage Action & Detail Card for activeViewingStage */}
+          <div className="mt-2">
+            {/* STAGE 1 VIEW */}
+            {activeViewingStage === 1 && (
+              <div className="p-5 sm:p-6 rounded-2xl bg-cream/40 border border-gold/30 space-y-4 animate-[fadeIn_0.2s_ease]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
+                        Stage 1 Completed ✓
+                      </Badge>
+                      <span className="text-xs text-warm-gray">Initial Wedding Consultation</span>
+                    </div>
+                    <h3 className="font-heading font-bold text-lg text-maroon-deep mt-1">
+                      14-Step Bespoke Consultation Submitted
+                    </h3>
+                    <p className="text-xs text-warm-gray mt-0.5">
+                      Your comprehensive wedding intake including traditions, dates, destination, and guest preferences was recorded.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setActiveTab("overview");
+                        document.getElementById("portal-tabs-section")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="bg-white hover:bg-gold/10 text-maroon-deep border border-gold/30 text-xs rounded-xl"
+                    >
+                      View Wedding Overview
+                    </Button>
+                    {currentStage > 1 && (
+                      <Button
+                        size="sm"
+                        onClick={() => setActiveViewingStage(currentStage)}
+                        className="bg-maroon hover:bg-maroon-deep text-white font-bold text-xs rounded-xl"
+                      >
+                        Return to Active Stage {currentStage} →
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STAGE 2 VIEW */}
+            {activeViewingStage === 2 && (
+              <div className="p-5 sm:p-6 rounded-2xl bg-cream/40 border border-gold/30 space-y-4 animate-[fadeIn_0.2s_ease]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
+                        Stage 2 Completed ✓
+                      </Badge>
+                      <span className="text-xs text-warm-gray">Planner Feasibility Review</span>
+                    </div>
+                    <h3 className="font-heading font-bold text-lg text-maroon-deep mt-1">
+                      Senior Planner Review Completed & Accepted
+                    </h3>
+                    <p className="text-xs text-warm-gray mt-0.5">
+                      Gathbandhan&apos;s senior luxury wedding planner evaluated venue slots, ceremony flow, and vendor availability.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setActiveTab("ceremonies");
+                        document.getElementById("portal-tabs-section")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="bg-white hover:bg-gold/10 text-maroon-deep border border-gold/30 text-xs rounded-xl"
+                    >
+                      View Events & Schedule ({bookingData.ceremonies?.length || 2})
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => setActiveViewingStage(3)}
+                      className="bg-maroon hover:bg-maroon-deep text-white font-bold text-xs rounded-xl"
+                    >
+                      Proceed to Proposal (Stage 3) →
+                    </Button>
+                  </div>
+                </div>
+                {bookingData.reviewNotes && (
+                  <div className="bg-white p-3.5 rounded-xl border border-gold/20 text-xs text-charcoal">
+                    <span className="font-bold text-maroon-deep">Planner Notes: </span>
+                    {bookingData.reviewNotes}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* STAGE 3 VIEW (THE BESPOKE PROPOSAL - USER ASKS HOW TO MOVE AFTER THIS STAGE) */}
+            {activeViewingStage === 3 && (
+              <div className="p-5 sm:p-6 rounded-2xl bg-cream/40 border border-gold/30 space-y-4 animate-[fadeIn_0.2s_ease]">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={
+                        currentStage > 3
+                          ? "bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold"
+                          : "bg-gold/20 text-maroon-deep border-gold/40 text-[10px] font-bold"
+                      }>
+                        {currentStage > 3 ? "Stage 3 Approved ✓" : "Stage 3 Action Required"}
+                      </Badge>
+                      <span className="text-xs text-warm-gray">Bespoke Proposal Review</span>
+                    </div>
+                    <h3 className="font-heading font-bold text-xl text-maroon-deep mt-1">
+                      {currentStage > 3 ? "Bespoke Royal Proposal Approved" : "Bespoke Proposal Ready for Your Approval"}
+                    </h3>
+                    <p className="text-xs text-warm-gray mt-0.5 max-w-2xl">
+                      {currentStage > 3
+                        ? "You have successfully approved this bespoke wedding proposal. Proceed to Stage 4 to digitally sign your Royal Master Service Agreement."
+                        : "Your wedding designer has structured your bespoke multi-day ceremonies, guest capacity, and budget. Review the details below, then click the button to approve and advance to Stage 4 (Contract & Signing)."}
+                    </p>
+                  </div>
+
+                  <div className="shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    {currentStage === 3 ? (
+                      <Button
+                        onClick={() => {
+                          const next = 4;
+                          setCurrentStage(next);
+                          setActiveViewingStage(next);
+                          if (bookingData?.id) {
+                            localStorage.setItem(`gathbandhan_stage_${bookingData.id}`, String(next));
+                          }
+                          setFeedbackToast("✨ Bespoke Proposal Approved! Welcome to Stage 4: Contract & Signing.");
+                          setTimeout(() => setFeedbackToast(null), 4000);
+                        }}
+                        className="bg-maroon hover:bg-maroon-deep text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all hover:scale-[1.02] cursor-pointer"
+                      >
+                        <Sparkles className="w-4 h-4 text-gold-light" />
+                        <span>Approve Proposal & Proceed to Contract</span>
+                        <ArrowRight className="w-4 h-4 text-gold-light" />
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => setActiveViewingStage(4)}
+                        className="bg-maroon hover:bg-maroon-deep text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md flex items-center justify-center gap-2"
+                      >
+                        <span>View Stage 4: Contract & Signing</span>
+                        <ArrowRight className="w-4 h-4 text-gold-light" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Proposal Quick Digest */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+                  <div className="bg-white p-3.5 rounded-xl border border-gold/20 shadow-xs">
+                    <div className="text-[10px] uppercase font-bold text-warm-gray tracking-wider">Sacred Events</div>
+                    <div className="text-sm font-bold text-maroon-deep mt-0.5">
+                      {bookingData.ceremonies?.length || 2} Ceremonies
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActiveTab("ceremonies");
+                        document.getElementById("portal-tabs-section")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="text-[11px] text-gold-800 hover:underline font-semibold mt-1 inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      View Schedule <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-xl border border-gold/20 shadow-xs">
+                    <div className="text-[10px] uppercase font-bold text-warm-gray tracking-wider">Total Investment</div>
+                    <div className="text-sm font-bold text-maroon-deep mt-0.5">
+                      {formatCurrency(bookingData.estimatedBudgetPaise)}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActiveTab("budget");
+                        document.getElementById("portal-tabs-section")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="text-[11px] text-gold-800 hover:underline font-semibold mt-1 inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      View Budget <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-xl border border-gold/20 shadow-xs">
+                    <div className="text-[10px] uppercase font-bold text-warm-gray tracking-wider">Royal Guests</div>
+                    <div className="text-sm font-bold text-maroon-deep mt-0.5">
+                      {bookingData.guestCount} Headcount
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActiveTab("rsvp");
+                        document.getElementById("portal-tabs-section")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="text-[11px] text-gold-800 hover:underline font-semibold mt-1 inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      RSVP & Card <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-xl border border-gold/20 shadow-xs">
+                    <div className="text-[10px] uppercase font-bold text-warm-gray tracking-wider">Venue & Location</div>
+                    <div className="text-sm font-bold text-maroon-deep mt-0.5 truncate">
+                      {bookingData.destination || "Private Property"}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setActiveTab("overview");
+                        document.getElementById("portal-tabs-section")?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="text-[11px] text-gold-800 hover:underline font-semibold mt-1 inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      Overview <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* STAGE 4 VIEW (CONTRACT & SIGNING) */}
+            {activeViewingStage === 4 && (
+              <div className="p-5 sm:p-6 rounded-2xl bg-cream/40 border border-gold/30 space-y-4 animate-[fadeIn_0.2s_ease]">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Badge className={
+                        currentStage > 4
+                          ? "bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold"
+                          : "bg-amber-100 text-amber-800 border-amber-300 text-[10px] font-bold"
+                      }>
+                        {currentStage > 4 ? "Stage 4 Signed ✓" : "Stage 4 Action Required"}
+                      </Badge>
+                      <span className="text-xs text-warm-gray">Master Wedding Service Agreement</span>
+                    </div>
+                    <h3 className="font-heading font-bold text-xl text-maroon-deep mt-1">
+                      Royal Service Contract & Digital Sign-off
+                    </h3>
+                    <p className="text-xs text-warm-gray mt-0.5 max-w-2xl">
+                      Review the master service contract for {bookingData.coupleName}&apos;s celebration and execute your electronic signature to officially activate live event execution.
+                    </p>
+                  </div>
+
+                  {currentStage > 4 && (
+                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs px-3 py-1 font-bold">
+                      ✓ Agreement Signed & Executed
+                    </Badge>
                   )}
                 </div>
-                <h4 className="font-bold text-xs">{step.title}</h4>
-                <p className="text-[11px] opacity-75 mt-0.5">{step.subtitle}</p>
+
+                {/* Agreement Summary Box */}
+                <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gold/25 space-y-3 shadow-xs">
+                  <div className="flex items-center justify-between border-b border-gold/15 pb-3">
+                    <div className="flex items-center gap-2">
+                      <FileCheck2 className="w-4 h-4 text-gold-700" />
+                      <span className="font-heading font-bold text-sm text-maroon-deep">
+                        Gathbandhan Royal Wedding Master Service Agreement (v2.4)
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-warm-gray">
+                      Ref: GATH-{bookingData.id.slice(0, 8).toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className="text-xs text-charcoal/90 space-y-1.5 leading-relaxed bg-cream/30 p-3.5 rounded-xl border border-gold/15">
+                    <p className="font-bold text-maroon-deep">Key Production Commitments:</p>
+                    <ul className="list-disc list-inside space-y-1 text-warm-gray">
+                      <li><strong>Guaranteed Date Hold:</strong> Full exclusive hold on selected venue and wedding production dates.</li>
+                      <li><strong>Escrow Protection:</strong> Vendor disbursements are safeguarded in milestone-based escrow accounts.</li>
+                      <li><strong>Live Production Control:</strong> 24/7 bridal concierge, real-time gate security QR scanner, and emergency dispatch.</li>
+                      <li><strong>Payment Terms:</strong> Milestone-based settlements via virtual UPI or bank wire.</li>
+                    </ul>
+                  </div>
+
+                  {/* Signature Form or Signed Confirmation */}
+                  {signedRecord || currentStage > 4 ? (
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          Digitally Signed & Validated
+                        </div>
+                        <p className="text-[11px] text-emerald-700 mt-0.5">
+                          Signed by <strong>{signedRecord?.signerName || signerName || bookingData.contactName}</strong> on {signedRecord?.signedAt || new Date().toLocaleDateString("en-IN")}. Legal electronic timestamp attached.
+                        </p>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          setActiveViewingStage(5);
+                          setCurrentStage(5);
+                        }}
+                        size="sm"
+                        className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl cursor-pointer"
+                      >
+                        Proceed to Stage 5: Live Execution →
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 pt-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-bold text-maroon-deep mb-1">
+                            Authorized Signer Full Name *
+                          </label>
+                          <input
+                            type="text"
+                            value={signerName}
+                            onChange={(e) => setSignerName(e.target.value)}
+                            placeholder="e.g. Kira Sharma"
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-gold/30 bg-cream/20 focus:outline-none focus:ring-2 focus:ring-gold text-charcoal font-medium"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-maroon-deep mb-1">
+                            Signing Capacity
+                          </label>
+                          <input
+                            type="text"
+                            disabled
+                            value={`Client / Royal Couple (${bookingData.coupleName})`}
+                            className="w-full px-3 py-2 text-xs rounded-xl border border-gold/20 bg-cream/40 text-warm-gray"
+                          />
+                        </div>
+                      </div>
+
+                      <label className="flex items-start gap-2.5 cursor-pointer pt-1">
+                        <input
+                          type="checkbox"
+                          checked={agreedToTerms}
+                          onChange={(e) => setAgreedToTerms(e.target.checked)}
+                          className="mt-0.5 rounded border-gold/40 text-maroon focus:ring-maroon h-4 w-4"
+                        />
+                        <span className="text-xs text-warm-gray leading-tight">
+                          I confirm that I have reviewed the bespoke wedding proposal and agreement terms. I understand that executing this contract transitions our wedding into live production execution.
+                        </span>
+                      </label>
+
+                      <div className="flex items-center justify-between pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setActiveViewingStage(3)}
+                          className="border-gold/30 text-warm-gray hover:text-maroon-deep text-xs rounded-xl cursor-pointer"
+                        >
+                          ← Back to Proposal
+                        </Button>
+
+                        <Button
+                          onClick={async () => {
+                            if (!signerName.trim()) {
+                              setFeedbackToast("Please provide your full legal name to sign.");
+                              setTimeout(() => setFeedbackToast(null), 3000);
+                              return;
+                            }
+                            if (!agreedToTerms) {
+                              setFeedbackToast("Please check the agreement box before submitting.");
+                              setTimeout(() => setFeedbackToast(null), 3000);
+                              return;
+                            }
+                            setIsSigning(true);
+                            try {
+                              const record = {
+                                signerName: signerName.trim(),
+                                signedAt: new Date().toLocaleDateString("en-IN", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }),
+                                agreementId: `AGR-${bookingData.id.slice(0, 8).toUpperCase()}`,
+                              };
+                              setSignedRecord(record);
+                              if (bookingData?.id) {
+                                localStorage.setItem(`gathbandhan_agreement_sig_${bookingData.id}`, JSON.stringify(record));
+                                localStorage.setItem(`gathbandhan_stage_${bookingData.id}`, "5");
+                              }
+                              setCurrentStage(5);
+                              setActiveViewingStage(5);
+                              setFeedbackToast("🎉 Agreement signed successfully! Live Execution is now ACTIVE.");
+                              setTimeout(() => setFeedbackToast(null), 5000);
+                            } finally {
+                              setIsSigning(false);
+                            }
+                          }}
+                          disabled={isSigning || !signerName.trim() || !agreedToTerms}
+                          className="bg-maroon hover:bg-maroon-deep text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                        >
+                          <ShieldCheck className="w-4 h-4 text-gold-light" />
+                          <span>{isSigning ? "Signing Contract..." : "✍️ Digitally Sign Agreement & Advance to Stage 5"}</span>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            ))}
+            )}
+
+            {/* STAGE 5 VIEW (ROYAL KNOT EXECUTION) */}
+            {activeViewingStage === 5 && (
+              <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-cream/60 via-gold/10 to-cream/40 border border-gold/40 space-y-4 shadow-sm animate-[fadeIn_0.2s_ease]">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-bold">
+                        Stage 5 Active • Live Production
+                      </Badge>
+                      <span className="text-xs text-warm-gray font-medium">Royal Knot Execution Control</span>
+                    </div>
+                    <h3 className="font-heading font-bold text-xl text-maroon-deep mt-1 flex items-center gap-2">
+                      <span>🎉 Royal Knot Live Execution Active!</span>
+                    </h3>
+                    <p className="text-xs text-warm-gray mt-0.5 max-w-2xl">
+                      Congratulations! Your wedding is officially in Live Production. All operations including gate passes, incident reporting, vendor dispatch, and bridal concierge are now synchronized in the Control Room.
+                    </p>
+                  </div>
+
+                  <div className="shrink-0 flex items-center gap-2">
+                    <Link
+                      href="/control-room"
+                      className="inline-flex items-center gap-2 bg-maroon hover:bg-maroon-deep text-white font-bold text-xs px-5 py-3 rounded-xl shadow-lg transition-all hover:scale-[1.02]"
+                    >
+                      <Sparkles className="w-4 h-4 text-gold" />
+                      <span>Open Live Execution Control Room</span>
+                      <ArrowRight className="w-4 h-4 text-gold-light" />
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                  <div className="bg-white p-4 rounded-xl border border-gold/25 shadow-xs">
+                    <div className="flex items-center gap-2 text-xs font-bold text-maroon-deep">
+                      <QrCode className="w-4 h-4 text-gold-700" />
+                      Gate Admission & RSVP Pass
+                    </div>
+                    <p className="text-[11px] text-warm-gray mt-1 leading-relaxed">
+                      Guests receive digital passes with real-time capacity QR codes. Simulated gate check-in available.
+                    </p>
+                    <div className="mt-3 flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setActiveTab("rsvp");
+                          document.getElementById("portal-tabs-section")?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        className="text-xs text-gold-800 hover:underline font-bold inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        View Royal RSVP Card <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-xl border border-gold/25 shadow-xs">
+                    <div className="flex items-center gap-2 text-xs font-bold text-maroon-deep">
+                      <CreditCard className="w-4 h-4 text-gold-700" />
+                      Bills & Virtual UPI Payments
+                    </div>
+                    <p className="text-[11px] text-warm-gray mt-1 leading-relaxed">
+                      Settle vendor advances and balance invoices via simulated UPI QR codes.
+                    </p>
+                    <div className="mt-3 flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setActiveTab("bills-upi");
+                          document.getElementById("portal-tabs-section")?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        className="text-xs text-gold-800 hover:underline font-bold inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        Open Bills & Payments <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-xl border border-gold/25 shadow-xs">
+                    <div className="flex items-center gap-2 text-xs font-bold text-maroon-deep">
+                      <Clock className="w-4 h-4 text-gold-700" />
+                      Ceremony Milestones
+                    </div>
+                    <p className="text-[11px] text-warm-gray mt-1 leading-relaxed">
+                      {bookingData.ceremonies?.length || 2} sacred events programmed across {bookingData.durationDays} day(s) duration.
+                    </p>
+                    <div className="mt-3 flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setActiveTab("ceremonies");
+                          document.getElementById("portal-tabs-section")?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        className="text-xs text-gold-800 hover:underline font-bold inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        View Full Itinerary <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Helper Nav strip */}
+          <div className="flex flex-wrap items-center justify-between text-[11px] text-warm-gray pt-2 border-t border-gold/15">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-gold" />
+              <span>Click any milestone card above to view stage actions, proposal approvals, and agreement signing.</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-medium text-warm-gray">Stage Switcher:</span>
+              {[1, 2, 3, 4, 5].map((s) => (
+                <button
+                  key={s}
+                  onClick={() => {
+                    setActiveViewingStage(s);
+                  }}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                    activeViewingStage === s
+                      ? "bg-maroon text-soft-white"
+                      : "bg-cream/70 text-maroon-deep hover:bg-gold/20"
+                  }`}
+                >
+                  Stage {s}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
 
         {/* Tabbed Interactive Experience */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-white p-1 rounded-2xl border border-gold/20 shadow-xs flex flex-wrap h-auto gap-1">
-            <TabsTrigger
-              value="overview"
-              className="data-[state=active]:bg-maroon data-[state=active]:text-soft-white rounded-xl text-xs py-2 px-3 font-semibold"
-            >
-              Wedding Overview
-            </TabsTrigger>
-            <TabsTrigger
-              value="ceremonies"
-              className="data-[state=active]:bg-maroon data-[state=active]:text-soft-white rounded-xl text-xs py-2 px-3 font-semibold"
-            >
-              Events & Schedule ({bookingData.ceremonies?.length || 0})
-            </TabsTrigger>
-            <TabsTrigger
-              value="budget"
-              className="data-[state=active]:bg-maroon data-[state=active]:text-soft-white rounded-xl text-xs py-2 px-3 font-semibold"
-            >
-              Budget & Categories
-            </TabsTrigger>
-            <TabsTrigger
-              value="vendors"
-              className="data-[state=active]:bg-maroon data-[state=active]:text-soft-white rounded-xl text-xs py-2 px-3 font-semibold"
-            >
-              Approved Vendors
-            </TabsTrigger>
-            <TabsTrigger
-              value="messages"
-              className="data-[state=active]:bg-maroon data-[state=active]:text-soft-white rounded-xl text-xs py-2 px-3 font-semibold flex items-center gap-1.5"
-            >
-              <MessageSquare className="w-3.5 h-3.5 text-gold" />
-              Designer Chat ({bookingData.messages?.length || 0})
-            </TabsTrigger>
-            <TabsTrigger
-              value="bills-upi"
-              className="data-[state=active]:bg-maroon data-[state=active]:text-soft-white rounded-xl text-xs py-2 px-3 font-semibold flex items-center gap-1.5"
-            >
-              <CreditCard className="w-3.5 h-3.5 text-gold" />
-              Bills & Virtual UPI
-            </TabsTrigger>
-          </TabsList>
+        <div id="portal-tabs-section">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="bg-white p-1 rounded-2xl border border-gold/20 shadow-xs flex flex-wrap h-auto gap-1">
+              <TabsTrigger
+                value="rsvp"
+                className="data-[state=active]:bg-maroon data-[state=active]:text-soft-white rounded-xl text-xs py-2 px-3 font-semibold flex items-center gap-1.5"
+              >
+                <Crown className="w-3.5 h-3.5 text-gold" />
+                Royal Invitation & RSVP
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-gold/20 text-gold-800 text-[10px] font-bold">New</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="overview"
+                className="data-[state=active]:bg-maroon data-[state=active]:text-soft-white rounded-xl text-xs py-2 px-3 font-semibold"
+              >
+                Wedding Overview
+              </TabsTrigger>
+              <TabsTrigger
+                value="ceremonies"
+                className="data-[state=active]:bg-maroon data-[state=active]:text-soft-white rounded-xl text-xs py-2 px-3 font-semibold"
+              >
+                Events & Schedule ({bookingData.ceremonies?.length || 0})
+              </TabsTrigger>
+              <TabsTrigger
+                value="budget"
+                className="data-[state=active]:bg-maroon data-[state=active]:text-soft-white rounded-xl text-xs py-2 px-3 font-semibold"
+              >
+                Budget & Categories
+              </TabsTrigger>
+              <TabsTrigger
+                value="vendors"
+                className="data-[state=active]:bg-maroon data-[state=active]:text-soft-white rounded-xl text-xs py-2 px-3 font-semibold"
+              >
+                Approved Vendors
+              </TabsTrigger>
+              <TabsTrigger
+                value="messages"
+                className="data-[state=active]:bg-maroon data-[state=active]:text-soft-white rounded-xl text-xs py-2 px-3 font-semibold flex items-center gap-1.5"
+              >
+                <MessageSquare className="w-3.5 h-3.5 text-gold" />
+                Designer Chat ({bookingData.messages?.length || 0})
+              </TabsTrigger>
+              <TabsTrigger
+                value="bills-upi"
+                className="data-[state=active]:bg-maroon data-[state=active]:text-soft-white rounded-xl text-xs py-2 px-3 font-semibold flex items-center gap-1.5"
+              >
+                <CreditCard className="w-3.5 h-3.5 text-gold" />
+                Bills & Virtual UPI
+              </TabsTrigger>
+            </TabsList>
+
+            {/* TAB 0: Royal Invitation & RSVP Card */}
+            <TabsContent value="rsvp" className="space-y-6">
+              <RoyalRsvpInvitationCard
+                coupleName={bookingData.coupleName}
+                bookingRequestId={bookingData.id}
+                weddingId={bookingData.weddingId}
+                weddingType={bookingData.weddingType}
+                destinationCity={bookingData.destinationCity || "Udaipur"}
+                venueType={bookingData.venueType || "Heritage Palace"}
+                preferredDate={bookingData.preferredDate}
+                durationDays={bookingData.durationDays}
+                totalGuestsEstimated={bookingData.guestCount}
+                theme={bookingData.theme}
+                ceremonies={bookingData.ceremonies}
+              />
+            </TabsContent>
 
           {/* TAB 1: Wedding Overview */}
           <TabsContent value="overview" className="space-y-6">
@@ -822,11 +1519,12 @@ function ClientPortalContent() {
             <ClientBillsUpiView weddingId={bookingData.weddingId || undefined} />
           </TabsContent>
         </Tabs>
+        </div>
       </main>
 
       {/* Footer */}
       <footer className="border-t border-gold/15 py-6 bg-white/60 text-center text-xs text-warm-gray">
-        <p>© 2026 Gathbandhan — The Operating System & Client Platform for Luxury Weddings.</p>
+        <p>© 2026 Gathbandhan — Where Every Celebration Comes Together.</p>
       </footer>
     </div>
   );

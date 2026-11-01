@@ -170,7 +170,7 @@ export default async function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-gold/15 py-6 text-center text-xs text-warm-gray">
-        <p>┬⌐ 2026 Gathbandhan ΓÇö The Operating System & Client Platform for Luxury Weddings.</p>
+        <p>© 2026 Gathbandhan — Where Every Celebration Comes Together.</p>
       </footer>
     </main>
   );

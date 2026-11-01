@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Gathbandhan",
-  description: "Intelligent wedding operations platform for luxury weddings",
+  description: "Gathbandhan — Where Every Celebration Comes Together",
 };
 
 export default function RootLayout({

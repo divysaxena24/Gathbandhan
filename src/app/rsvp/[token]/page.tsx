@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, use } from "react";
+import QRCode from "qrcode";
 import {
   Crown,
   Calendar,
@@ -9,6 +10,8 @@ import {
   Clock,
   AlertCircle,
   ShieldCheck,
+  QrCode,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PublicRsvpDetails, MealPreference, RsvpStatus } from "@/modules/guests/types";
@@ -38,6 +41,7 @@ export default function PublicRsvpPage({
   const [accessibilityNeeds, setAccessibilityNeeds] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [generatedQr, setGeneratedQr] = useState<{ qrDataUrl: string; maxAttendees: number } | null>(null);
 
   useEffect(() => {
     async function loadRsvp() {
@@ -144,6 +148,31 @@ export default function PublicRsvpPage({
         throw new Error(json.error?.message || "Failed to submit RSVP");
       }
 
+      // Calculate max attendees admitted on this pass
+      let maxAttendees = 1;
+      Object.values(eventResponses).forEach((r) => {
+        if (r.status === "ATTENDING") {
+          const total = 1 + (r.plusOnes || 0);
+          if (total > maxAttendees) maxAttendees = total;
+        }
+      });
+
+      try {
+        const verifyUrl = typeof window !== "undefined"
+          ? `${window.location.origin}/check-in/pass?token=RSVP-${token}&couple=${encodeURIComponent(data?.wedding.title || "The Royal Wedding")}&guest=${encodeURIComponent(`${data?.guest.firstName} ${data?.guest.lastName}`)}&pax=${maxAttendees}&venue=${encodeURIComponent(`${data?.wedding.venue}, ${data?.wedding.city}`)}`
+          : `https://gathbandhan.com/check-in/pass?pax=${maxAttendees}`;
+
+        const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+          width: 440,
+          margin: 2,
+          color: { dark: "#4A0E17", light: "#FFFFFF" },
+        });
+
+        setGeneratedQr({ qrDataUrl, maxAttendees });
+      } catch {
+        // Fallback
+      }
+
       setIsSubmitted(true);
     } catch (err: unknown) {
       setErrorNotice((err as Error).message || "Submission failed");
@@ -185,27 +214,68 @@ export default function PublicRsvpPage({
   if (!data) return null;
 
   if (isSubmitted) {
+    const attendees = generatedQr?.maxAttendees || 1;
     return (
-      <div className="min-h-screen bg-sand-50/40 flex items-center justify-center p-4">
-        <div className="max-w-lg w-full bg-white p-8 rounded-2xl border border-sand-200 shadow-xl text-center space-y-5 animate-fade-in">
-          <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center mx-auto text-emerald-600 shadow-sm">
-            <CheckCircle2 className="w-8 h-8" />
-          </div>
-
-          <div>
-            <span className="text-[10px] uppercase font-serif tracking-widest text-gold-700 font-bold">
-              Response Confirmed
-            </span>
-            <h2 className="font-serif text-2xl text-charcoal-900 mt-1">
-              Shubh Aagman!
+      <div className="min-h-screen bg-sand-50/40 py-10 px-4 flex items-center justify-center">
+        <div className="max-w-xl w-full bg-white p-6 sm:p-8 rounded-3xl border-2 border-gold/40 shadow-xl text-center space-y-6 animate-fade-in">
+          {/* Header */}
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>OFFICIAL DIGITAL ROYAL GATE PASS</span>
+            </div>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-charcoal-900 mt-2">
+              Valid for {attendees} {attendees === 1 ? "Person" : "People"} Entry
             </h2>
-            <p className="text-xs text-charcoal-600 mt-2 leading-relaxed">
-              Thank you, <strong className="text-charcoal-900">{data.guest.firstName}</strong>. Your attendance and dietary selections for{" "}
-              <strong>{data.wedding.title}</strong> have been recorded in the royal registry.
+            <p className="text-xs text-charcoal-600">
+              Welcome, <strong className="text-charcoal-900">{data.guest.firstName} {data.guest.lastName}</strong>! Your RSVP for{" "}
+              <strong>{data.wedding.title}</strong> is confirmed.
             </p>
           </div>
 
-          <div className="bg-sand-50/70 p-4 rounded-xl border border-sand-200 text-left space-y-2 text-xs">
+          {/* QR Code Pass */}
+          {generatedQr && (
+            <div className="flex flex-col items-center justify-center gap-3">
+              <div className="p-4 rounded-2xl bg-white border-2 border-gold/40 shadow-md">
+                <img
+                  src={generatedQr.qrDataUrl}
+                  alt={`Royal Gate Pass for ${attendees} guests`}
+                  className="w-56 h-56 object-contain rounded-lg"
+                />
+              </div>
+              <span className="text-[11px] font-mono font-bold text-maroon bg-gold/15 px-3 py-1 rounded-full border border-gold/30">
+                PASS: GB-RSVP-{token.substring(0, 10).toUpperCase()}
+              </span>
+              <p className="text-[11px] text-charcoal-500 max-w-sm">
+                Present this QR code at the palace gate. Authorized to admit <strong>{attendees} people</strong>.
+              </p>
+            </div>
+          )}
+
+          {/* Ceremony Breakdown */}
+          <div className="bg-sand-50/80 p-4 rounded-2xl border border-sand-200 text-left space-y-2 text-xs">
+            <span className="font-bold text-[11px] uppercase tracking-wider text-gold-800 block">
+              Ceremonies & Headcount Admitted
+            </span>
+            <div className="space-y-1.5">
+              {data.events.map((ev) => {
+                const resp = eventResponses[ev.id];
+                const isAttending = resp?.status === "ATTENDING";
+                const count = isAttending ? 1 + (resp?.plusOnes || 0) : 0;
+                return (
+                  <div key={ev.id} className="flex justify-between items-center py-1 border-b border-sand-200/60 last:border-0">
+                    <span className="text-charcoal-700">{ev.name}</span>
+                    <span className={`font-bold ${isAttending ? "text-emerald-700" : "text-charcoal-400"}`}>
+                      {isAttending ? `${count} ${count === 1 ? "Guest" : "Guests"} Admitted` : "Declined"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Venue & Date */}
+          <div className="bg-sand-50/70 p-3 rounded-xl border border-sand-200 text-left space-y-1 text-xs">
             <div className="flex items-center gap-2 text-charcoal-700">
               <MapPin className="w-3.5 h-3.5 text-gold-600 flex-shrink-0" />
               <span>{data.wedding.venue}, {data.wedding.city}</span>
@@ -224,9 +294,12 @@ export default function PublicRsvpPage({
             )}
           </div>
 
-          <p className="text-[11px] text-charcoal-500 italic">
-            You can revisit this link anytime before the celebrations to adjust your schedule or meal preferences.
-          </p>
+          <div className="pt-2 text-center">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-[11px] font-semibold text-emerald-800">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              Pass Finalized & Confirmed • Non-transferable Gate Entry
+            </span>
+          </div>
         </div>
       </div>
     );

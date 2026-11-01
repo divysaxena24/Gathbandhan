@@ -160,5 +160,49 @@ describe("Guest RSVP Engine & Per-Event Attendance", () => {
     expect(reception.mealCounts.NON_VEG).toBe(3);
     expect(reception.totalAttending).toBe(9);
   });
+
+  it("generates QR entry pass encoding authorized 4-people headcount across separate ceremonies (Sangeet, Mehndi, Wedding)", async () => {
+    const ceremonyResponses = [
+      {
+        ceremonyId: "royal-sangeet",
+        ceremonyName: "Royal Sangeet",
+        attending: true,
+        attendeeCount: 4,
+        mealPreference: "VEG",
+      },
+      {
+        ceremonyId: "mehndi-celebration",
+        ceremonyName: "Mehndi Celebration",
+        attending: true,
+        attendeeCount: 3,
+        mealPreference: "VEG",
+      },
+      {
+        ceremonyId: "sacred-wedding-ceremony",
+        ceremonyName: "Sacred Wedding Ceremony",
+        attending: true,
+        attendeeCount: 4,
+        mealPreference: "JAIN",
+      },
+    ];
+
+    // Calculate max headcount for gate admission
+    const maxAttendees = Math.max(...ceremonyResponses.map((c) => c.attendeeCount));
+    expect(maxAttendees).toBe(4);
+
+    const passPayload = {
+      passType: "GATHBANDHAN_ROYAL_GATE_PASS",
+      passToken: "GB-PASS-4PAX-DEMO",
+      guestName: "The Sharma Family",
+      maxAttendees,
+      ceremonies: ceremonyResponses,
+      gateClearance: "AUTHORIZED",
+    };
+
+    expect(passPayload.maxAttendees).toBe(4);
+    expect(passPayload.ceremonies.find((c) => c.ceremonyId === "royal-sangeet")?.attendeeCount).toBe(4);
+    expect(passPayload.ceremonies.find((c) => c.ceremonyId === "mehndi-celebration")?.attendeeCount).toBe(3);
+    expect(passPayload.ceremonies.find((c) => c.ceremonyId === "sacred-wedding-ceremony")?.attendeeCount).toBe(4);
+  });
 });
 

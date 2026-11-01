@@ -1,6 +1,6 @@
 # Gathbandhan
 
-### The Operating System for Luxury Wedding Planning
+### Where Every Celebration Comes Together
 
 **Plan beautifully. Execute flawlessly. Manage every detail.**
 

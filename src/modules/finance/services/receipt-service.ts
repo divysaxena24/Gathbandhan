@@ -344,7 +344,7 @@ export async function generateVirtualReceiptPdf(
 
   // Bottom footer
   page.drawText(
-    "Gathbandhan Wedding Operating System — Confidential & Simulated Receipt",
+    "Gathbandhan — Where Every Celebration Comes Together (Confidential & Simulated Receipt)",
     {
       x: 36,
       y: 28,

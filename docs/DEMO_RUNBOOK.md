@@ -1,6 +1,6 @@
 # Gathbandhan — End-to-End Evaluation & Demo Runbook
 
-Welcome to **Gathbandhan**, the luxury wedding planning and management operating system built for high-end wedding planning agencies in Rajasthan (Jaipur, Udaipur, Jodhpur).
+Welcome to **Gathbandhan** — Where Every Celebration Comes Together, built for high-end wedding planning agencies in Rajasthan (Jaipur, Udaipur, Jodhpur).
 
 This runbook provides a complete step-by-step walkthrough to evaluate, demo, and verify every phase of the platform.
 

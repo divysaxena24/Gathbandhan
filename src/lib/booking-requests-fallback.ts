@@ -366,3 +366,59 @@ export function updateFallbackBookingRequestStatus(
 
   return request;
 }
+
+// ── Card RSVP & Gate Pass Responses ─────────────────────────────
+export interface CardRsvpResponse {
+  id: string;
+  bookingRequestId: string;
+  guestName: string;
+  guestPhone: string;
+  guestEmail?: string | null;
+  maxAttendees: number;
+  ceremonies: Array<{
+    ceremonyId: string;
+    ceremonyName: string;
+    attending: boolean;
+    attendeeCount: number;
+    mealPreference: string;
+    notes?: string;
+  }>;
+  allergies?: string | null;
+  accessibilityNeeds?: string | null;
+  passToken: string;
+  qrPayload?: string;
+  qrDataUrl?: string;
+  createdAt: string;
+}
+
+const globalForRsvps = globalThis as unknown as {
+  __gathbandhanFallbackCardRsvps?: Map<string, CardRsvpResponse[]>;
+};
+
+function getRsvpStore(): Map<string, CardRsvpResponse[]> {
+  if (!globalForRsvps.__gathbandhanFallbackCardRsvps) {
+    globalForRsvps.__gathbandhanFallbackCardRsvps = new Map<string, CardRsvpResponse[]>();
+  }
+  return globalForRsvps.__gathbandhanFallbackCardRsvps;
+}
+
+export function saveCardRsvpResponse(data: Omit<CardRsvpResponse, "id" | "createdAt">): CardRsvpResponse {
+  const store = getRsvpStore();
+  const list = store.get(data.bookingRequestId) || [];
+  
+  const record: CardRsvpResponse = {
+    ...data,
+    id: `rsvp_${crypto.randomUUID()}`,
+    createdAt: new Date().toISOString(),
+  };
+
+  list.unshift(record);
+  store.set(data.bookingRequestId, list);
+  return record;
+}
+
+export function getCardRsvpResponses(bookingRequestId: string): CardRsvpResponse[] {
+  const store = getRsvpStore();
+  return store.get(bookingRequestId) || [];
+}
+

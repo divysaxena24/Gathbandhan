@@ -113,7 +113,7 @@ export default function ReviewSummaryStep() {
           localStorage.setItem("activeBookingRequestId", data.bookingRequestId);
         }
         setTimeout(() => {
-          router.push(`/client/portal?requestId=${data.bookingRequestId}`);
+          router.push(`/client/portal?requestId=${data.bookingRequestId}&tab=rsvp`);
         }, 1200);
       } else {
         setSubmitError(data.error || "Failed to submit consultation. Please try again.");
@@ -354,17 +354,17 @@ export default function ReviewSummaryStep() {
               <CheckCircle className="w-8 h-8 text-emerald-600" />
             </div>
             <h4 className="font-heading font-bold text-2xl text-maroon-deep">
-              Thank You! Your Wedding Consultation Is Saved & Awaiting Review.
+              Thank You! Your Wedding Plan & Royal RSVP Card Are Ready.
             </h4>
             <p className="text-sm text-warm-gray max-w-md mx-auto">
-              Our wedding designer is reviewing your 14-step plan. We are redirecting you to your dedicated Client Wedding Portal...
+              Our wedding designer is reviewing your plan. Redirecting you to your dedicated Client Wedding Portal and Royal RSVP Invitation Card...
             </p>
             <div className="pt-2">
               <Link
-                href={createdRequestId ? `/client/portal?requestId=${createdRequestId}` : "/client/portal"}
+                href={createdRequestId ? `/client/portal?requestId=${createdRequestId}&tab=rsvp` : "/client/portal?tab=rsvp"}
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-maroon hover:bg-maroon-deep text-soft-white font-bold text-sm shadow-md transition-all"
               >
-                <span>Enter Your Wedding Portal Now</span>
+                <span>View Royal RSVP & Client Portal</span>
                 <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
@@ -404,10 +404,10 @@ export default function ReviewSummaryStep() {
           </button>
         ) : (
           <Link
-            href={createdRequestId ? `/client/portal?requestId=${createdRequestId}` : "/client/portal"}
+            href={createdRequestId ? `/client/portal?requestId=${createdRequestId}&tab=rsvp` : "/client/portal?tab=rsvp"}
             className="px-8 py-3 rounded-full bg-emerald-700 text-soft-white text-sm font-bold hover:bg-emerald-800 transition-all shadow-md flex items-center gap-2"
           >
-            <span>Enter Your Wedding Portal</span>
+            <span>Enter Your Wedding Portal & RSVP</span>
             <ChevronRight className="w-4 h-4" />
           </Link>
         )}

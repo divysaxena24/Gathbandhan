@@ -213,13 +213,13 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
   return (
     <div className="space-y-6">
       {/* Simulation Disclaimer Banner */}
-      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
-        <ShieldAlert className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+      <div className="bg-amber-50/90 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-xs">
+        <ShieldAlert className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
         <div>
-          <div className="text-xs font-bold uppercase tracking-wider text-amber-400">
-            SIMULATED PAYMENT — NO REAL MONEY TRANSFERRED
+          <div className="text-xs font-bold uppercase tracking-wider text-amber-900">
+            Simulated Payment Sandbox — No Real Money Transferred
           </div>
-          <p className="text-xs text-amber-200/80 mt-1 leading-relaxed">
+          <p className="text-xs text-amber-800/90 mt-1 leading-relaxed">
             All UPI QR codes and checkout sessions below are virtual sandbox simulations for test and demonstration purposes. No real banking accounts, UPI handles, or financial networks will be charged.
           </p>
         </div>
@@ -228,13 +228,10 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
       {/* Header & Controls */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-stone-100 flex items-center gap-2">
+          <h2 className="text-xl sm:text-2xl font-heading font-bold text-maroon-deep flex items-center gap-2">
             Bills & Virtual UPI Payments
-            <Badge variant="outline" className="border-amber-500/40 text-amber-400 text-[10px]">
-              Sandbox
-            </Badge>
           </h2>
-          <p className="text-xs text-stone-400">
+          <p className="text-xs text-warm-gray mt-0.5">
             Review event billing invoices, choose advance or full payment, and pay via simulated UPI.
           </p>
         </div>
@@ -243,7 +240,7 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
           size="sm"
           onClick={loadBills}
           disabled={refreshing}
-          className="border-stone-800 text-stone-300 hover:bg-stone-900 text-xs h-8"
+          className="border-gold/30 text-maroon-deep hover:bg-gold/10 hover:text-maroon-deep text-xs h-8 rounded-xl font-medium"
         >
           <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${refreshing ? "animate-spin" : ""}`} />
           Refresh
@@ -251,23 +248,25 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
       </div>
 
       {actionError && (
-        <div className="p-3 bg-rose-500/15 border border-rose-500/30 text-rose-300 rounded-lg text-xs flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 shrink-0" />
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
           <span>{actionError}</span>
         </div>
       )}
 
       {/* Bills List */}
       {loading ? (
-        <div className="py-16 text-center text-stone-400 space-y-2">
-          <div className="animate-spin h-6 w-6 border-2 border-amber-500 border-t-transparent rounded-full mx-auto" />
+        <div className="py-16 text-center text-warm-gray space-y-2">
+          <div className="animate-spin h-6 w-6 border-2 border-gold border-t-transparent rounded-full mx-auto" />
           <p className="text-xs">Loading billing schedules...</p>
         </div>
       ) : bills.length === 0 ? (
-        <div className="border border-stone-800 rounded-xl p-12 text-center bg-stone-950/40">
-          <FileText className="h-10 w-10 text-stone-600 mx-auto mb-3" />
-          <h3 className="text-sm font-semibold text-stone-300">No Bills Published Yet</h3>
-          <p className="text-xs text-stone-500 max-w-sm mx-auto mt-1">
+        <div className="border border-gold/25 rounded-3xl p-12 text-center bg-white shadow-xs">
+          <div className="w-12 h-12 rounded-full bg-gold/15 flex items-center justify-center mx-auto mb-3 text-gold-700">
+            <FileText className="h-6 w-6 text-gold-700" />
+          </div>
+          <h3 className="text-base font-bold font-heading text-maroon-deep">No Bills Published Yet</h3>
+          <p className="text-xs text-warm-gray max-w-sm mx-auto mt-1 leading-relaxed">
             Your wedding planner has not yet published any billing invoices to your portal. Once published, you can accept and make payments here.
           </p>
         </div>
@@ -293,43 +292,43 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
             return (
               <div
                 key={bill.id}
-                className="bg-stone-950/80 border border-stone-800/90 rounded-2xl overflow-hidden shadow-lg transition-all"
+                className="bg-white border border-gold/25 rounded-3xl overflow-hidden shadow-xs transition-all"
               >
                 {/* Bill Card Header */}
-                <div className="p-5 border-b border-stone-800/80 bg-stone-900/40 flex flex-wrap items-center justify-between gap-4">
+                <div className="p-5 border-b border-gold/15 bg-cream/40 flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2.5">
-                      <span className="font-mono text-xs text-amber-400 font-semibold">
+                      <span className="font-mono text-xs text-gold-800 font-bold bg-gold/15 px-2 py-0.5 rounded-md">
                         {bill.billNumber}
                       </span>
                       {isAwaitingAcceptance && (
-                        <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/30 text-[10px]">
+                        <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] font-semibold">
                           Awaiting Your Acceptance
                         </Badge>
                       )}
                       {isDue && (
-                        <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/30 text-[10px]">
+                        <Badge className="bg-blue-100 text-blue-800 border-blue-300 text-[10px] font-semibold">
                           Accepted — Payment Due
                         </Badge>
                       )}
                       {isPartiallyPaid && (
-                        <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/30 text-[10px]">
+                        <Badge className="bg-purple-100 text-purple-800 border-purple-300 text-[10px] font-semibold">
                           Partially Paid
                         </Badge>
                       )}
                       {isPaid && (
-                        <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 text-[10px]">
+                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px] font-semibold">
                           Paid in Full
                         </Badge>
                       )}
                       {isDeclined && (
-                        <Badge className="bg-rose-500/15 text-rose-300 border-rose-500/30 text-[10px]">
+                        <Badge className="bg-rose-100 text-rose-800 border-rose-300 text-[10px] font-semibold">
                           Declined
                         </Badge>
                       )}
                     </div>
-                    <h3 className="text-base font-bold text-stone-100 mt-1">{bill.title}</h3>
-                    <div className="text-xs text-stone-400 flex items-center gap-4 mt-0.5">
+                    <h3 className="text-lg font-heading font-bold text-maroon-deep mt-1">{bill.title}</h3>
+                    <div className="text-xs text-warm-gray flex items-center gap-4 mt-0.5">
                       <span>Issued: {new Date(bill.issueDate).toLocaleDateString("en-IN")}</span>
                       <span>Due: {new Date(bill.dueDate).toLocaleDateString("en-IN")}</span>
                       {bill.balanceDueAt && (
@@ -341,19 +340,19 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
                   {/* Financial KPI Summary */}
                   <div className="flex items-center gap-6">
                     <div className="text-right">
-                      <div className="text-[10px] uppercase tracking-wider text-stone-400 font-medium">
+                      <div className="text-[10px] uppercase tracking-wider text-warm-gray font-medium">
                         Total Bill
                       </div>
-                      <div className="text-lg font-extrabold text-white">
+                      <div className="text-lg font-bold text-charcoal">
                         {formatINR(BigInt(bill.totalPaise))}
                       </div>
                     </div>
 
                     <div className="text-right">
-                      <div className="text-[10px] uppercase tracking-wider text-stone-400 font-medium">
+                      <div className="text-[10px] uppercase tracking-wider text-warm-gray font-medium">
                         Outstanding
                       </div>
-                      <div className={`text-lg font-extrabold ${isPaid ? "text-emerald-400" : "text-amber-400"}`}>
+                      <div className={`text-lg font-extrabold ${isPaid ? "text-emerald-700" : "text-maroon-deep"}`}>
                         {formatINR(BigInt(bill.outstandingPaise))}
                       </div>
                     </div>
@@ -363,28 +362,28 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
                 {/* Bill Advance & Schedule Breakdown */}
                 <div className="p-5 space-y-4">
                   {/* Advance Configuration Highlight */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-stone-900/60 border border-stone-800/80 rounded-xl p-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-cream/50 border border-gold/20 rounded-2xl p-3.5">
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-stone-400">
+                      <div className="text-[10px] uppercase tracking-wider text-warm-gray font-medium">
                         Admin Advance Percentage
                       </div>
-                      <div className="text-sm font-bold text-amber-400 mt-0.5">
+                      <div className="text-sm font-bold text-gold-800 mt-0.5">
                         {Number(bill.advancePercentage)}%
                       </div>
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-stone-400">
+                      <div className="text-[10px] uppercase tracking-wider text-warm-gray font-medium">
                         Calculated Advance Amount
                       </div>
-                      <div className="text-sm font-bold text-stone-200 mt-0.5">
+                      <div className="text-sm font-bold text-charcoal mt-0.5">
                         {formatINR(BigInt(bill.advanceAmountPaise))}
                       </div>
                     </div>
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-stone-400">
+                      <div className="text-[10px] uppercase tracking-wider text-warm-gray font-medium">
                         Remaining Balance
                       </div>
-                      <div className="text-sm font-bold text-stone-200 mt-0.5">
+                      <div className="text-sm font-bold text-charcoal mt-0.5">
                         {formatINR(BigInt(bill.remainingBalancePaise))}
                       </div>
                     </div>
@@ -395,16 +394,16 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
                     <div>
                       <button
                         onClick={() => setExpandedBillId(isExpanded ? null : bill.id)}
-                        className="text-xs text-stone-400 hover:text-stone-300 flex items-center gap-1 font-medium"
+                        className="text-xs text-maroon hover:text-maroon-deep flex items-center gap-1 font-semibold transition-colors"
                       >
                         {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                         {isExpanded ? "Hide item breakdown" : `View ${bill.items.length} line items`}
                       </button>
 
                       {isExpanded && (
-                        <div className="mt-2.5 border border-stone-800 rounded-lg overflow-hidden">
+                        <div className="mt-2.5 border border-gold/20 rounded-xl overflow-hidden shadow-xs">
                           <table className="w-full text-left text-xs">
-                            <thead className="bg-stone-900/80 text-stone-400 border-b border-stone-800">
+                            <thead className="bg-cream/70 text-warm-gray border-b border-gold/20">
                               <tr>
                                 <th className="p-2.5 font-medium">Description</th>
                                 <th className="p-2.5 font-medium text-center">Qty</th>
@@ -412,15 +411,15 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
                                 <th className="p-2.5 font-medium text-right">Total</th>
                               </tr>
                             </thead>
-                            <tbody className="divide-y divide-stone-800 text-stone-300">
+                            <tbody className="divide-y divide-gold/15 text-charcoal">
                               {bill.items.map((it) => (
-                                <tr key={it.id} className="hover:bg-stone-900/40">
+                                <tr key={it.id} className="hover:bg-cream/30">
                                   <td className="p-2.5 font-medium">{it.description}</td>
-                                  <td className="p-2.5 text-center text-stone-400">{it.quantity}</td>
-                                  <td className="p-2.5 text-right font-mono text-stone-400">
+                                  <td className="p-2.5 text-center text-warm-gray">{it.quantity}</td>
+                                  <td className="p-2.5 text-right font-mono text-warm-gray">
                                     {formatINR(BigInt(it.unitRatePaise))}
                                   </td>
-                                  <td className="p-2.5 text-right font-mono font-medium text-stone-200">
+                                  <td className="p-2.5 text-right font-mono font-medium text-maroon-deep">
                                     {formatINR(BigInt(it.totalPaise))}
                                   </td>
                                 </tr>
@@ -434,12 +433,12 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
 
                   {/* ACTION SECTION */}
                   {isAwaitingAcceptance && (
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
                       <div>
-                        <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wide">
+                        <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wide">
                           Bill Acceptance Required
                         </h4>
-                        <p className="text-xs text-stone-400 mt-0.5">
+                        <p className="text-xs text-amber-800/90 mt-0.5">
                           Please accept the terms and payment schedule to unlock simulated Virtual UPI payments.
                         </p>
                       </div>
@@ -448,14 +447,14 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
                           variant="outline"
                           size="sm"
                           onClick={() => setDeclineBillId(bill.id)}
-                          className="border-rose-500/40 text-rose-300 hover:bg-rose-500/20 text-xs flex-1 sm:flex-none"
+                          className="border-rose-300 text-rose-700 hover:bg-rose-50 text-xs flex-1 sm:flex-none rounded-xl"
                         >
                           Decline Bill
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => handleAcceptBill(bill.id)}
-                          className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs flex-1 sm:flex-none"
+                          className="bg-maroon hover:bg-maroon-deep text-white font-bold text-xs flex-1 sm:flex-none rounded-xl shadow-xs"
                         >
                           Accept Bill
                         </Button>
@@ -465,28 +464,28 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
 
                   {/* PAYMENT CHOICE SECTION (FOR ACCEPTED / DUE / PARTIALLY PAID BILLS) */}
                   {(isDue || isPartiallyPaid) && BigInt(bill.outstandingPaise) > 0n && (
-                    <div className="pt-2 border-t border-stone-800 space-y-3">
-                      <div className="text-xs font-semibold text-stone-300">
+                    <div className="pt-2 border-t border-gold/15 space-y-3">
+                      <div className="text-xs font-semibold text-maroon-deep">
                         Select Your Payment Choice:
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {/* OPTION 1: PAY ADVANCE (If advance not yet paid) OR REMAINING BALANCE */}
                         {!isAdvancePaid && advanceInst && BigInt(bill.advanceAmountPaise) > 0n ? (
-                          <div className="bg-stone-900 border border-stone-800 hover:border-amber-500/50 rounded-xl p-4 flex flex-col justify-between transition-colors">
+                          <div className="bg-white border border-gold/30 hover:border-gold rounded-2xl p-4 flex flex-col justify-between shadow-xs transition-colors">
                             <div>
                               <div className="flex items-center justify-between">
-                                <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-[10px]">
+                                <Badge className="bg-gold/15 text-gold-800 border-gold/30 text-[10px]">
                                   Option 1: Pay Advance
                                 </Badge>
-                                <span className="text-[11px] text-stone-400">
+                                <span className="text-[11px] text-warm-gray font-medium">
                                   {bill.advancePercentage}%
                                 </span>
                               </div>
-                              <div className="text-lg font-bold text-white mt-2">
+                              <div className="text-lg font-bold text-maroon-deep mt-2">
                                 {formatINR(BigInt(bill.advanceAmountPaise))}
                               </div>
-                              <p className="text-[11px] text-stone-400 mt-1">
+                              <p className="text-[11px] text-warm-gray mt-1">
                                 Exact advance configured by planner. Unlocks remaining milestones.
                               </p>
                             </div>
@@ -496,26 +495,26 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
                                 handleOpenPaymentSession(bill.id, "INSTALLMENT", advanceInst.id)
                               }
                               disabled={generatingSession}
-                              className="mt-4 w-full bg-stone-800 hover:bg-stone-700 text-amber-400 font-bold text-xs border border-stone-700"
+                              className="mt-4 w-full bg-cream/70 hover:bg-gold/15 text-maroon-deep font-bold text-xs border border-gold/30 rounded-xl"
                             >
-                              <QrCode className="h-3.5 w-3.5 mr-1.5" />
+                              <QrCode className="h-3.5 w-3.5 mr-1.5 text-gold-700" />
                               Generate Advance QR
                             </Button>
                           </div>
                         ) : (
                           /* If advance is already paid, show Pay Remaining Balance */
-                          <div className="bg-stone-900 border border-stone-800 hover:border-amber-500/50 rounded-xl p-4 flex flex-col justify-between transition-colors">
+                          <div className="bg-white border border-gold/30 hover:border-gold rounded-2xl p-4 flex flex-col justify-between shadow-xs transition-colors">
                             <div>
                               <div className="flex items-center justify-between">
-                                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[10px]">
+                                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-[10px]">
                                   Advance Paid
                                 </Badge>
-                                <span className="text-[11px] text-stone-400">Remaining</span>
+                                <span className="text-[11px] text-warm-gray">Remaining</span>
                               </div>
-                              <div className="text-lg font-bold text-white mt-2">
+                              <div className="text-lg font-bold text-maroon-deep mt-2">
                                 {formatINR(BigInt(bill.outstandingPaise))}
                               </div>
-                              <p className="text-[11px] text-stone-400 mt-1">
+                              <p className="text-[11px] text-warm-gray mt-1">
                                 Settle the remaining unpaid balance in full.
                               </p>
                             </div>
@@ -523,29 +522,29 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
                             <Button
                               onClick={() => handleOpenPaymentSession(bill.id, "FULL_BALANCE")}
                               disabled={generatingSession}
-                              className="mt-4 w-full bg-stone-800 hover:bg-stone-700 text-amber-400 font-bold text-xs border border-stone-700"
+                              className="mt-4 w-full bg-cream/70 hover:bg-gold/15 text-maroon-deep font-bold text-xs border border-gold/30 rounded-xl"
                             >
-                              <QrCode className="h-3.5 w-3.5 mr-1.5" />
+                              <QrCode className="h-3.5 w-3.5 mr-1.5 text-gold-700" />
                               Pay Remaining Balance
                             </Button>
                           </div>
                         )}
 
                         {/* OPTION 2: PAY FULL AMOUNT IN ONE GO */}
-                        <div className="bg-gradient-to-br from-amber-500/10 via-stone-900 to-stone-900 border border-amber-500/40 hover:border-amber-500/80 rounded-xl p-4 flex flex-col justify-between transition-all">
+                        <div className="bg-gradient-to-br from-gold/15 via-white to-white border border-gold/50 hover:border-gold rounded-2xl p-4 flex flex-col justify-between shadow-xs transition-all">
                           <div>
                             <div className="flex items-center justify-between">
-                              <Badge className="bg-amber-500 text-stone-950 font-bold text-[10px]">
+                              <Badge className="bg-maroon text-soft-white font-bold text-[10px]">
                                 Option 2: Pay Full Amount
                               </Badge>
-                              <span className="text-[11px] font-semibold text-amber-400">
+                              <span className="text-[11px] font-semibold text-gold-800">
                                 100% Settle
                               </span>
                             </div>
-                            <div className="text-lg font-bold text-white mt-2">
+                            <div className="text-lg font-bold text-maroon-deep mt-2">
                               {formatINR(BigInt(bill.outstandingPaise))}
                             </div>
-                            <p className="text-[11px] text-stone-300 mt-1">
+                            <p className="text-[11px] text-warm-gray mt-1">
                               Pay the entire remaining balance in a single simulated transaction.
                             </p>
                           </div>
@@ -553,9 +552,9 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
                           <Button
                             onClick={() => handleOpenPaymentSession(bill.id, "FULL_BALANCE")}
                             disabled={generatingSession}
-                            className="mt-4 w-full bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs"
+                            className="mt-4 w-full bg-maroon hover:bg-maroon-deep text-white font-bold text-xs rounded-xl shadow-xs"
                           >
-                            <QrCode className="h-3.5 w-3.5 mr-1.5" />
+                            <QrCode className="h-3.5 w-3.5 mr-1.5 text-gold-light" />
                             Generate Full Payment QR
                           </Button>
                         </div>
@@ -565,14 +564,14 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
 
                   {/* PAID CONFIRMATION */}
                   {isPaid && (
-                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 flex items-center justify-between">
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+                        <CheckCircle2 className="h-6 w-6 text-emerald-600" />
                         <div>
-                          <div className="text-xs font-bold text-emerald-300 uppercase tracking-wide">
+                          <div className="text-xs font-bold text-emerald-800 uppercase tracking-wide">
                             Bill Fully Settled
                           </div>
-                          <p className="text-xs text-stone-400 mt-0.5">
+                          <p className="text-xs text-emerald-700 mt-0.5">
                             Total amount of {formatINR(BigInt(bill.totalPaise))} was received via simulated UPI.
                           </p>
                         </div>
@@ -588,15 +587,15 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
 
       {/* QR Code Virtual UPI Modal */}
       <Dialog open={!!activeSession} onOpenChange={(open) => !open && setActiveSession(null)}>
-        <DialogContent className="sm:max-w-md bg-stone-950 border-stone-800 text-stone-100">
+        <DialogContent className="sm:max-w-md bg-white border border-gold/30 text-charcoal rounded-3xl shadow-2xl">
           <DialogHeader>
-            <div className="text-[10px] uppercase tracking-wider text-amber-500 font-bold">
+            <div className="text-[10px] uppercase tracking-wider text-gold-700 font-bold">
               Gathbandhan Virtual Payment QR
             </div>
-            <DialogTitle className="text-lg font-bold text-white">
+            <DialogTitle className="text-lg font-heading font-bold text-maroon-deep">
               Scan or Click to Pay
             </DialogTitle>
-            <DialogDescription className="text-xs text-stone-400">
+            <DialogDescription className="text-xs text-warm-gray">
               {activeSession?.paymentType === "FULL_BALANCE"
                 ? "Full Balance Settlement"
                 : activeSession?.installmentTitle || "Advance Payment"}
@@ -606,14 +605,14 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
           {activeSession && (
             <div className="space-y-4 py-2">
               {/* Simulation Banner */}
-              <div className="bg-amber-500/15 border border-amber-500/40 rounded-lg p-2.5 text-center">
-                <div className="text-xs font-bold text-amber-400 uppercase tracking-wider">
-                  SIMULATED PAYMENT — NO REAL MONEY TRANSFERRED
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-center">
+                <div className="text-xs font-bold text-amber-900 uppercase tracking-wider">
+                  Simulated Payment — No Real Money Transferred
                 </div>
               </div>
 
               {/* QR Image Box */}
-              <div className="bg-white p-4 rounded-2xl w-64 h-64 mx-auto flex items-center justify-center shadow-xl">
+              <div className="bg-white p-4 rounded-2xl w-64 h-64 mx-auto flex items-center justify-center border border-gold/25 shadow-lg">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={activeSession.qrDataUrl}
@@ -624,11 +623,11 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
 
               {/* Amount Display */}
               <div className="text-center">
-                <div className="text-xs text-stone-400">Total Payable Amount</div>
-                <div className="text-2xl font-black text-amber-400 mt-0.5">
+                <div className="text-xs text-warm-gray">Total Payable Amount</div>
+                <div className="text-2xl font-black text-maroon-deep mt-0.5">
                   {formatINR(BigInt(activeSession.amountPaise))}
                 </div>
-                <div className="text-[11px] text-stone-500 mt-1">
+                <div className="text-[11px] text-warm-gray mt-1">
                   Bill {activeSession.billNumber} • {activeSession.coupleName}
                 </div>
               </div>
@@ -639,7 +638,7 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
                   href={`/pay/vupi/${activeSession.sessionToken}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-maroon hover:bg-maroon-deep text-white font-bold text-xs transition-colors shadow-xs"
                 >
                   <span>Open Simulated Mobile UPI Checkout</span>
                   <ExternalLink className="h-3.5 w-3.5" />
@@ -652,7 +651,7 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
                     setActiveSession(null);
                     loadBills();
                   }}
-                  className="w-full border-stone-800 text-stone-400 hover:bg-stone-900 text-xs"
+                  className="w-full border-gold/30 text-warm-gray hover:text-maroon-deep hover:bg-gold/10 text-xs rounded-xl"
                 >
                   Done / Refresh Status
                 </Button>
@@ -664,10 +663,10 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
 
       {/* Decline Bill Modal */}
       <Dialog open={!!declineBillId} onOpenChange={(open) => !open && setDeclineBillId(null)}>
-        <DialogContent className="sm:max-w-md bg-stone-950 border-stone-800 text-stone-100">
+        <DialogContent className="sm:max-w-md bg-white border border-gold/30 text-charcoal rounded-3xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-white">Decline Bill</DialogTitle>
-            <DialogDescription className="text-xs text-stone-400">
+            <DialogTitle className="text-base font-heading font-bold text-maroon-deep">Decline Bill</DialogTitle>
+            <DialogDescription className="text-xs text-warm-gray">
               Please specify why you are declining this bill so the planner can revise it.
             </DialogDescription>
           </DialogHeader>
@@ -678,7 +677,7 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
               onChange={(e) => setDeclineReason(e.target.value)}
               placeholder="e.g. Please revise advance percentage to 15% as agreed in our meeting."
               rows={3}
-              className="w-full rounded-lg bg-stone-900 border border-stone-800 p-2.5 text-xs text-stone-200 placeholder:text-stone-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+              className="w-full rounded-xl bg-cream/40 border border-gold/30 p-2.5 text-xs text-charcoal placeholder:text-warm-gray focus:outline-none focus:ring-1 focus:ring-gold"
             />
 
             <div className="flex justify-end gap-2 pt-2">
@@ -686,7 +685,7 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
                 variant="outline"
                 size="sm"
                 onClick={() => setDeclineBillId(null)}
-                className="border-stone-800 text-stone-300 text-xs"
+                className="border-gold/30 text-warm-gray text-xs rounded-xl"
               >
                 Cancel
               </Button>
@@ -694,7 +693,7 @@ export function ClientBillsUpiView({ weddingId }: { weddingId?: string }) {
                 size="sm"
                 onClick={handleDeclineBill}
                 disabled={isSubmittingDecline}
-                className="bg-rose-500 hover:bg-rose-600 text-white font-semibold text-xs"
+                className="bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl"
               >
                 {isSubmittingDecline ? "Submitting..." : "Confirm Decline"}
               </Button>

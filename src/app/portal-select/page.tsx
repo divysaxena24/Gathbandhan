@@ -102,7 +102,7 @@ export default async function PortalSelectPage() {
 
       {/* Footer */}
       <footer className="relative z-10 max-w-7xl mx-auto w-full px-6 py-6 text-center text-xs text-charcoal-400">
-        <p>© 2026 Gathbandhan — The Operating System for Luxury Indian Weddings.</p>
+        <p>© 2026 Gathbandhan — Where Every Celebration Comes Together.</p>
       </footer>
     </main>
   );

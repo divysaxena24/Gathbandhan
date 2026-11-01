@@ -11,7 +11,7 @@ export default function Icon() {
     (
       <div
         style={{
-          fontSize: 20,
+          fontSize: 18,
           background: "linear-gradient(135deg, #7A1C2E 0%, #D4AF37 100%)",
           width: "100%",
           height: "100%",
@@ -23,7 +23,7 @@ export default function Icon() {
           fontWeight: 700,
         }}
       >
-        💍
+        G
       </div>
     ),
     {
