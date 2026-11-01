@@ -94,6 +94,7 @@ interface BookingRequest {
 export default function BookingRequestsPage() {
   const [requests, setRequests] = useState<BookingRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<BookingRequest | null>(null);
@@ -111,32 +112,35 @@ export default function BookingRequestsPage() {
   const [adminReplyDraft, setAdminReplyDraft] = useState("");
   const [activeDetailTab, setActiveDetailTab] = useState<"details" | "notes" | "messages">("details");
 
-  const fetchRequests = useCallback(async () => {
-    try {
-      setLoading(true);
-      const url =
-        statusFilter === "ALL"
-          ? "/api/booking-requests"
-          : `/api/booking-requests?status=${statusFilter}`;
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        setRequests(Array.isArray(data) ? data : []);
+  const fetchRequests = useCallback(
+    async (isManual = false) => {
+      try {
+        if (isManual) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+        }
+        const url =
+          statusFilter === "ALL"
+            ? "/api/booking-requests"
+            : `/api/booking-requests?status=${statusFilter}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setRequests(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch booking requests:", err);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-    } catch (err) {
-      console.error("Failed to fetch booking requests:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [statusFilter]);
+    },
+    [statusFilter]
+  );
 
   useEffect(() => {
-    fetchRequests();
-    // Auto-poll for new inbound booking requests every 8 seconds
-    const interval = setInterval(() => {
-      fetchRequests();
-    }, 8000);
-    return () => clearInterval(interval);
+    fetchRequests(false);
   }, [fetchRequests]);
 
   const loadRequestDetail = async (id: string) => {
@@ -167,7 +171,7 @@ export default function BookingRequestsPage() {
         }),
       });
       if (res.ok) {
-        await fetchRequests();
+        await fetchRequests(true);
         await loadRequestDetail(selectedRequest.id);
       }
     } catch (err) {
@@ -255,11 +259,11 @@ export default function BookingRequestsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchRequests}
-            disabled={loading}
+            onClick={() => fetchRequests(true)}
+            disabled={loading || refreshing}
             className="flex items-center gap-1.5 h-8 text-xs font-semibold cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-primary" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing || loading ? "animate-spin text-primary" : ""}`} />
             <span>Refresh</span>
           </Button>
           <Badge variant="outline" className="text-xs border-primary text-primary">
