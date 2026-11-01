@@ -27,8 +27,13 @@ export async function GET(req: NextRequest) {
   try {
     await requireAuth();
     const clientIdParam = req.nextUrl.searchParams.get("clientId");
+    const idParam = req.nextUrl.searchParams.get("id");
 
     try {
+      const conditions = [isNull(weddings.deletedAt)];
+      if (clientIdParam) conditions.push(eq(weddings.clientId, clientIdParam));
+      if (idParam) conditions.push(eq(weddings.id, idParam));
+
       const list = await db
         .select({
           id: weddings.id,
@@ -50,11 +55,7 @@ export async function GET(req: NextRequest) {
         })
         .from(weddings)
         .leftJoin(clients, eq(weddings.clientId, clients.id))
-        .where(
-          clientIdParam
-            ? and(isNull(weddings.deletedAt), eq(weddings.clientId, clientIdParam))
-            : isNull(weddings.deletedAt)
-        )
+        .where(and(...conditions))
         .orderBy(desc(weddings.createdAt));
 
       // Convert bigint budgetPaise to string for JSON serialization

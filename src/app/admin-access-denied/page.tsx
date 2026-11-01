@@ -126,7 +126,7 @@ export default function AdminAccessDeniedPage() {
 
       {/* Footer */}
       <footer className="relative z-10 max-w-7xl mx-auto w-full px-6 py-6 text-center text-xs text-charcoal-400">
-        © 2026–2027 Gathbandhan Luxury Wedding Operations OS. All rights reserved.
+        © 2026–2027 Gathbandhan. All rights reserved.
       </footer>
     </main>
   );

@@ -45,9 +45,7 @@ const navItems: NavItem[] = [
   { title: "Planning & Tasks", href: "/planning", icon: CheckSquare },
   { title: "Vendors", href: "/vendors", icon: Building2 },
   { title: "AI Quotation Analyzer", href: "/quotation-analyzer", icon: Sparkles, badge: "AI" },
-  { title: "Event Control Room", href: "/control-room", icon: Radio, badge: "Live" },
   { title: "Finance", href: "/finance", icon: IndianRupee },
-  { title: "Guests & Logistics", href: "/guests", icon: UserCheck },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Settings", href: "/settings", icon: Settings },
 ];
@@ -207,7 +205,7 @@ export default function WorkspaceLayout({
         </main>
 
         <footer className="text-center text-xs text-charcoal-400 py-4">
-          © 2026 Gathbandhan Operations OS
+          © 2026 Gathbandhan
         </footer>
       </div>
     );
@@ -223,14 +221,9 @@ export default function WorkspaceLayout({
             <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center border border-gold/40 group-hover:scale-105 transition-transform">
               <Crown className="w-4 h-4 text-gold" />
             </div>
-            <div>
-              <span className="font-display font-bold text-base text-ivory tracking-wide block leading-tight">
-                Gathbandhan
-              </span>
-              <span className="text-[10px] text-gold uppercase tracking-widest font-semibold block">
-                Operations OS
-              </span>
-            </div>
+            <span className="font-display font-bold text-base text-ivory tracking-wide block leading-tight">
+              Gathbandhan
+            </span>
           </Link>
         </div>
 
