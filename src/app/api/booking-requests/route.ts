@@ -338,6 +338,10 @@ export async function GET(req: NextRequest) {
           return NextResponse.json({
             ...request,
             estimatedBudgetPaise: request.estimatedBudgetPaise?.toString() || "0",
+            clientBudgetPaise:
+              (request as any).clientBudgetPaise?.toString() ||
+              (request.fullSelections as any)?.clientBudgetPaise?.toString() ||
+              null,
             messages,
           });
         }
@@ -356,6 +360,10 @@ export async function GET(req: NextRequest) {
             allRequests.map((r) => ({
               ...r,
               estimatedBudgetPaise: r.estimatedBudgetPaise?.toString() || "0",
+              clientBudgetPaise:
+                (r as any).clientBudgetPaise?.toString() ||
+                (r.fullSelections as any)?.clientBudgetPaise?.toString() ||
+                null,
             }))
           );
         }

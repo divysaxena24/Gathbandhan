@@ -904,3 +904,100 @@ export async function getBillsForClient(clientId: string): Promise<ClientBillRec
     };
   });
 }
+
+
+export async function getAllBills(options?: {
+  weddingId?: string;
+  clientId?: string;
+}): Promise<ClientBillRecord[]> {
+  let query = db
+    .select({
+      id: clientBills.id,
+      weddingId: clientBills.weddingId,
+      weddingTitle: weddings.title,
+      clientId: clientBills.clientId,
+      clientName: clients.coupleName,
+      billNumber: clientBills.billNumber,
+      title: clientBills.title,
+      issueDate: clientBills.issueDate,
+      dueDate: clientBills.dueDate,
+      subtotalPaise: clientBills.subtotalPaise,
+      taxPaise: clientBills.taxPaise,
+      totalPaise: clientBills.totalPaise,
+      paidPaise: clientBills.paidPaise,
+      advancePercentage: clientBills.advancePercentage,
+      advanceAmountPaise: clientBills.advanceAmountPaise,
+      balanceDueAt: clientBills.balanceDueAt,
+      status: clientBills.status,
+      acceptedAt: clientBills.acceptedAt,
+      declinedAt: clientBills.declinedAt,
+      declineReason: clientBills.declineReason,
+      publishedAt: clientBills.publishedAt,
+      notes: clientBills.notes,
+      createdBy: clientBills.createdBy,
+      createdByName: users.name,
+      createdAt: clientBills.createdAt,
+      updatedAt: clientBills.updatedAt,
+    })
+    .from(clientBills)
+    .leftJoin(weddings, eq(clientBills.weddingId, weddings.id))
+    .leftJoin(clients, eq(clientBills.clientId, clients.id))
+    .leftJoin(users, eq(clientBills.createdBy, users.id));
+
+  const conditions = [];
+  if (options?.weddingId) {
+    conditions.push(eq(clientBills.weddingId, options.weddingId));
+  }
+  if (options?.clientId) {
+    conditions.push(eq(clientBills.clientId, options.clientId));
+  }
+
+  const bills =
+    conditions.length > 0
+      ? await query.where(and(...conditions)).orderBy(desc(clientBills.createdAt))
+      : await query.orderBy(desc(clientBills.createdAt));
+
+  const billIds = bills.map((b) => b.id);
+  if (billIds.length === 0) return [];
+
+  const allItems = await db
+    .select()
+    .from(clientBillItems)
+    .where(inArray(clientBillItems.billId, billIds))
+    .orderBy(clientBillItems.orderIndex);
+
+  const allInstallments = await db
+    .select()
+    .from(clientBillInstallments)
+    .where(inArray(clientBillInstallments.billId, billIds))
+    .orderBy(clientBillInstallments.orderIndex);
+
+  return bills.map((b) => {
+    const items = allItems.filter((item) => item.billId === b.id);
+    const installments = allInstallments
+      .filter((inst) => inst.billId === b.id)
+      .map((inst) => ({
+        ...inst,
+        remainingPaise:
+          inst.amountPaise > inst.paidPaise
+            ? inst.amountPaise - inst.paidPaise
+            : 0n,
+      }));
+
+    const outstandingPaise =
+      b.totalPaise > b.paidPaise ? b.totalPaise - b.paidPaise : 0n;
+    const remainingBalancePaise =
+      b.totalPaise > b.advanceAmountPaise
+        ? b.totalPaise - b.advanceAmountPaise
+        : 0n;
+
+    return {
+      ...b,
+      status: b.status as BillStatus,
+      outstandingPaise,
+      remainingBalancePaise,
+      items,
+      installments,
+    };
+  });
+}

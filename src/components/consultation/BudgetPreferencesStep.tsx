@@ -10,6 +10,7 @@ import StepNavigation from '@/components/consultation-ui/StepNavigation';
 import SelectionCard from '@/components/consultation-ui/SelectionCard';
 import { BudgetRange, SpendingPriority } from '@/types/wedding';
 import { IndianRupee, Sparkles, Check, ShieldCheck } from 'lucide-react';
+import { resolveClientBudgetPaise } from '@/lib/services/budget-comparison';
 
 const BUDGET_RANGES: Array<{
   value: BudgetRange;
@@ -62,7 +63,13 @@ export default function BudgetPreferencesStep() {
             <button
               key={br.value}
               type="button"
-              onClick={() => updateSelections({ budgetRange: br.value })}
+              onClick={() => {
+                const ceiling = resolveClientBudgetPaise(br.value);
+                updateSelections({
+                  budgetRange: br.value,
+                  clientBudgetPaise: ceiling ? ceiling.toString() : undefined,
+                });
+              }}
               className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between ${
                 isSelected
                   ? 'bg-cream/80 border-gold shadow-md ring-1 ring-gold'

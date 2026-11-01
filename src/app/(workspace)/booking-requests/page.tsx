@@ -34,6 +34,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
+import { compareBudgets } from "@/lib/services/budget-comparison";
+import { OverbudgetTag } from "@/components/common/overbudget-tag";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -79,6 +81,7 @@ interface BookingRequest {
   additionalServices: string[] | null;
   customRequirements: string | null;
   estimatedBudgetPaise: string;
+  clientBudgetPaise?: string | null;
   budgetBreakdown: any;
   fullSelections: any;
   status: "SUBMITTED" | "UNDER_REVIEW" | "CHANGES_REQUESTED" | "ACCEPTED" | "REJECTED";
@@ -94,6 +97,14 @@ export default function BookingRequestsPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<BookingRequest | null>(null);
+
+  const selectedComp = selectedRequest
+    ? compareBudgets(
+        selectedRequest.estimatedBudgetPaise,
+        selectedRequest.clientBudgetPaise || selectedRequest.fullSelections?.clientBudgetPaise,
+        selectedRequest.fullSelections?.budgetRange
+      )
+    : null;
   const [actionLoading, setActionLoading] = useState(false);
   const [internalNoteDraft, setInternalNoteDraft] = useState("");
   const [reviewNoteDraft, setReviewNoteDraft] = useState("");
@@ -405,6 +416,21 @@ export default function BookingRequestsPage() {
                   <div className="flex items-center gap-1.5">
                     <IndianRupee className="w-3.5 h-3.5 text-gold-600 shrink-0" />
                     <strong className="text-foreground">{formatCurrency(req.estimatedBudgetPaise)}</strong>
+                    {(() => {
+                      const comp = compareBudgets(
+                        req.estimatedBudgetPaise,
+                        req.clientBudgetPaise || req.fullSelections?.clientBudgetPaise,
+                        req.fullSelections?.budgetRange
+                      );
+                      return comp.isOverBudget ? (
+                        <OverbudgetTag
+                          isOverBudget={true}
+                          overBudgetPaise={comp.overBudgetPaise}
+                          clientBudgetPaise={comp.clientBudgetPaise}
+                          size="xs"
+                        />
+                      ) : null;
+                    })()}
                   </div>
                 </div>
 
@@ -513,15 +539,81 @@ export default function BookingRequestsPage() {
                     <span className="text-foreground">{selectedRequest.contactPhone || "N/A"}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Total Budget</span>
-                    <strong className="text-sm font-bold text-gold-700">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Estimated Budget</span>
+                      {selectedComp?.isOverBudget && (
+                        <OverbudgetTag
+                          isOverBudget={true}
+                          overBudgetPaise={selectedComp.overBudgetPaise}
+                          clientBudgetPaise={selectedComp.clientBudgetPaise}
+                          size="xs"
+                        />
+                      )}
+                    </div>
+                    <strong className="text-sm font-bold text-gold-700 flex items-center gap-2">
                       {formatCurrency(selectedRequest.estimatedBudgetPaise)}
                     </strong>
+                    {selectedComp?.isOverBudget && (
+                      <span className="text-[10px] text-rose-500 font-medium block">
+                        Target: {selectedComp.formattedClientBudget} (+{selectedComp.formattedOverBudget})
+                      </span>
+                    )}
+                    <span className="sr-only">
+                      {formatCurrency(selectedRequest.estimatedBudgetPaise)}
+                    </span>
                   </div>
                 </div>
 
                 {/* 14 Steps Breakdown Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  {/* Step 13: Budget Framework & Variance */}
+                  <div className={`p-4 rounded-xl border col-span-1 md:col-span-2 space-y-2.5 ${
+                    selectedComp?.isOverBudget
+                      ? "bg-rose-50/40 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800"
+                      : "bg-card border-border"
+                  }`}>
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <strong className="text-foreground font-bold flex items-center gap-1.5 text-xs">
+                        <IndianRupee className="w-3.5 h-3.5 text-gold-600" />
+                        Budget Framework & Financial Status
+                      </strong>
+                      {selectedComp?.isOverBudget ? (
+                        <OverbudgetTag
+                          isOverBudget={true}
+                          overBudgetPaise={selectedComp.overBudgetPaise}
+                          clientBudgetPaise={selectedComp.clientBudgetPaise}
+                          size="sm"
+                          showAmount={true}
+                        />
+                      ) : (
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 text-[10px]">
+                          Within Client Budget
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 text-xs">
+                      <div className="p-2.5 rounded-lg bg-background border border-border/60">
+                        <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Client Target Budget</span>
+                        <span className="text-sm font-bold text-foreground">{selectedComp?.formattedClientBudget || "Flexible / Not set"}</span>
+                        <span className="text-[10px] text-muted-foreground block mt-0.5">Tier: {selectedRequest.fullSelections?.budgetRange || "Standard"}</span>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-background border border-border/60">
+                        <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Our Estimated Budget</span>
+                        <span className="text-sm font-bold text-gold-700">{selectedComp?.formattedEstimated}</span>
+                        <span className="text-[10px] text-muted-foreground block mt-0.5">Total calculated plan</span>
+                      </div>
+                      <div className="p-2.5 rounded-lg bg-background border border-border/60">
+                        <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Budget Variance</span>
+                        <span className={`text-sm font-bold ${selectedComp?.isOverBudget ? "text-rose-600" : "text-emerald-600"}`}>
+                          {selectedComp?.isOverBudget ? `+${selectedComp.formattedOverBudget} (+${selectedComp.percentageOver}%)` : "Within Range"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground block mt-0.5">
+                          {selectedComp?.isOverBudget ? "Overbudget — vendor optimization needed" : "Aligned with client expectations"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Step 1 & 2: Traditions */}
                   <div className="p-4 rounded-xl border border-border bg-card space-y-1.5">
                     <strong className="text-foreground font-bold block mb-1">Traditions & Cultural Vows</strong>
