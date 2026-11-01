@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Sparkles,
   Search,
@@ -94,6 +94,7 @@ interface BookingRequest {
 export default function BookingRequestsPage() {
   const [requests, setRequests] = useState<BookingRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRequest, setSelectedRequest] = useState<BookingRequest | null>(null);
@@ -109,34 +110,120 @@ export default function BookingRequestsPage() {
   const [internalNoteDraft, setInternalNoteDraft] = useState("");
   const [reviewNoteDraft, setReviewNoteDraft] = useState("");
   const [adminReplyDraft, setAdminReplyDraft] = useState("");
+  const [sendingAdminReply, setSendingAdminReply] = useState(false);
   const [activeDetailTab, setActiveDetailTab] = useState<"details" | "notes" | "messages">("details");
+  const adminMessagesEndRef = useRef<HTMLDivElement>(null);
 
-  const fetchRequests = useCallback(async () => {
+  // Dedicated silent message synchronization for the currently inspected booking request
+  const syncAdminMessagesSilently = useCallback(async (requestId: string) => {
     try {
-      setLoading(true);
-      const url =
-        statusFilter === "ALL"
-          ? "/api/booking-requests"
-          : `/api/booking-requests?status=${statusFilter}`;
-      const res = await fetch(url);
+      const res = await fetch(`/api/booking-requests/${requestId}/messages`);
       if (res.ok) {
-        const data = await res.json();
-        setRequests(Array.isArray(data) ? data : []);
+        const json = await res.json();
+        const incomingMessages = json.messages || [];
+        setSelectedRequest((prev) => {
+          if (!prev || prev.id !== requestId) return prev;
+          const currentMsgs = prev.messages || [];
+          if (
+            incomingMessages.length !== currentMsgs.length ||
+            (incomingMessages.length > 0 &&
+              currentMsgs.length > 0 &&
+              incomingMessages[incomingMessages.length - 1]?.id !==
+                currentMsgs[currentMsgs.length - 1]?.id)
+          ) {
+            const optimisticPending = currentMsgs.filter((m: any) => m.id?.startsWith("temp-"));
+            const combined = [...incomingMessages];
+            for (const opt of optimisticPending) {
+              if (!combined.some((m: any) => m.message === opt.message && m.senderRole === opt.senderRole)) {
+                combined.push(opt);
+              }
+            }
+            return {
+              ...prev,
+              messages: combined,
+            };
+          }
+          return prev;
+        });
+
+        // Also update message counter in the background requests list
+        setRequests((prevList) =>
+          prevList.map((r) =>
+            r.id === requestId
+              ? { ...r, messages: incomingMessages }
+              : r
+          )
+        );
       }
-    } catch (err) {
-      console.error("Failed to fetch booking requests:", err);
-    } finally {
-      setLoading(false);
+    } catch {
+      // Silent background fetch, avoid throwing
     }
-  }, [statusFilter]);
+  }, []);
+
+  // Background auto-polling for new incoming client messages without reloading
+  useEffect(() => {
+    if (!selectedRequest?.id) return;
+    const targetId = selectedRequest.id;
+
+    // Immediately fetch messages when request is selected or tab changed
+    syncAdminMessagesSilently(targetId);
+
+    // Auto-fetch messages every 3 seconds silently
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        syncAdminMessagesSilently(targetId);
+      }
+    }, 3000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncAdminMessagesSilently(targetId);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [selectedRequest?.id, activeDetailTab, syncAdminMessagesSilently]);
+
+  // Auto-scroll admin chat to bottom when messages update or when switching to messages tab
+  useEffect(() => {
+    if (activeDetailTab === "messages" && selectedRequest?.id) {
+      adminMessagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [selectedRequest?.messages?.length, activeDetailTab]);
+
+  const fetchRequests = useCallback(
+    async (isManual = false) => {
+      try {
+        if (isManual) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+        }
+        const url =
+          statusFilter === "ALL"
+            ? "/api/booking-requests"
+            : `/api/booking-requests?status=${statusFilter}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setRequests(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch booking requests:", err);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [statusFilter]
+  );
 
   useEffect(() => {
-    fetchRequests();
-    // Auto-poll for new inbound booking requests every 8 seconds
-    const interval = setInterval(() => {
-      fetchRequests();
-    }, 8000);
-    return () => clearInterval(interval);
+    fetchRequests(false);
   }, [fetchRequests]);
 
   const loadRequestDetail = async (id: string) => {
@@ -167,7 +254,7 @@ export default function BookingRequestsPage() {
         }),
       });
       if (res.ok) {
-        await fetchRequests();
+        await fetchRequests(true);
         await loadRequestDetail(selectedRequest.id);
       }
     } catch (err) {
@@ -200,19 +287,75 @@ export default function BookingRequestsPage() {
 
   const handleSendAdminReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adminReplyDraft.trim() || !selectedRequest) return;
+    const text = adminReplyDraft.trim();
+    if (!text || !selectedRequest || sendingAdminReply) return;
+
+    setSendingAdminReply(true);
+    setAdminReplyDraft("");
+
+    // Optimistically append planner message to chat immediately without reload
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg = {
+      id: tempId,
+      bookingRequestId: selectedRequest.id,
+      senderName: "Wedding Planner",
+      senderRole: "PLANNER",
+      message: text,
+      createdAt: new Date().toISOString(),
+    };
+
+    setSelectedRequest((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        messages: [...(prev.messages || []), optimisticMsg],
+      };
+    });
+
     try {
       const res = await fetch(`/api/booking-requests/${selectedRequest.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: adminReplyDraft.trim() }),
+        body: JSON.stringify({ message: text }),
       });
       if (res.ok) {
-        setAdminReplyDraft("");
-        await loadRequestDetail(selectedRequest.id);
+        const json = await res.json();
+        const serverMsg = json.message;
+        if (serverMsg) {
+          setSelectedRequest((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              messages: (prev.messages || []).map((m: any) =>
+                m.id === tempId ? serverMsg : m
+              ),
+            };
+          });
+        }
+        syncAdminMessagesSilently(selectedRequest.id);
+      } else {
+        // Rollback optimistic message on failure
+        setSelectedRequest((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            messages: (prev.messages || []).filter((m: any) => m.id !== tempId),
+          };
+        });
+        setAdminReplyDraft(text);
       }
     } catch (err) {
       console.error("Failed to send message:", err);
+      setSelectedRequest((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: (prev.messages || []).filter((m: any) => m.id !== tempId),
+        };
+      });
+      setAdminReplyDraft(text);
+    } finally {
+      setSendingAdminReply(false);
     }
   };
 
@@ -255,11 +398,11 @@ export default function BookingRequestsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchRequests}
-            disabled={loading}
+            onClick={() => fetchRequests(true)}
+            disabled={loading || refreshing}
             className="flex items-center gap-1.5 h-8 text-xs font-semibold cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-primary" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing || loading ? "animate-spin text-primary" : ""}`} />
             <span>Refresh</span>
           </Button>
           <Badge variant="outline" className="text-xs border-primary text-primary">
@@ -740,6 +883,7 @@ export default function BookingRequestsPage() {
                   ) : (
                     <p className="text-center text-xs text-muted-foreground py-10">No messages yet.</p>
                   )}
+                  <div ref={adminMessagesEndRef} />
                 </div>
 
                 <form onSubmit={handleSendAdminReply} className="flex gap-2">
@@ -748,11 +892,21 @@ export default function BookingRequestsPage() {
                     placeholder="Reply to client..."
                     value={adminReplyDraft}
                     onChange={(e) => setAdminReplyDraft(e.target.value)}
+                    disabled={sendingAdminReply}
                     className="flex-1 px-4 py-2 text-xs rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none"
                   />
-                  <Button type="submit" size="sm" className="text-xs font-bold">
-                    <Send className="w-3.5 h-3.5 mr-1" />
-                    Send Reply
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={sendingAdminReply || !adminReplyDraft.trim()}
+                    className="text-xs font-bold"
+                  >
+                    {sendingAdminReply ? (
+                      <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                    ) : (
+                      <Send className="w-3.5 h-3.5 mr-1" />
+                    )}
+                    {sendingAdminReply ? "Sending..." : "Send Reply"}
                   </Button>
                 </form>
               </div>
