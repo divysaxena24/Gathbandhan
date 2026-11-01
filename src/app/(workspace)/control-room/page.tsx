@@ -106,7 +106,21 @@ function ControlRoomContent() {
   };
 
   // Load events for the selected wedding
-  const loadEvents = useCallback(() => {
+  const loadEvents = useCallback(async () => {
+    if (!weddingId) return;
+    try {
+      const res = await fetch(`/api/wedding-events?weddingId=${weddingId}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data && json.data.length > 0) {
+          setEvents(json.data);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch wedding events:", e);
+    }
+
     const venueName = currentWedding?.venue || "Taj Lake Palace";
     const demoEvents: EventItem[] = [
       {
@@ -135,10 +149,7 @@ function ControlRoomContent() {
       },
     ];
     setEvents(demoEvents);
-    if (!selectedEventId && demoEvents.length > 0) {
-      setSelectedEventId(demoEvents[0].id);
-    }
-  }, [currentWedding, selectedEventId]);
+  }, [weddingId, currentWedding]);
 
   useEffect(() => {
     if (weddingId) {
@@ -146,13 +157,15 @@ function ControlRoomContent() {
     }
   }, [weddingId, loadEvents]);
 
-  // Load timeline items for selected event
+  // Load timeline items for selected event or all events
   const loadTimeline = useCallback(async () => {
-    if (!weddingId || !selectedEventId) return;
+    if (!weddingId) return;
     try {
-      const res = await fetch(
-        `/api/control-room/timeline?weddingId=${weddingId}&eventId=${selectedEventId}`
-      );
+      const url =
+        selectedEventId && selectedEventId !== "ALL"
+          ? `/api/control-room/timeline?weddingId=${weddingId}&eventId=${selectedEventId}`
+          : `/api/control-room/timeline?weddingId=${weddingId}`;
+      const res = await fetch(url);
       const json = await res.json();
       if (json.success) {
         setTimelineItems(json.data);
@@ -399,6 +412,16 @@ function ControlRoomContent() {
               <span className="text-xs font-bold text-charcoal/70 uppercase tracking-wider shrink-0 mr-1">
                 Ceremony:
               </span>
+              <button
+                onClick={() => setSelectedEventId("ALL")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0 ${
+                  selectedEventId === "ALL" || !selectedEventId
+                    ? "bg-gold text-charcoal shadow-sm font-bold"
+                    : "bg-white text-charcoal/70 border border-ivory-300 hover:bg-ivory-100"
+                }`}
+              >
+                All Ceremonies
+              </button>
               {events.map((evt) => (
                 <button
                   key={evt.id}

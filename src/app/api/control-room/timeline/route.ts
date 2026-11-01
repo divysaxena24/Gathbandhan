@@ -14,10 +14,10 @@ export async function GET(req: NextRequest) {
     await requireAuth();
     const { searchParams } = new URL(req.url);
     const weddingId = searchParams.get("weddingId");
-    const eventId = searchParams.get("eventId");
+    const eventId = searchParams.get("eventId") || undefined;
 
-    if (!weddingId || !eventId) {
-      throw new ValidationError("weddingId and eventId query parameters are required");
+    if (!weddingId) {
+      throw new ValidationError("weddingId query parameter is required");
     }
 
     const items = await getTimelineForEvent(weddingId, eventId);

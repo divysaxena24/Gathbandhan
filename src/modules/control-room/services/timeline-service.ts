@@ -20,8 +20,13 @@ import { ConflictError, NotFoundError } from "@/lib/errors";
 
 export async function getTimelineForEvent(
   weddingId: string,
-  eventId: string
+  eventId?: string
 ): Promise<TimelineItemWithDeps[]> {
+  const conditions = [eq(timelineItems.weddingId, weddingId)];
+  if (eventId && eventId !== "ALL" && eventId !== "") {
+    conditions.push(eq(timelineItems.eventId, eventId));
+  }
+
   const items = await db
     .select({
       id: timelineItems.id,
@@ -48,12 +53,7 @@ export async function getTimelineForEvent(
     .from(timelineItems)
     .leftJoin(users, eq(timelineItems.ownerId, users.id))
     .leftJoin(vendors, eq(timelineItems.vendorId, vendors.id))
-    .where(
-      and(
-        eq(timelineItems.weddingId, weddingId),
-        eq(timelineItems.eventId, eventId)
-      )
-    )
+    .where(and(...conditions))
     .orderBy(timelineItems.orderIndex, timelineItems.startsAt);
 
   if (items.length === 0) {
