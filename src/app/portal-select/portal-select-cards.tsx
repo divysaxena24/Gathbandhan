@@ -22,7 +22,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { PRIMARY_ADMIN_EMAIL } from "@/lib/auth/admin-whitelist";
 
@@ -265,7 +264,7 @@ export function PortalSelectCards({
 
       {/* Warning Dialog when unauthorized user attempts to enter admin portal */}
       <Dialog open={warningOpen} onOpenChange={setWarningOpen}>
-        <DialogContent className="sm:max-w-md bg-white rounded-3xl p-6 border-2 border-amber-300">
+        <DialogContent className="sm:max-w-lg w-[calc(100%-2rem)] max-w-lg bg-white rounded-3xl p-6 sm:p-7 border-2 border-amber-300 shadow-2xl overflow-hidden">
           <DialogHeader className="space-y-3 text-center sm:text-left">
             <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-700 mx-auto sm:mx-0 border border-amber-300">
               <ShieldAlert className="w-6 h-6" />
@@ -281,16 +280,16 @@ export function PortalSelectCards({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
+          <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
             Please proceed to the Client Portal to review your wedding consultations and proposals, or sign in with an authorized admin account.
           </div>
 
-          <DialogFooter className="flex-col gap-2 pt-2">
-            <div className="flex flex-col-reverse sm:flex-row gap-2 w-full justify-end">
+          <div className="flex flex-col gap-2.5 pt-3 w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
               <Button
                 variant="outline"
                 onClick={() => setWarningOpen(false)}
-                className="w-full sm:w-auto text-xs"
+                className="w-full text-xs h-9 rounded-xl border-gold/30 hover:bg-gold/10 text-charcoal font-medium"
               >
                 Cancel
               </Button>
@@ -299,7 +298,7 @@ export function PortalSelectCards({
                   setWarningOpen(false);
                   handleSelectRole("CLIENT", clientDestination);
                 }}
-                className="w-full sm:w-auto bg-maroon hover:bg-maroon-deep text-white text-xs font-semibold"
+                className="w-full bg-maroon hover:bg-maroon-deep text-white text-xs font-semibold h-9 rounded-xl shadow-xs"
               >
                 <Sparkles className="w-3.5 h-3.5 mr-1.5 text-gold-light" />
                 Go to Client Portal
@@ -307,15 +306,16 @@ export function PortalSelectCards({
             </div>
 
             <Button
-              variant="ghost"
+              type="button"
+              variant="outline"
               size="sm"
               onClick={() => signOut({ redirectUrl: "/sign-in" })}
-              className="w-full text-xs text-charcoal-500 hover:text-maroon underline mt-1"
+              className="w-full text-xs text-warm-gray hover:text-maroon hover:bg-amber-50/80 border border-amber-200/80 rounded-xl h-9 flex items-center justify-center gap-1.5 mt-1"
             >
-              <LogOut className="w-3.5 h-3.5 mr-1.5" />
-              Sign in with an authorized admin account
+              <LogOut className="w-3.5 h-3.5 text-amber-700" />
+              <span>Sign in with an authorized admin account</span>
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </>
