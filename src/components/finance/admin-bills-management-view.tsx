@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   ChevronDown,
   ChevronUp,
+  Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,17 +82,39 @@ interface ClientBillRecord {
   installments?: BillInstallment[];
 }
 
+interface ClientOption {
+  id: string;
+  coupleName: string;
+  partnerOneName: string;
+  partnerOneEmail?: string | null;
+  partnerOnePhone?: string | null;
+}
+
+interface WeddingOption {
+  id: string;
+  title: string;
+  clientId?: string | null;
+  clientName?: string | null;
+}
+
 export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) {
   const [bills, setBills] = useState<ClientBillRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Clients & Weddings for tagging
+  const [clientsList, setClientsList] = useState<ClientOption[]>([]);
+  const [weddingsList, setWeddingsList] = useState<WeddingOption[]>([]);
+  const [selectedFilterClientId, setSelectedFilterClientId] = useState<string>("ALL");
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
 
   // Form Fields
+  const [modalClientId, setModalClientId] = useState<string>("");
+  const [modalWeddingId, setModalWeddingId] = useState<string>("");
   const [title, setTitle] = useState("Full Wedding Planning & Execution Package");
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(
@@ -131,6 +154,32 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
     };
   }, [totalAmountINR, advancePercentage]);
 
+  // Load clients and weddings for planner dropdowns
+  const loadClientsAndWeddings = useCallback(async () => {
+    try {
+      const [clientsRes, weddingsRes] = await Promise.all([
+        fetch("/api/clients"),
+        fetch("/api/weddings"),
+      ]);
+
+      if (clientsRes.ok) {
+        const cJson = await clientsRes.json();
+        if (Array.isArray(cJson.data)) {
+          setClientsList(cJson.data);
+        }
+      }
+
+      if (weddingsRes.ok) {
+        const wJson = await weddingsRes.json();
+        if (Array.isArray(wJson.data)) {
+          setWeddingsList(wJson.data);
+        }
+      }
+    } catch (err) {
+      console.warn("Could not load clients and weddings for tagging:", err);
+    }
+  }, []);
+
   // Load Bills
   const loadBills = useCallback(async () => {
     try {
@@ -154,7 +203,8 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
 
   useEffect(() => {
     loadBills();
-  }, [loadBills]);
+    loadClientsAndWeddings();
+  }, [loadBills, loadClientsAndWeddings]);
 
   // Handle Publish Bill
   const handlePublish = async (billId: string) => {
@@ -180,6 +230,8 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
       return;
     }
     setEditingBillId(bill.id);
+    setModalClientId(bill.clientId);
+    setModalWeddingId(bill.weddingId);
     setTitle(bill.title);
     setIssueDate(bill.issueDate);
     setDueDate(bill.dueDate);
@@ -199,7 +251,48 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
     setTotalAmountINR("500000");
     setAdvancePercentage("20");
     setNotes("");
+
+    // Determine initial client and wedding to tag
+    let initialClientId = "";
+    let initialWeddingId = weddingId || "";
+
+    if (weddingId) {
+      const currentWedding = weddingsList.find((w) => w.id === weddingId);
+      if (currentWedding?.clientId) {
+        initialClientId = currentWedding.clientId;
+      }
+    }
+
+    if (!initialClientId && selectedFilterClientId !== "ALL") {
+      initialClientId = selectedFilterClientId;
+      const matched = weddingsList.find((w) => w.clientId === selectedFilterClientId);
+      if (matched) initialWeddingId = matched.id;
+    }
+
+    if (!initialClientId && clientsList.length > 0) {
+      initialClientId = clientsList[0].id;
+      const matched = weddingsList.find((w) => w.clientId === initialClientId);
+      if (matched) initialWeddingId = matched.id;
+    }
+
+    if (!initialWeddingId && weddingsList.length > 0) {
+      initialWeddingId = weddingsList[0].id;
+    }
+
+    setModalClientId(initialClientId);
+    setModalWeddingId(initialWeddingId);
     setIsModalOpen(true);
+  };
+
+  // Handle client selection change in modal
+  const handleClientSelectChange = (newClientId: string) => {
+    setModalClientId(newClientId);
+    const matchedWedding = weddingsList.find((w) => w.clientId === newClientId);
+    if (matchedWedding) {
+      setModalWeddingId(matchedWedding.id);
+    } else if (weddingsList.length > 0) {
+      setModalWeddingId(weddingsList[0].id);
+    }
   };
 
   // Submit Create or Edit
@@ -207,6 +300,17 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
     e.preventDefault();
     if (!liveCalculations.isValid) {
       setErrorMessage("Please enter a valid total amount and percentage between 0 and 100%");
+      return;
+    }
+
+    if (!modalClientId) {
+      setErrorMessage("Please select a client from the dropdown to tag this bill to.");
+      return;
+    }
+
+    const weddingIdToUse = modalWeddingId || weddingId || weddingsList[0]?.id;
+    if (!weddingIdToUse) {
+      setErrorMessage("Please select an associated wedding project.");
       return;
     }
 
@@ -234,38 +338,13 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
           throw new Error(json.error?.message || "Failed to update bill");
         }
       } else {
-        // Create Bill
-        // Fetch client ID from wedding
-        let clientIdToUse: string | null = null;
-        if (weddingId) {
-          const weddingRes = await fetch(`/api/weddings/${weddingId}`);
-          const weddingJson = await weddingRes.json();
-          clientIdToUse = weddingJson.data?.clientId;
-        }
-
-        if (!clientIdToUse && bills.length > 0) {
-          clientIdToUse = bills[0].clientId;
-        }
-
-        if (!clientIdToUse) {
-          // Fetch first client as fallback
-          const clientsRes = await fetch("/api/clients");
-          const clientsJson = await clientsRes.json();
-          if (clientsJson.data && clientsJson.data.length > 0) {
-            clientIdToUse = clientsJson.data[0].id;
-          }
-        }
-
-        if (!clientIdToUse || !weddingId) {
-          throw new Error("Wedding ID and Client ID are required to create a bill.");
-        }
-
+        // Create Bill tagged to specific selected client
         const res = await fetch("/api/finance/bills", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            weddingId,
-            clientId: clientIdToUse,
+            weddingId: weddingIdToUse,
+            clientId: modalClientId,
             title: title.trim(),
             issueDate,
             dueDate,
@@ -290,19 +369,27 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
     }
   };
 
-  // Financial KPI totals
-  const totalBilledPaise = bills.reduce(
+  // Filter bills by tagged client if filter is selected
+  const displayedBills = useMemo(() => {
+    if (selectedFilterClientId === "ALL") return bills;
+    return bills.filter((b) => b.clientId === selectedFilterClientId);
+  }, [bills, selectedFilterClientId]);
+
+  // Financial KPI totals for displayed bills
+  const totalBilledPaise = displayedBills.reduce(
     (acc, b) => acc + BigInt(b.totalPaise || 0),
     0n
   );
-  const totalCollectedPaise = bills.reduce(
+  const totalCollectedPaise = displayedBills.reduce(
     (acc, b) => acc + BigInt(b.paidPaise || 0),
     0n
   );
-  const totalOutstandingPaise = bills.reduce(
+  const totalOutstandingPaise = displayedBills.reduce(
     (acc, b) => acc + BigInt(b.outstandingPaise || 0),
     0n
   );
+
+  const selectedClientDetails = clientsList.find((c) => c.id === modalClientId);
 
   return (
     <div className="space-y-6">
@@ -310,7 +397,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
       <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-xs flex items-center gap-2 text-amber-300">
         <ShieldCheck className="h-4 w-4 text-amber-400 shrink-0" />
         <span>
-          <strong>SIMULATED PAYMENT ENVIRONMENT:</strong> All invoices and payments generated here operate on Gathbandhan&apos;s virtual UPI ledger.
+          <strong>SIMULATED PAYMENT ENVIRONMENT:</strong> All client invoices and Virtual UPI QR sessions generated here operate on Gathbandhan&apos;s virtual ledger.
         </span>
       </div>
 
@@ -324,7 +411,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
             {formatINR(totalBilledPaise)}
           </div>
           <div className="text-[11px] text-stone-500 mt-1">
-            Across {bills.length} client invoice(s)
+            Across {displayedBills.length} client invoice(s)
           </div>
         </div>
 
@@ -353,18 +440,43 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
         </div>
       </div>
 
-      {/* Header and Controls */}
+      {/* Header, Client Filter and Actions */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-bold text-stone-100">
-            Client Billing & Payment Schedules
+          <h3 className="text-base font-bold text-stone-100 flex items-center gap-2">
+            <span>Client Billing & Payment Schedules</span>
           </h3>
           <p className="text-xs text-stone-400">
-            Configure advance payment percentages, due dates, and publish to the Client Portal.
+            Tag bills to specific clients, configure advance milestones, and publish exclusively to their portal.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Filter by Tagged Client Dropdown */}
+          {clientsList.length > 0 && (
+            <div className="flex items-center gap-1.5 bg-stone-900/80 border border-stone-800 rounded-lg px-2.5 py-1 text-xs">
+              <Filter className="w-3.5 h-3.5 text-stone-400" />
+              <span className="text-stone-400 text-[11px]">Client:</span>
+              <select
+                value={selectedFilterClientId}
+                onChange={(e) => setSelectedFilterClientId(e.target.value)}
+                className="bg-transparent text-stone-200 text-xs font-medium focus:outline-none cursor-pointer"
+              >
+                <option value="ALL" className="bg-stone-950 text-white">
+                  All Clients ({bills.length})
+                </option>
+                {clientsList.map((client) => {
+                  const clientBillCount = bills.filter((b) => b.clientId === client.id).length;
+                  return (
+                    <option key={client.id} value={client.id} className="bg-stone-950 text-white">
+                      {client.coupleName || client.partnerOneName} ({clientBillCount})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
           <Button
             variant="outline"
             size="sm"
@@ -399,17 +511,23 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
           <div className="animate-spin h-6 w-6 border-2 border-amber-500 border-t-transparent rounded-full mx-auto" />
           <p className="text-xs">Loading bills...</p>
         </div>
-      ) : bills.length === 0 ? (
+      ) : displayedBills.length === 0 ? (
         <div className="border border-stone-800 rounded-xl p-12 text-center bg-stone-950/40">
           <FileText className="h-10 w-10 text-stone-600 mx-auto mb-3" />
-          <h4 className="text-sm font-semibold text-stone-300">No Bills Created Yet</h4>
+          <h4 className="text-sm font-semibold text-stone-300">
+            {selectedFilterClientId !== "ALL"
+              ? "No Bills Tagged to this Client"
+              : "No Bills Created Yet"}
+          </h4>
           <p className="text-xs text-stone-500 max-w-sm mx-auto mt-1">
-            Create a bill with total amount and advance percentage to initiate the client payment workflow.
+            {selectedFilterClientId !== "ALL"
+              ? "Click 'Create Client Bill' to generate and send an invoice exclusively to this client."
+              : "Tag a client from the dropdown and configure advance percentages to initiate the virtual payment workflow."}
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {bills.map((bill) => {
+          {displayedBills.map((bill) => {
             const isDraft = bill.status === "DRAFT";
             const isAwaiting = bill.status === "AWAITING_ACCEPTANCE";
             const isDue = bill.status === "DUE" || bill.status === "ACCEPTED";
@@ -426,21 +544,54 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
                 className="bg-stone-950 border border-stone-800 rounded-xl overflow-hidden hover:border-stone-700 transition-colors"
               >
                 <div className="p-4 flex flex-wrap items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-mono text-xs text-amber-400 font-bold">
                         {bill.billNumber}
                       </span>
-                      {isDraft && <Badge variant="outline" className="text-[10px] border-stone-700 text-stone-400">Draft</Badge>}
-                      {isAwaiting && <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/30 text-[10px]">Awaiting Acceptance</Badge>}
-                      {isDue && <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/30 text-[10px]">Accepted • Payment Due</Badge>}
-                      {isPartiallyPaid && <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/30 text-[10px]">Partially Paid</Badge>}
-                      {isPaid && <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 text-[10px]">Paid in Full</Badge>}
-                      {isDeclined && <Badge className="bg-rose-500/15 text-rose-300 border-rose-500/30 text-[10px]">Declined</Badge>}
+                      {/* Tagged Client Badge */}
+                      <span className="px-2 py-0.5 rounded-md bg-stone-900 border border-amber-500/40 text-amber-300 font-semibold text-[11px] flex items-center gap-1.5 shadow-sm">
+                        <Users className="w-3 h-3 text-amber-400" />
+                        <span>Tagged: {bill.clientName || "Client"}</span>
+                      </span>
+
+                      {/* Status Badges */}
+                      {isDraft && (
+                        <Badge variant="outline" className="text-[10px] border-stone-700 text-stone-400">
+                          Draft (Not Published)
+                        </Badge>
+                      )}
+                      {isAwaiting && (
+                        <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/30 text-[10px]">
+                          Sent to Client • Awaiting Acceptance
+                        </Badge>
+                      )}
+                      {isDue && (
+                        <Badge className="bg-blue-500/15 text-blue-300 border-blue-500/30 text-[10px]">
+                          Accepted by Client • Payment Due
+                        </Badge>
+                      )}
+                      {isPartiallyPaid && (
+                        <Badge className="bg-purple-500/15 text-purple-300 border-purple-500/30 text-[10px]">
+                          Partially Paid
+                        </Badge>
+                      )}
+                      {isPaid && (
+                        <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 text-[10px]">
+                          Paid in Full
+                        </Badge>
+                      )}
+                      {isDeclined && (
+                        <Badge className="bg-rose-500/15 text-rose-300 border-rose-500/30 text-[10px]">
+                          Declined by Client
+                        </Badge>
+                      )}
                     </div>
+
                     <h4 className="text-sm font-bold text-white">{bill.title}</h4>
-                    <div className="text-xs text-stone-400 flex items-center gap-3">
-                      <span>Couple: {bill.clientName || "Client"}</span>
+
+                    <div className="text-xs text-stone-400 flex flex-wrap items-center gap-3">
+                      <span>Wedding: {bill.weddingTitle || "Wedding Project"}</span>
                       <span>•</span>
                       <span>Due: {new Date(bill.dueDate).toLocaleDateString("en-IN")}</span>
                       {bill.balanceDueAt && (
@@ -449,44 +600,37 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
                           <span>Balance Due: {new Date(bill.balanceDueAt).toLocaleDateString("en-IN")}</span>
                         </>
                       )}
+                      <span>•</span>
+                      <span className="text-amber-400/90 font-medium">
+                        Advance: {Number(bill.advancePercentage)}% ({formatINR(BigInt(bill.advanceAmountPaise))})
+                      </span>
                     </div>
                   </div>
 
-                  {/* Financial Metrics */}
-                  <div className="flex items-center gap-5">
+                  {/* Amounts & Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-4">
                     <div className="text-right">
-                      <div className="text-[10px] text-stone-400 uppercase">Total Bill</div>
-                      <div className="text-sm font-bold text-white">
+                      <div className="text-[11px] text-stone-500">Total Billed</div>
+                      <div className="text-base font-bold text-white">
                         {formatINR(BigInt(bill.totalPaise))}
                       </div>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="text-[10px] text-stone-400 uppercase">
-                        Advance ({Number(bill.advancePercentage)}%)
-                      </div>
-                      <div className="text-sm font-bold text-amber-400">
-                        {formatINR(BigInt(bill.advanceAmountPaise))}
+                      <div className="text-[11px] text-stone-400">
+                        Paid:{" "}
+                        <span className="text-emerald-400 font-semibold">
+                          {formatINR(BigInt(bill.paidPaise))}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <div className="text-[10px] text-stone-400 uppercase">Remaining</div>
-                      <div className="text-sm font-bold text-stone-300">
-                        {formatINR(BigInt(bill.remainingBalancePaise))}
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2 pl-2 border-l border-stone-800">
+                    <div className="flex items-center gap-2">
                       {isDraft && (
                         <Button
                           size="sm"
                           onClick={() => handlePublish(bill.id)}
-                          className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs h-8"
+                          className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs h-8 gap-1.5"
                         >
-                          <Send className="h-3.5 w-3.5 mr-1" />
-                          Publish
+                          <Send className="h-3.5 w-3.5" />
+                          Send to Client
                         </Button>
                       )}
 
@@ -495,9 +639,9 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
                           variant="outline"
                           size="sm"
                           onClick={() => openEditModal(bill)}
-                          className="border-stone-800 text-stone-300 hover:bg-stone-900 text-xs h-8"
+                          className="border-stone-800 text-stone-300 hover:bg-stone-900 text-xs h-8 gap-1"
                         >
-                          <Edit className="h-3.5 w-3.5 mr-1" />
+                          <Edit className="h-3.5 w-3.5" />
                           Edit
                         </Button>
                       )}
@@ -505,10 +649,16 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setExpandedBillId(isExpanded ? null : bill.id)}
-                        className="text-stone-400 hover:text-stone-200 text-xs h-8 px-2"
+                        onClick={() =>
+                          setExpandedBillId(isExpanded ? null : bill.id)
+                        }
+                        className="text-stone-400 hover:text-white text-xs h-8 px-2"
                       >
-                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -516,34 +666,93 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
 
                 {/* Expanded Details */}
                 {isExpanded && (
-                  <div className="p-4 bg-stone-900/50 border-t border-stone-800 space-y-3 text-xs">
-                    {/* Decline Reason if any */}
-                    {isDeclined && bill.declineReason && (
-                      <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-300 rounded-lg">
-                        <strong>Client Decline Reason:</strong> {bill.declineReason}
+                  <div className="p-4 bg-stone-900/40 border-t border-stone-800 space-y-4">
+                    {/* Private Client Visibility Notice */}
+                    <div className="text-xs p-3 rounded-lg bg-stone-900 border border-stone-800 text-stone-300 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>
+                          Exclusive Recipient: <strong>{bill.clientName || "Client"}</strong>
+                          {bill.publishedAt ? (
+                            <span className="text-emerald-400 ml-1.5">
+                              (Sent on {new Date(bill.publishedAt).toLocaleDateString("en-IN")})
+                            </span>
+                          ) : (
+                            <span className="text-stone-400 ml-1.5">
+                              (Private Draft — click &apos;Send to Client&apos; to publish)
+                            </span>
+                          )}
+                        </span>
                       </div>
-                    )}
+                      <span className="text-[10px] uppercase font-mono text-stone-500">
+                        Client ID: {bill.clientId.slice(0, 8)}...
+                      </span>
+                    </div>
+
+                    {/* Breakdown Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="bg-stone-950 p-3 rounded-lg border border-stone-800">
+                        <div className="text-[10px] text-stone-400 uppercase font-medium">
+                          Required Advance Deposit
+                        </div>
+                        <div className="text-sm font-bold text-amber-400 mt-0.5">
+                          {formatINR(BigInt(bill.advanceAmountPaise))}
+                        </div>
+                        <div className="text-[10px] text-stone-500 mt-0.5">
+                          {Number(bill.advancePercentage)}% of total bill
+                        </div>
+                      </div>
+
+                      <div className="bg-stone-950 p-3 rounded-lg border border-stone-800">
+                        <div className="text-[10px] text-stone-400 uppercase font-medium">
+                          Remaining Post-Advance Balance
+                        </div>
+                        <div className="text-sm font-bold text-stone-200 mt-0.5">
+                          {formatINR(BigInt(bill.remainingBalancePaise))}
+                        </div>
+                        <div className="text-[10px] text-stone-500 mt-0.5">
+                          Due by {bill.balanceDueAt ? new Date(bill.balanceDueAt).toLocaleDateString("en-IN") : "TBD"}
+                        </div>
+                      </div>
+
+                      <div className="bg-stone-950 p-3 rounded-lg border border-stone-800">
+                        <div className="text-[10px] text-stone-400 uppercase font-medium">
+                          Current Outstanding
+                        </div>
+                        <div className="text-sm font-bold text-rose-400 mt-0.5">
+                          {formatINR(BigInt(bill.outstandingPaise))}
+                        </div>
+                        <div className="text-[10px] text-stone-500 mt-0.5">
+                          Unsettled balance
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Installments Table */}
                     {bill.installments && bill.installments.length > 0 && (
-                      <div className="border border-stone-800 rounded-lg overflow-hidden">
-                        <table className="w-full text-left">
-                          <thead className="bg-stone-900 text-stone-400 border-b border-stone-800 text-[11px]">
-                            <tr>
-                              <th className="p-2 font-medium">Milestone</th>
-                              <th className="p-2 font-medium text-center">%</th>
-                              <th className="p-2 font-medium text-right">Amount</th>
-                              <th className="p-2 font-medium text-right">Paid</th>
-                              <th className="p-2 font-medium text-center">Due Date</th>
-                              <th className="p-2 font-medium text-center">Status</th>
+                      <div className="space-y-2">
+                        <div className="text-xs font-semibold text-stone-300">
+                          Payment Milestones & Virtual UPI Sessions
+                        </div>
+                        <table className="w-full text-xs text-left text-stone-300 border-collapse">
+                          <thead>
+                            <tr className="border-b border-stone-800 text-[10px] uppercase text-stone-500">
+                              <th className="p-2">Milestone</th>
+                              <th className="p-2 text-right">Share</th>
+                              <th className="p-2 text-right">Amount</th>
+                              <th className="p-2 text-right">Paid</th>
+                              <th className="p-2 text-center">Due Date</th>
+                              <th className="p-2 text-center">Status</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-stone-800 text-stone-300">
+                          <tbody>
                             {bill.installments.map((inst) => (
-                              <tr key={inst.id}>
-                                <td className="p-2 font-medium">{inst.title}</td>
-                                <td className="p-2 text-center text-stone-400">{inst.percentage}%</td>
-                                <td className="p-2 text-right font-mono text-stone-200">
+                              <tr key={inst.id} className="border-b border-stone-800/60">
+                                <td className="p-2 font-medium text-white">{inst.title}</td>
+                                <td className="p-2 text-right font-mono text-stone-400">
+                                  {Number(inst.percentage)}%
+                                </td>
+                                <td className="p-2 text-right font-bold text-white">
                                   {formatINR(BigInt(inst.amountPaise))}
                                 </td>
                                 <td className="p-2 text-right font-mono text-emerald-400">
@@ -580,20 +789,88 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
 
       {/* Create / Edit Bill Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-xl bg-stone-950 border-stone-800 text-stone-100">
+        <DialogContent className="sm:max-w-xl bg-stone-950 border-stone-800 text-stone-100 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg font-bold text-white">
-              {editingBillId ? "Edit Client Bill" : "Create New Client Bill"}
+              {editingBillId ? "Edit Client Bill" : "Create & Tag Client Bill"}
             </DialogTitle>
             <DialogDescription className="text-xs text-stone-400">
-              Enter total bill amount and advance percentage. Advance and remaining balance are automatically calculated immediately.
+              Select the client to send this invoice to, configure the advance percentage, and verify the calculated amounts.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmitBill} className="space-y-4 py-2">
+            {/* Tag Particular Client Selection Section */}
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5" />
+                  Tag Target Client (Bill Sent Only To Them) *
+                </span>
+                <span className="text-[10px] text-stone-400">Private & Protected</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-stone-300 mb-1">
+                    Select Client *
+                  </label>
+                  <select
+                    value={modalClientId}
+                    disabled={!!editingBillId}
+                    onChange={(e) => handleClientSelectChange(e.target.value)}
+                    className="w-full rounded-lg bg-stone-900 border border-stone-700 px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-60"
+                    required
+                  >
+                    <option value="">-- Choose Client --</option>
+                    {clientsList.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.coupleName || c.partnerOneName} ({c.partnerOneEmail || "No Email"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-stone-300 mb-1">
+                    Wedding Project *
+                  </label>
+                  <select
+                    value={modalWeddingId}
+                    disabled={!!editingBillId}
+                    onChange={(e) => setModalWeddingId(e.target.value)}
+                    className="w-full rounded-lg bg-stone-900 border border-stone-700 px-3 py-2 text-xs text-white focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-60"
+                    required
+                  >
+                    <option value="">-- Choose Wedding Project --</option>
+                    {weddingsList.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {selectedClientDetails && (
+                <div className="text-[11px] text-amber-200/90 bg-stone-950/70 p-2.5 rounded-lg border border-amber-500/20 flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span>
+                      Tagged to <strong>{selectedClientDetails.coupleName}</strong>{" "}
+                      ({selectedClientDetails.partnerOneEmail || "Email pending"}).
+                    </span>
+                    <p className="text-[10px] text-stone-400 mt-0.5">
+                      Only this specific client will receive this invoice and will be able to review, accept, and make virtual UPI payments in their portal.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="block text-xs font-medium text-stone-300 mb-1">
-                Bill Title
+                Bill Title *
               </label>
               <Input
                 value={title}
@@ -608,7 +885,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-stone-300 mb-1">
-                  Total Bill Amount (₹ INR)
+                  Total Bill Amount (₹ INR) *
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-stone-500 text-xs font-bold">₹</span>
@@ -626,7 +903,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
 
               <div>
                 <label className="block text-xs font-medium text-stone-300 mb-1">
-                  Advance Payment Percentage (0–100%)
+                  Advance Payment Percentage (0–100%) *
                 </label>
                 <div className="relative">
                   <Input
@@ -657,7 +934,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
               />
               <div className="flex justify-between text-[10px] text-stone-500 mt-1">
                 <span>0% (No Advance)</span>
-                <span>20% (Recommended)</span>
+                <span>20% (Standard)</span>
                 <span>50%</span>
                 <span>100% (Full Advance)</span>
               </div>
@@ -702,7 +979,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block text-xs font-medium text-stone-300 mb-1">
-                  Issue Date
+                  Issue Date *
                 </label>
                 <Input
                   type="date"
@@ -715,7 +992,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
 
               <div>
                 <label className="block text-xs font-medium text-stone-300 mb-1">
-                  Advance Due Date
+                  Advance Due Date *
                 </label>
                 <Input
                   type="date"
@@ -728,7 +1005,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
 
               <div>
                 <label className="block text-xs font-medium text-stone-300 mb-1">
-                  Balance Due Date
+                  Balance Due Date *
                 </label>
                 <Input
                   type="date"
@@ -748,7 +1025,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Include custom terms or scope notes..."
+                placeholder="Include custom terms or scope notes for this client..."
                 rows={2}
                 className="w-full rounded-lg bg-stone-900 border border-stone-800 p-2.5 text-xs text-stone-200 placeholder:text-stone-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
               />
@@ -767,7 +1044,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !liveCalculations.isValid}
+                disabled={isSubmitting || !liveCalculations.isValid || !modalClientId}
                 className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs"
               >
                 {isSubmitting ? "Saving..." : editingBillId ? "Update Bill" : "Save as Draft"}

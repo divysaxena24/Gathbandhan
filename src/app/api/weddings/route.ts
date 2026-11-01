@@ -3,7 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { db, logDbFallbackWarning } from "@/lib/db";
 import { weddings } from "@/lib/db/schema/weddings";
 import { clients } from "@/lib/db/schema/clients";
-import { isNull, desc, eq } from "drizzle-orm";
+import { isNull, desc, eq, and } from "drizzle-orm";
 import { successResponse, errorResponse } from "@/lib/errors/api-response";
 import { z } from "zod";
 
@@ -22,14 +22,16 @@ const createWeddingSchema = z.object({
   notes: z.string().optional(),
 });
 
-export async function GET(_req: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
     await requireAuth();
+    const clientIdParam = req.nextUrl.searchParams.get("clientId");
 
     try {
       const list = await db
         .select({
           id: weddings.id,
+          clientId: weddings.clientId,
           title: weddings.title,
           city: weddings.city,
           venue: weddings.venue,
@@ -47,7 +49,11 @@ export async function GET(_req: NextRequest) {
         })
         .from(weddings)
         .leftJoin(clients, eq(weddings.clientId, clients.id))
-        .where(isNull(weddings.deletedAt))
+        .where(
+          clientIdParam
+            ? and(isNull(weddings.deletedAt), eq(weddings.clientId, clientIdParam))
+            : isNull(weddings.deletedAt)
+        )
         .orderBy(desc(weddings.createdAt));
 
       // Convert bigint budgetPaise to string for JSON serialization
@@ -59,9 +65,10 @@ export async function GET(_req: NextRequest) {
       return successResponse(serialized);
     } catch (dbErr: unknown) {
       logDbFallbackWarning("Weddings API", dbErr);
-      return successResponse([
+      const fallbackWeddings = [
         {
           id: "wedding-demo-1",
+          clientId: "client-demo-1",
           title: "The Royal Udaipur Heritage Wedding",
           city: "Udaipur",
           venue: "The Oberoi Udaivilas",
@@ -74,7 +81,11 @@ export async function GET(_req: NextRequest) {
           clientEmail: "divya_saxena@srmap.edu.in",
           clientPhone: "+91 98765 43210",
         },
-      ]);
+      ];
+      if (clientIdParam) {
+        return successResponse(fallbackWeddings.filter((w) => w.clientId === clientIdParam));
+      }
+      return successResponse(fallbackWeddings);
     }
   } catch (error) {
     return errorResponse(error);
