@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, logDbFallbackWarning } from "@/lib/db";
 import {
   bookingRequests,
   bookingRequestMessages,
@@ -257,7 +257,7 @@ export async function POST(
         }
       }
     } catch (dbErr) {
-      console.warn("Could not process booking status update in DB (database may be offline or starting):", dbErr);
+      logDbFallbackWarning("Booking Status API", dbErr);
     }
 
     // 2. Fallback in-memory status update

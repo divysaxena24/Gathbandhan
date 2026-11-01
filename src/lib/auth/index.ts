@@ -1,9 +1,10 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { db } from "@/lib/db";
+import { db, logDbFallbackWarning } from "@/lib/db";
 import { users, weddingVendors, weddings } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { AuthError, ForbiddenError } from "@/lib/errors";
 import { type UserRole, hasPermission } from "@/lib/auth/roles";
+import { isAuthorizedAdminEmail, PRIMARY_ADMIN_EMAIL } from "@/lib/auth/admin-whitelist";
 
 export { UserRole, hasPermission, hasAnyPermission } from "@/lib/auth/roles";
 
@@ -20,7 +21,8 @@ export interface AppUser {
 /**
  * Get the current app user from the database.
  * If authenticated with Clerk but not yet present or clerkId is updated,
- * automatically self-heals by linking email or auto-provisioning as FOUNDER_ADMIN.
+ * automatically self-heals by linking email or auto-provisioning.
+ * Strictly enforces that only authorized admin emails hold administrative roles.
  * Returns `null` if not authenticated.
  */
 export async function getCurrentUser(): Promise<AppUser | null> {
@@ -42,7 +44,13 @@ export async function getCurrentUser(): Promise<AppUser | null> {
       .limit(1);
 
     if (user) {
-      return user as AppUser;
+      // Security check: Only whitelisted emails can hold administrative roles
+      const isAllowedAdmin = isAuthorizedAdminEmail(user.email);
+      let sanitizedRole = user.role;
+      if (!isAllowedAdmin && (user.role === "FOUNDER_ADMIN" || user.role === "PLANNER")) {
+        sanitizedRole = "CLIENT";
+      }
+      return { ...user, role: sanitizedRole } as AppUser;
     }
 
     // If user is authenticated in Clerk but not yet mapped in DB
@@ -57,6 +65,9 @@ export async function getCurrentUser(): Promise<AppUser | null> {
           clerkUser.username ||
           "Gathbandhan Member";
 
+        const isAllowedAdmin = isAuthorizedAdminEmail(primaryEmail);
+        const assignedRole: UserRole = isAllowedAdmin ? "FOUNDER_ADMIN" : "CLIENT";
+
         // 1. Check if user already exists by email
         const [existingByEmail] = await db
           .select()
@@ -65,10 +76,15 @@ export async function getCurrentUser(): Promise<AppUser | null> {
           .limit(1);
 
         if (existingByEmail) {
+          const effectiveRole = isAllowedAdmin
+            ? existingByEmail.role
+            : "CLIENT";
+
           const [updated] = await db
             .update(users)
             .set({
               authProviderId: userId,
+              role: effectiveRole,
               avatarUrl: clerkUser.imageUrl || existingByEmail.avatarUrl,
               updatedAt: new Date(),
             })
@@ -84,7 +100,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
           return (updated as AppUser) ?? null;
         }
 
-        // 2. Otherwise insert as FOUNDER_ADMIN so local/admin access is seamless
+        // 2. Otherwise insert new user with role based on admin whitelist
         const [created] = await db
           .insert(users)
           .values({
@@ -92,7 +108,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
             name,
             email: primaryEmail,
             phone: clerkUser.phoneNumbers?.[0]?.phoneNumber || null,
-            role: "FOUNDER_ADMIN",
+            role: assignedRole,
             avatarUrl: clerkUser.imageUrl || null,
             isActive: true,
           })
@@ -111,16 +127,25 @@ export async function getCurrentUser(): Promise<AppUser | null> {
       console.warn("Auto-syncing Clerk user in getCurrentUser failed:", err);
     }
   } catch (err: unknown) {
-    console.warn("Could not query database in getCurrentUser (database may be offline or starting):", err);
+    logDbFallbackWarning("Auth Service", err);
   }
 
   // Graceful fallback for local development or when database is offline
+  let fallbackEmail = "";
+  try {
+    const clerkUser = await currentUser();
+    fallbackEmail = clerkUser?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
+  } catch {
+    // ignore
+  }
+
+  const isAllowedAdmin = isAuthorizedAdminEmail(fallbackEmail);
   return {
     id: userId,
     clerkId: userId,
-    email: "divya_saxena@srmap.edu.in",
-    name: "Divya Saxena",
-    role: "FOUNDER_ADMIN",
+    email: fallbackEmail || PRIMARY_ADMIN_EMAIL,
+    name: "Gathbandhan User",
+    role: isAllowedAdmin ? "FOUNDER_ADMIN" : "CLIENT",
     avatarUrl: null,
   };
 }
@@ -197,7 +222,6 @@ export async function requireVendorAccess(
     .where(
       and(
         eq(weddingVendors.weddingId, weddingId),
-        // Vendor users map to vendors via user.id
       ),
     )
     .limit(1);
@@ -232,7 +256,6 @@ export async function requireClientAccess(
     .where(
       and(
         eq(weddings.id, weddingId),
-        // In full impl, joins clients table and checks portalUserId
       ),
     )
     .limit(1);

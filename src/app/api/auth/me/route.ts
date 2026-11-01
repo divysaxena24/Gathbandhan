@@ -4,18 +4,20 @@ import { db } from "@/lib/db";
 import { users, bookingRequests, clients, weddings } from "@/lib/db/schema";
 import { eq, or, desc } from "drizzle-orm";
 import { getFallbackBookingRequests } from "@/lib/booking-requests-fallback";
+import { isAuthorizedAdminEmail } from "@/lib/auth/admin-whitelist";
 
 export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ authenticated: false, user: null, role: null });
+      return NextResponse.json({ authenticated: false, user: null, role: null, isAdmin: false });
     }
 
     const clerkUser = await currentUser();
     const primaryEmail =
       clerkUser?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
     const cookieRole = req.cookies.get("gathbandhan_role")?.value;
+    const isUserAdmin = isAuthorizedAdminEmail(primaryEmail);
 
     // 1. Look up user in database
     let dbUser: any = null;
@@ -32,6 +34,7 @@ export async function GET(req: NextRequest) {
         const name =
           `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
           "Gathbandhan Member";
+        const initialRole = isUserAdmin ? (cookieRole || "FOUNDER_ADMIN") : "CLIENT";
 
         [dbUser] = await db
           .insert(users)
@@ -40,7 +43,7 @@ export async function GET(req: NextRequest) {
             name,
             email: primaryEmail || `${userId}@gathbandhan.internal`,
             phone: clerkUser.phoneNumbers?.[0]?.phoneNumber || null,
-            role: (cookieRole as any) || "CLIENT",
+            role: initialRole as any,
             avatarUrl: clerkUser.imageUrl || null,
             isActive: true,
           })
@@ -59,7 +62,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!dbUser) {
-      const activeRole = cookieRole || "CLIENT";
+      const activeRole = isUserAdmin ? (cookieRole || "FOUNDER_ADMIN") : "CLIENT";
       const fallbackRequests = getFallbackBookingRequests();
       const activeBookingRequestId = fallbackRequests.length > 0 ? fallbackRequests[0].id : null;
 
@@ -72,58 +75,57 @@ export async function GET(req: NextRequest) {
           role: activeRole,
         },
         role: activeRole,
+        isAdmin: isUserAdmin,
         activeBookingRequestId,
         activeWeddingId: null,
       });
     }
 
-    // 2. If client, find their active booking request or wedding
+    // 2. Find their active booking request or wedding
     let activeBookingRequestId: string | null = null;
     let activeWeddingId: string | null = null;
 
     try {
-      if (dbUser.role === "CLIENT") {
-        // Find latest booking request
-        const [latestRequest] = await db
-          .select({ id: bookingRequests.id, weddingId: bookingRequests.weddingId })
-          .from(bookingRequests)
+      // Find latest booking request
+      const [latestRequest] = await db
+        .select({ id: bookingRequests.id, weddingId: bookingRequests.weddingId })
+        .from(bookingRequests)
+        .where(
+          or(
+            eq(bookingRequests.userId, dbUser.id),
+            eq(bookingRequests.contactEmail, dbUser.email)
+          )
+        )
+        .orderBy(desc(bookingRequests.createdAt))
+        .limit(1);
+
+      if (latestRequest) {
+        activeBookingRequestId = latestRequest.id;
+        activeWeddingId = latestRequest.weddingId || null;
+      }
+
+      // If no wedding from request, check clients table
+      if (!activeWeddingId) {
+        const [clientRecord] = await db
+          .select({ id: clients.id })
+          .from(clients)
           .where(
             or(
-              eq(bookingRequests.userId, dbUser.id),
-              eq(bookingRequests.contactEmail, dbUser.email)
+              eq(clients.portalUserId, dbUser.id),
+              eq(clients.partnerOneEmail, dbUser.email)
             )
           )
-          .orderBy(desc(bookingRequests.createdAt))
           .limit(1);
 
-        if (latestRequest) {
-          activeBookingRequestId = latestRequest.id;
-          activeWeddingId = latestRequest.weddingId || null;
-        }
-
-        // If no wedding from request, check clients table
-        if (!activeWeddingId) {
-          const [clientRecord] = await db
-            .select({ id: clients.id })
-            .from(clients)
-            .where(
-              or(
-                eq(clients.portalUserId, dbUser.id),
-                eq(clients.partnerOneEmail, dbUser.email)
-              )
-            )
+        if (clientRecord) {
+          const [weddingRecord] = await db
+            .select({ id: weddings.id })
+            .from(weddings)
+            .where(eq(weddings.clientId, clientRecord.id))
             .limit(1);
 
-          if (clientRecord) {
-            const [weddingRecord] = await db
-              .select({ id: weddings.id })
-              .from(weddings)
-              .where(eq(weddings.clientId, clientRecord.id))
-              .limit(1);
-
-            if (weddingRecord) {
-              activeWeddingId = weddingRecord.id;
-            }
+          if (weddingRecord) {
+            activeWeddingId = weddingRecord.id;
           }
         }
       }
@@ -138,7 +140,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const finalRole = cookieRole || dbUser.role;
+    // Strict role enforcement: Only authorized admin emails can hold admin/planner roles
+    const rawRole = cookieRole || dbUser.role;
+    const finalRole = isUserAdmin
+      ? (rawRole || "FOUNDER_ADMIN")
+      : "CLIENT";
+
     return NextResponse.json({
       authenticated: true,
       user: {
@@ -151,6 +158,7 @@ export async function GET(req: NextRequest) {
         avatarUrl: dbUser.avatarUrl,
       },
       role: finalRole,
+      isAdmin: isUserAdmin,
       activeBookingRequestId,
       activeWeddingId,
     });

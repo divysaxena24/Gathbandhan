@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, logDbFallbackWarning } from "@/lib/db";
 import {
   weddings,
   bookingRequests,
@@ -178,7 +178,7 @@ export async function GET(_req: NextRequest) {
         upcomingMilestones: upcomingTasks,
       });
     } catch (dbErr) {
-      console.warn("Could not load dashboard stats from DB (database may be offline or starting):", dbErr);
+      logDbFallbackWarning("Dashboard Stats API", dbErr);
       return successResponse({
         activeWeddingsCount: 3,
         openEnquiriesCount: 2,

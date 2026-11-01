@@ -3,6 +3,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq, or } from "drizzle-orm";
+import { isAuthorizedAdminEmail, PRIMARY_ADMIN_EMAIL } from "@/lib/auth/admin-whitelist";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,6 +25,18 @@ export async function POST(req: NextRequest) {
     const clerkUser = await currentUser();
     const primaryEmail =
       clerkUser?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
+
+    // Restrict Admin / Planner access strictly to authorized admin emails
+    if (role !== "CLIENT" && !isAuthorizedAdminEmail(primaryEmail)) {
+      return NextResponse.json(
+        {
+          error: `Access Denied: You do not have administrator privileges. Only ${PRIMARY_ADMIN_EMAIL} is authorized to access the Admin Workspace.`,
+          code: "FORBIDDEN_NOT_ADMIN",
+        },
+        { status: 403 }
+      );
+    }
+
     const name =
       `${clerkUser?.firstName || ""} ${clerkUser?.lastName || ""}`.trim() ||
       "Gathbandhan Member";
@@ -54,19 +67,29 @@ export async function POST(req: NextRequest) {
 
       const res = NextResponse.json({
         success: true,
-        role: updatedUser.role,
         user: updatedUser,
+        role,
       });
-      res.cookies.set("gathbandhan_role", role, { path: "/", maxAge: 2592000, sameSite: "lax" });
+
+      res.cookies.set("gathbandhan_role", role, {
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60,
+        sameSite: "lax",
+      });
+
       return res;
-    } catch (dbError) {
-      console.warn("POST /api/auth/role: Database offline, defaulting gracefully:", dbError);
+    } catch (dbErr) {
+      console.warn("POST /api/auth/role: DB offline, setting cookie fallback:", dbErr);
       const res = NextResponse.json({
         success: true,
         role,
-        user: { id: userId, email: primaryEmail, role, name },
+        offlineFallback: true,
       });
-      res.cookies.set("gathbandhan_role", role, { path: "/", maxAge: 2592000, sameSite: "lax" });
+      res.cookies.set("gathbandhan_role", role, {
+        path: "/",
+        maxAge: 30 * 24 * 60 * 60,
+        sameSite: "lax",
+      });
       return res;
     }
   } catch (error: any) {
@@ -74,4 +97,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-
