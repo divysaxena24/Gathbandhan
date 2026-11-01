@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   Send,
   AlertCircle,
+  Lock,
 } from 'lucide-react';
 
 export default function ReviewSummaryStep() {
@@ -51,20 +52,42 @@ export default function ReviewSummaryStep() {
   const [submittingLead, setSubmittingLead] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Pre-fill contact details from Clerk if user is logged in
+  // Fetch contact details: email is strictly fetched from user account and is non-editable
   useEffect(() => {
-    if (user) {
-      if (!leadName && user.fullName) {
-        setLeadName(user.fullName);
-      }
-      if (!leadEmail && user.primaryEmailAddress?.emailAddress) {
-        setLeadEmail(user.primaryEmailAddress.emailAddress);
-      }
-      if (!leadPhone && user.primaryPhoneNumber?.phoneNumber) {
-        setLeadPhone(user.primaryPhoneNumber.phoneNumber);
-      }
+    const accountEmail =
+      user?.primaryEmailAddress?.emailAddress ||
+      user?.emailAddresses?.[0]?.emailAddress ||
+      '';
+    const accountName =
+      user?.fullName ||
+      `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
+    const accountPhone = user?.primaryPhoneNumber?.phoneNumber || '';
+
+    if (accountEmail) {
+      setLeadEmail(accountEmail);
     }
-  }, [user, leadName, leadEmail, leadPhone]);
+    if (accountName && !leadName) {
+      setLeadName(accountName);
+    }
+    if (accountPhone && !leadPhone) {
+      setLeadPhone(accountPhone);
+    }
+
+    // Fallback: If Clerk user is hydrating, retrieve registered account from session endpoint
+    if (!accountEmail) {
+      fetch('/api/auth/me')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.user?.email) {
+            setLeadEmail(data.user.email);
+            if (!leadName && data.user.name && data.user.name !== 'Gathbandhan Member') {
+              setLeadName(data.user.name);
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   const handleLeadSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -335,33 +358,74 @@ export default function ReviewSummaryStep() {
               </div>
             )}
 
-            <form onSubmit={handleLeadSubmit} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <input
-                id="leadNameInput"
-                type="text"
-                required
-                placeholder="Couple / Contact Name *"
-                value={leadName}
-                onChange={(e) => setLeadName(e.target.value)}
-                className="px-4 py-3 rounded-xl border border-gold/30 text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-soft-white"
-              />
-              <input
-                id="leadEmailInput"
-                type="email"
-                placeholder="Email Address"
-                value={leadEmail}
-                onChange={(e) => setLeadEmail(e.target.value)}
-                className="px-4 py-3 rounded-xl border border-gold/30 text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-soft-white"
-              />
-              <input
-                id="leadPhoneInput"
-                type="tel"
-                placeholder="Phone / WhatsApp Number *"
-                value={leadPhone}
-                onChange={(e) => setLeadPhone(e.target.value)}
-                className="px-4 py-3 rounded-xl border border-gold/30 text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-soft-white"
-              />
-              <div className="sm:col-span-3 flex justify-end mt-2">
+            <form onSubmit={handleLeadSubmit} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Couple / Contact Name (Editable) */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-maroon-deep">
+                  <span>Couple / Contact Name *</span>
+                  <span className="text-[10px] text-warm-gray font-normal">Editable</span>
+                </div>
+                <input
+                  id="leadNameInput"
+                  type="text"
+                  required
+                  placeholder="e.g. Divya & Knox"
+                  value={leadName}
+                  onChange={(e) => setLeadName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gold/30 text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-soft-white text-charcoal font-medium shadow-sm"
+                />
+              </div>
+
+              {/* User Account Email (Non-editable, fetched from user account) */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-maroon-deep">
+                  <span>Account Email</span>
+                  <span className="text-[10px] text-warm-gray font-normal flex items-center gap-1">
+                    <Lock className="w-3 h-3 text-gold" />
+                    Non-editable
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    id="leadEmailInput"
+                    type="email"
+                    readOnly
+                    tabIndex={-1}
+                    placeholder="Account Email (Auto-filled)"
+                    value={leadEmail}
+                    className="w-full px-4 py-3 rounded-xl border border-gold/25 text-sm bg-cream/60 text-charcoal/70 cursor-not-allowed focus:outline-none select-none font-medium pr-9 shadow-inner"
+                    title="Email is automatically fetched from your user account and cannot be edited."
+                  />
+                  <div
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gold/70"
+                    title="Linked to your registered account (Non-editable)"
+                  >
+                    <Lock className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Phone / WhatsApp Number (Editable) */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-maroon-deep">
+                  <span>Phone / WhatsApp *</span>
+                  <span className="text-[10px] text-warm-gray font-normal">Editable</span>
+                </div>
+                <input
+                  id="leadPhoneInput"
+                  type="tel"
+                  placeholder="+91 98765 43210"
+                  value={leadPhone}
+                  onChange={(e) => setLeadPhone(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gold/30 text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-soft-white text-charcoal font-medium shadow-sm"
+                />
+              </div>
+
+              <div className="sm:col-span-3 flex items-center justify-between mt-2 pt-1">
+                <span className="text-[11px] text-warm-gray flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-gold" />
+                  Email is locked to your account for private booking security.
+                </span>
                 <button
                   type="submit"
                   disabled={submittingLead}
