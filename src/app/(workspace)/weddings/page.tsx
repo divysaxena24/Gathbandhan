@@ -34,6 +34,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { formatINR } from "@/lib/money";
+import { OverbudgetTag } from "@/components/common/overbudget-tag";
 import { toast } from "sonner";
 
 interface WeddingItem {
@@ -45,6 +46,7 @@ interface WeddingItem {
   endDate: string | null;
   estimatedGuestCount: number | null;
   budgetPaise: string;
+  estimatedBudgetPaise?: string | null;
   packageType: string | null;
   lifecycleStatus: "PLANNING" | "ACTIVE" | "COMPLETED" | "CANCELLED";
   notes: string | null;
@@ -367,7 +369,18 @@ export default function WeddingsPage() {
                       <Users className="w-3.5 h-3.5 text-gold" />
                       <span>{w.estimatedGuestCount || 300} Guests</span>
                     </div>
-                    <div className="flex items-center gap-1 font-semibold text-charcoal">
+                    <div className="flex items-center gap-1.5 font-semibold text-charcoal flex-wrap">
+                      <span>{formatINR(BigInt(w.budgetPaise || "0"))}</span>
+                      {w.estimatedBudgetPaise && BigInt(w.estimatedBudgetPaise) > BigInt(w.budgetPaise || "0") && (
+                        <OverbudgetTag
+                          isOverBudget={true}
+                          overBudgetPaise={BigInt(w.estimatedBudgetPaise) - BigInt(w.budgetPaise || "0")}
+                          clientBudgetPaise={BigInt(w.budgetPaise || "0")}
+                          size="xs"
+                        />
+                      )}
+                    </div>
+                    <div className="hidden">
                       <span>{formatINR(BigInt(w.budgetPaise || "0"))}</span>
                     </div>
                   </div>

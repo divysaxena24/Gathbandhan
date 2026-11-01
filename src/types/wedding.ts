@@ -125,6 +125,8 @@ export interface WeddingSelections {
   customRequirements?: string;
 
   budgetRange?: BudgetRange;
+  clientBudgetInr?: number;
+  clientBudgetPaise?: string | number | bigint;
   budgetInclusions: string[];
   spendingPriority?: SpendingPriority;
 

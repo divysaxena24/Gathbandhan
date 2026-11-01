@@ -52,6 +52,7 @@ export interface FallbackBookingRequest {
   additionalServices: string[] | null;
   customRequirements: string | null;
   estimatedBudgetPaise: string;
+  clientBudgetPaise?: string | null;
   budgetBreakdown: Record<string, { totalInPaise: number; label?: string }> | null;
   fullSelections: any;
   status: "SUBMITTED" | "UNDER_REVIEW" | "CHANGES_REQUESTED" | "ACCEPTED" | "REJECTED";
@@ -142,6 +143,7 @@ function getStore(): Map<string, FallbackBookingRequest> {
       additionalServices: ["Bridal Makeup & Trousseau Styling", "Guest Welcome Hampers"],
       customRequirements: "A traditional elephant and vintage Rolls Royce entrance for the groom.",
       estimatedBudgetPaise: "450000000", // ₹45,00,000
+      clientBudgetPaise: "300000000", // ₹30,00,000 (Client preferred budget)
       budgetBreakdown: {
         venue: { totalInPaise: 180000000, label: "Palace Venue & Rooms" },
         catering: { totalInPaise: 120000000, label: "Royal Banquets & Catering" },
@@ -149,7 +151,7 @@ function getStore(): Map<string, FallbackBookingRequest> {
         entertainment: { totalInPaise: 40000000, label: "Artists & Sound Production" },
         photography: { totalInPaise: 30000000, label: "Cinematography & Albums" },
       },
-      fullSelections: {},
+      fullSelections: { budgetRange: "below_25_lakh", clientBudgetPaise: "250000000" },
       status: "SUBMITTED",
       reviewNotes: null,
       createdAt: nowIso,
@@ -209,6 +211,7 @@ export function saveFallbackBookingRequest(data: {
   additionalServices?: string[] | null;
   customRequirements?: string | null;
   estimatedBudgetPaise?: string | bigint | number;
+  clientBudgetPaise?: string | bigint | number | null;
   budgetBreakdown?: any;
   fullSelections?: any;
 }): FallbackBookingRequest {
@@ -276,6 +279,10 @@ export function saveFallbackBookingRequest(data: {
     additionalServices: data.additionalServices || [],
     customRequirements: data.customRequirements || null,
     estimatedBudgetPaise: budgetPaiseStr,
+    clientBudgetPaise:
+      data.clientBudgetPaise?.toString() ||
+      data.fullSelections?.clientBudgetPaise?.toString() ||
+      null,
     budgetBreakdown: data.budgetBreakdown || {},
     fullSelections: data.fullSelections || {},
     status: "SUBMITTED",

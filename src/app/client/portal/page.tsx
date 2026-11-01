@@ -36,6 +36,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ClientBillsUpiView } from "@/components/finance/client-bills-upi-view";
+import { compareBudgets } from "@/lib/services/budget-comparison";
+import { OverbudgetTag } from "@/components/common/overbudget-tag";
 
 interface BookingRequestData {
   id: string;
@@ -76,6 +78,8 @@ interface BookingRequestData {
   additionalServices: string[] | null;
   customRequirements: string | null;
   estimatedBudgetPaise: string;
+  clientBudgetPaise?: string | null;
+  fullSelections?: any;
   budgetBreakdown: Record<string, { totalInPaise: number; label?: string }> | null;
   status: "SUBMITTED" | "UNDER_REVIEW" | "CHANGES_REQUESTED" | "ACCEPTED" | "REJECTED";
   reviewNotes: string | null;
@@ -100,6 +104,13 @@ function ClientPortalContent() {
   const [newMessage, setNewMessage] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
+  const budgetComparison = bookingData
+    ? compareBudgets(
+        bookingData.estimatedBudgetPaise,
+        bookingData.clientBudgetPaise || bookingData.fullSelections?.clientBudgetPaise,
+        bookingData.fullSelections?.budgetRange
+      )
+    : null;
 
   const fetchPortalData = useCallback(async () => {
     try {
@@ -329,14 +340,28 @@ function ClientPortalContent() {
 
             {/* Budget Display Card */}
             <div className="bg-black/25 backdrop-blur-md p-5 rounded-2xl border border-gold/30 flex flex-col justify-center min-w-[220px]">
-              <span className="text-[11px] uppercase tracking-wider text-gold-light font-semibold">
+              <div className="flex items-center justify-between gap-2 mb-0.5">
+                <span className="text-[11px] uppercase tracking-wider text-gold-light font-semibold">
+                  Estimated Investment
+                </span>
+                {budgetComparison?.isOverBudget && (
+                  <OverbudgetTag
+                    isOverBudget={true}
+                    overBudgetPaise={budgetComparison.overBudgetPaise}
+                    clientBudgetPaise={budgetComparison.clientBudgetPaise}
+                    size="xs"
+                    className="bg-rose-500/30 text-rose-100 border-rose-400/50"
+                  />
+                )}
+              </div>
+              <span className="sr-only">
                 Estimated Investment
               </span>
               <span className="font-heading text-2xl sm:text-3xl font-bold text-soft-white mt-1">
                 {formatCurrency(bookingData.estimatedBudgetPaise)}
               </span>
               <span className="text-[10px] text-soft-white/60 mt-0.5">
-                Calculated across all 14 selections
+                {budgetComparison?.isOverBudget ? `Over client budget (${budgetComparison.formattedClientBudget}) by ${budgetComparison.formattedOverBudget}` : "Calculated across all 14 selections"}
               </span>
             </div>
           </div>
@@ -642,11 +667,42 @@ function ClientPortalContent() {
                 </div>
                 <div className="text-right">
                   <span className="text-xs text-warm-gray block">Estimated Total</span>
-                  <span className="font-heading text-2xl font-bold text-maroon">
+                  <div className="flex items-center justify-end gap-2 flex-wrap">
+                    <span className="font-heading text-2xl font-bold text-maroon">
+                      {formatCurrency(bookingData.estimatedBudgetPaise)}
+                    </span>
+                    {budgetComparison?.isOverBudget && (
+                      <OverbudgetTag
+                        isOverBudget={true}
+                        overBudgetPaise={budgetComparison.overBudgetPaise}
+                        clientBudgetPaise={budgetComparison.clientBudgetPaise}
+                        size="sm"
+                        showAmount={true}
+                      />
+                    )}
+                  </div>
+                  {budgetComparison?.isOverBudget && (
+                    <span className="text-xs text-rose-600 font-medium block mt-1">
+                      Client Target: {budgetComparison.formattedClientBudget} (+{budgetComparison.percentageOver}% over)
+                    </span>
+                  )}
+                  <span className="sr-only">
                     {formatCurrency(bookingData.estimatedBudgetPaise)}
                   </span>
                 </div>
               </div>
+
+              {budgetComparison?.isOverBudget && (
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="font-semibold block mb-0.5">Budget Optimization Notice</strong>
+                    <p>
+                      Our calculated estimate of {budgetComparison.formattedEstimated} is higher than your preferred budget of {budgetComparison.formattedClientBudget} by {budgetComparison.formattedOverBudget}. Your assigned wedding coordinator will present vendor alternatives and package tailoring during consultation to align with your desired budget.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Category Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">

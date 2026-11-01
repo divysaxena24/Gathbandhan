@@ -13,6 +13,8 @@ import { useConsultation } from '@/hooks/useConsultation';
 import StepNavigation from '@/components/consultation-ui/StepNavigation';
 import { calculateWeddingBudget } from '@/lib/services/budget-calculator';
 import { formatPaise, formatPaiseShort } from '@/lib/money';
+import { compareBudgets } from '@/lib/services/budget-comparison';
+import { OverbudgetTag } from '@/components/common/overbudget-tag';
 import {
   Sparkles,
   FileText,
@@ -38,6 +40,7 @@ export default function ReviewSummaryStep() {
   const { selections } = state;
 
   const budget = calculateWeddingBudget(selections);
+  const budgetComparison = compareBudgets(budget.grandTotalInPaise, selections.clientBudgetPaise, selections.budgetRange);
   const [leadCaptured, setLeadCaptured] = useState(false);
   const [leadName, setLeadName] = useState(selections.contactName || '');
   const [leadEmail, setLeadEmail] = useState(selections.contactEmail || '');
@@ -159,12 +162,34 @@ export default function ReviewSummaryStep() {
               <span className="text-xs uppercase tracking-widest text-gold-light font-semibold">
                 Estimated Total Investment
               </span>
-              <div className="font-heading text-3xl sm:text-5xl font-bold text-soft-white mt-1">
-                {formatPaise(budget.grandTotalInPaise)}
+              <div className="font-heading text-3xl sm:text-5xl font-bold text-soft-white mt-1 flex items-center gap-3 flex-wrap">
+                <span>{formatPaise(budget.grandTotalInPaise)}</span>
+                {budgetComparison.isOverBudget && (
+                  <OverbudgetTag
+                    isOverBudget={true}
+                    overBudgetPaise={budgetComparison.overBudgetPaise}
+                    clientBudgetPaise={budgetComparison.clientBudgetPaise}
+                    percentageOver={budgetComparison.percentageOver}
+                    size="md"
+                    showAmount={true}
+                    className="bg-rose-500/30 text-rose-100 border-rose-300/50"
+                  />
+                )}
               </div>
               <p className="text-xs text-soft-white/70 mt-1">
                 Inclusive of 18% GST ({formatPaise(budget.taxesInPaise)}) & 5% Contingency Buffer ({formatPaise(budget.contingencyInPaise)})
               </p>
+
+              {budgetComparison.isOverBudget && (
+                <div className="mt-2.5 p-2.5 rounded-xl bg-black/35 border border-rose-400/40 text-xs text-rose-200 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-300 shrink-0 mt-0.5" />
+                  <p>
+                    <strong>Overbudget Notice:</strong> Calculated estimate ({budgetComparison.formattedEstimated}) exceeds your target budget ({budgetComparison.formattedClientBudget}) by {budgetComparison.formattedOverBudget}.
+                  </p>
+    
+                </div>
+              )}
+
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
