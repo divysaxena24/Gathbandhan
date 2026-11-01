@@ -5,6 +5,7 @@ import { PortalSelectCards } from "./portal-select-cards";
 import { db } from "@/lib/db";
 import { users, bookingRequests } from "@/lib/db/schema";
 import { eq, or, desc } from "drizzle-orm";
+import { isAuthorizedAdminEmail } from "@/lib/auth/admin-whitelist";
 
 export default async function PortalSelectPage() {
   const { userId } = await auth();
@@ -14,13 +15,15 @@ export default async function PortalSelectPage() {
     ? `${user.firstName}${user.lastName ? " " + user.lastName : ""}`
     : "Distinguished Guest";
 
+  const primaryEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
+  const isAdminAllowed = isAuthorizedAdminEmail(primaryEmail);
+
   let currentRole: string | null = null;
   let activeBookingRequestId: string | null = null;
   let activeWeddingId: string | null = null;
 
   if (userId) {
     try {
-      const primaryEmail = user?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
       const [dbUser] = await db
         .select()
         .from(users)
@@ -28,7 +31,7 @@ export default async function PortalSelectPage() {
         .limit(1);
 
       if (dbUser) {
-        currentRole = dbUser.role;
+        currentRole = isAdminAllowed ? dbUser.role : "CLIENT";
         const [latestReq] = await db
           .select({ id: bookingRequests.id, weddingId: bookingRequests.weddingId })
           .from(bookingRequests)
@@ -88,15 +91,17 @@ export default async function PortalSelectPage() {
             Select Your Destination
           </h1>
           <p className="text-sm sm:text-base text-charcoal-500 max-w-xl mx-auto font-sans">
-            Choose whether to manage planning and operational workflows as a producer, or review bespoke proposals and guest itineraries as a client.
+            Choose whether to manage planning and operational workflows as an authorized organizer, or review bespoke proposals and guest itineraries as a client.
           </p>
         </div>
 
-        {/* Client Component with Instant Client Portal Navigation */}
+        {/* Client Component with Instant Client Portal Navigation and Admin Guard */}
         <PortalSelectCards
           currentRole={currentRole}
           activeBookingRequestId={activeBookingRequestId}
           activeWeddingId={activeWeddingId}
+          isAdminAllowed={isAdminAllowed}
+          userEmail={primaryEmail}
         />
       </section>
 

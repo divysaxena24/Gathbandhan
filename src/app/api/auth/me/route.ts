@@ -4,18 +4,20 @@ import { db } from "@/lib/db";
 import { users, bookingRequests, clients, weddings } from "@/lib/db/schema";
 import { eq, or, desc } from "drizzle-orm";
 import { getFallbackBookingRequests } from "@/lib/booking-requests-fallback";
+import { isAuthorizedAdminEmail } from "@/lib/auth/admin-whitelist";
 
 export async function GET(req: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ authenticated: false, user: null, role: null });
+      return NextResponse.json({ authenticated: false, user: null, role: null, isAdmin: false });
     }
 
     const clerkUser = await currentUser();
     const primaryEmail =
       clerkUser?.emailAddresses?.[0]?.emailAddress?.toLowerCase() || "";
     const cookieRole = req.cookies.get("gathbandhan_role")?.value;
+    const isUserAdmin = isAuthorizedAdminEmail(primaryEmail);
 
     // 1. Look up user in database
     let dbUser: any = null;
@@ -32,6 +34,7 @@ export async function GET(req: NextRequest) {
         const name =
           `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
           "Gathbandhan Member";
+        const initialRole = isUserAdmin ? (cookieRole || "FOUNDER_ADMIN") : "CLIENT";
 
         [dbUser] = await db
           .insert(users)
@@ -40,7 +43,7 @@ export async function GET(req: NextRequest) {
             name,
             email: primaryEmail || `${userId}@gathbandhan.internal`,
             phone: clerkUser.phoneNumbers?.[0]?.phoneNumber || null,
-            role: (cookieRole as any) || "CLIENT",
+            role: initialRole as any,
             avatarUrl: clerkUser.imageUrl || null,
             isActive: true,
           })
@@ -59,7 +62,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!dbUser) {
-      const activeRole = cookieRole || "CLIENT";
+      const activeRole = isUserAdmin ? (cookieRole || "FOUNDER_ADMIN") : "CLIENT";
       const fallbackRequests = getFallbackBookingRequests();
       const activeBookingRequestId = fallbackRequests.length > 0 ? fallbackRequests[0].id : null;
 
@@ -72,6 +75,7 @@ export async function GET(req: NextRequest) {
           role: activeRole,
         },
         role: activeRole,
+        isAdmin: isUserAdmin,
         activeBookingRequestId,
         activeWeddingId: null,
       });
@@ -136,7 +140,12 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const finalRole = cookieRole || dbUser.role;
+    // Strict role enforcement: Only authorized admin emails can hold admin/planner roles
+    const rawRole = cookieRole || dbUser.role;
+    const finalRole = isUserAdmin
+      ? (rawRole || "FOUNDER_ADMIN")
+      : "CLIENT";
+
     return NextResponse.json({
       authenticated: true,
       user: {
@@ -149,6 +158,7 @@ export async function GET(req: NextRequest) {
         avatarUrl: dbUser.avatarUrl,
       },
       role: finalRole,
+      isAdmin: isUserAdmin,
       activeBookingRequestId,
       activeWeddingId,
     });
