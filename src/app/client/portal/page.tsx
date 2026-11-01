@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, Suspense } from "react";
+import React, { useState, useEffect, useCallback, Suspense, useRef } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useUser, UserButton } from "@clerk/nextjs";
@@ -129,9 +129,13 @@ function ClientPortalContent() {
     agreementId: string;
   } | null>(null);
 
-  const fetchPortalData = useCallback(async () => {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const fetchPortalData = useCallback(async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent) {
+        setLoading(true);
+      }
       // 1. If explicit requestId passed, load that directly
       let targetId = requestIdParam;
 
@@ -164,13 +168,22 @@ function ClientPortalContent() {
     } catch (err) {
       console.error("Failed to load client portal data:", err);
     } finally {
-      setLoading(false);
+      if (!isSilent) {
+        setLoading(false);
+      }
     }
   }, [requestIdParam]);
 
   useEffect(() => {
     fetchPortalData();
   }, [fetchPortalData]);
+
+  // Auto-scroll chat to bottom when messages update or when switching to chat tab
+  useEffect(() => {
+    if (activeTab === "messages") {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [bookingData?.messages?.length, activeTab]);
 
   // Sync Stage & Signature State from localStorage & booking data
   useEffect(() => {
@@ -205,22 +218,81 @@ function ClientPortalContent() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !bookingData) return;
+    const messageContent = newMessage.trim();
+    if (!messageContent || !bookingData || sendingMessage) return;
+
     setSendingMessage(true);
+    setNewMessage("");
+
+    // Optimistically append message to chat immediately without triggering full page reload
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage = {
+      id: tempId,
+      senderName: bookingData.contactName || "You",
+      senderRole: "CLIENT",
+      message: messageContent,
+      createdAt: new Date().toISOString(),
+    };
+
+    setBookingData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        messages: [...(prev.messages || []), optimisticMessage],
+      };
+    });
+
     try {
       const res = await fetch(`/api/booking-requests/${bookingData.id}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: newMessage.trim() }),
+        body: JSON.stringify({ message: messageContent }),
       });
+
       if (res.ok) {
-        setNewMessage("");
+        const json = await res.json();
+        const serverMessage = json.message;
+        if (serverMessage) {
+          setBookingData((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              messages: (prev.messages || []).map((m) =>
+                m.id === tempId ? serverMessage : m
+              ),
+            };
+          });
+        }
         setFeedbackToast("Message sent to your wedding designer!");
         setTimeout(() => setFeedbackToast(null), 3000);
-        fetchPortalData();
+        // Refresh silently in background without triggering full-page loading spinner
+        fetchPortalData(true);
+      } else {
+        // Rollback optimistic message on failure
+        setBookingData((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            messages: (prev.messages || []).filter((m) => m.id !== tempId),
+          };
+        });
+        setNewMessage(messageContent);
+        setFeedbackToast("Could not deliver message. Please retry.");
+        setTimeout(() => setFeedbackToast(null), 3000);
       }
     } catch (err) {
       console.error("Failed to send message:", err);
+      // Rollback optimistic message on network error
+      setBookingData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          messages: (prev.messages || []).filter((m) => m.id !== tempId),
+        };
+      });
+      setNewMessage(messageContent);
+      setFeedbackToast("Network error. Please try again.");
+      setTimeout(() => setFeedbackToast(null), 3000);
     } finally {
       setSendingMessage(false);
     }
@@ -1547,6 +1619,7 @@ function ClientPortalContent() {
                     Start a conversation with your wedding planner below!
                   </p>
                 )}
+                <div ref={messagesEndRef} />
               </div>
 
               {/* Input box */}
