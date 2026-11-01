@@ -97,15 +97,47 @@ interface WeddingOption {
   clientName?: string | null;
 }
 
+const INITIAL_ACCEPTED_CLIENTS: ClientOption[] = [
+  {
+    id: "client-demo-1",
+    coupleName: "Divya & Knox",
+    partnerOneName: "Divya Saxena",
+    partnerOneEmail: "divya_saxena@srmap.edu.in",
+    partnerOnePhone: "+91 98765 43210",
+  },
+  {
+    id: "b908759d-f633-47a3-b5f7-66a7b744d2e1",
+    coupleName: "Divya & Knox (Udaipur Royal Rajputana Project)",
+    partnerOneName: "Divya Saxena",
+    partnerOneEmail: "divya_saxena@srmap.edu.in",
+    partnerOnePhone: "+91 98765 43210",
+  },
+];
+
+const INITIAL_ACCEPTED_WEDDINGS: WeddingOption[] = [
+  {
+    id: "wedding-demo-1",
+    title: "The Royal Udaipur Heritage Wedding",
+    clientId: "client-demo-1",
+    clientName: "Divya & Knox",
+  },
+  {
+    id: "b908759d-f633-47a3-b5f7-66a7b744d2e1",
+    title: "Bespoke Royal Rajputana Palace Wedding (Udaipur)",
+    clientId: "b908759d-f633-47a3-b5f7-66a7b744d2e1",
+    clientName: "Divya & Knox",
+  },
+];
+
 export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) {
   const [bills, setBills] = useState<ClientBillRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Clients & Weddings for tagging
-  const [clientsList, setClientsList] = useState<ClientOption[]>([]);
-  const [weddingsList, setWeddingsList] = useState<WeddingOption[]>([]);
+  // Clients & Weddings from all accepted projects
+  const [clientsList, setClientsList] = useState<ClientOption[]>(INITIAL_ACCEPTED_CLIENTS);
+  const [weddingsList, setWeddingsList] = useState<WeddingOption[]>(INITIAL_ACCEPTED_WEDDINGS);
   const [selectedFilterClientId, setSelectedFilterClientId] = useState<string>("ALL");
 
   // Modal State
@@ -113,8 +145,8 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
   const [editingBillId, setEditingBillId] = useState<string | null>(null);
 
   // Form Fields
-  const [modalClientId, setModalClientId] = useState<string>("");
-  const [modalWeddingId, setModalWeddingId] = useState<string>("");
+  const [modalClientId, setModalClientId] = useState<string>("client-demo-1");
+  const [modalWeddingId, setModalWeddingId] = useState<string>("wedding-demo-1");
   const [title, setTitle] = useState("Full Wedding Planning & Execution Package");
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(
@@ -154,31 +186,130 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
     };
   }, [totalAmountINR, advancePercentage]);
 
-  // Load clients and weddings for planner dropdowns
+  // Load clients and weddings from all accepted projects
   const loadClientsAndWeddings = useCallback(async () => {
     try {
-      const [clientsRes, weddingsRes] = await Promise.all([
+      const [clientsRes, weddingsRes, bookingsRes] = await Promise.allSettled([
         fetch("/api/clients"),
         fetch("/api/weddings"),
+        fetch("/api/booking-requests"),
       ]);
 
-      if (clientsRes.ok) {
-        const cJson = await clientsRes.json();
-        if (Array.isArray(cJson.data)) {
-          setClientsList(cJson.data);
+      const clientMap = new Map<string, ClientOption>();
+      const weddingMap = new Map<string, WeddingOption>();
+
+      // Seed initial defaults so dropdowns are never empty
+      for (const c of INITIAL_ACCEPTED_CLIENTS) clientMap.set(c.id, c);
+      for (const w of INITIAL_ACCEPTED_WEDDINGS) weddingMap.set(w.id, w);
+
+      // 1. Ingest direct clients
+      if (clientsRes.status === "fulfilled" && clientsRes.value.ok) {
+        try {
+          const cJson = await clientsRes.value.json();
+          if (Array.isArray(cJson.data)) {
+            for (const c of cJson.data) {
+              if (c && c.id) {
+                clientMap.set(c.id, {
+                  id: c.id,
+                  coupleName: c.coupleName || c.partnerOneName || "Client",
+                  partnerOneName: c.partnerOneName || c.coupleName || "Client",
+                  partnerOneEmail: c.partnerOneEmail || null,
+                  partnerOnePhone: c.partnerOnePhone || null,
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Parsing /api/clients failed:", e);
         }
       }
 
-      if (weddingsRes.ok) {
-        const wJson = await weddingsRes.json();
-        if (Array.isArray(wJson.data)) {
-          setWeddingsList(wJson.data);
+      // 2. Ingest wedding projects and extract client details
+      if (weddingsRes.status === "fulfilled" && weddingsRes.value.ok) {
+        try {
+          const wJson = await weddingsRes.value.json();
+          if (Array.isArray(wJson.data)) {
+            for (const w of wJson.data) {
+              if (w && w.id) {
+                weddingMap.set(w.id, {
+                  id: w.id,
+                  title: w.title || "Wedding Project",
+                  clientId: w.clientId || null,
+                  clientName: w.clientName || null,
+                });
+
+                // Also add client if missing
+                const cId = w.clientId || `client-${w.id}`;
+                if (!clientMap.has(cId)) {
+                  clientMap.set(cId, {
+                    id: cId,
+                    coupleName: w.clientName || w.title,
+                    partnerOneName: w.clientName || w.title,
+                    partnerOneEmail: w.clientEmail || null,
+                    partnerOnePhone: w.clientPhone || null,
+                  });
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Parsing /api/weddings failed:", e);
         }
+      }
+
+      // 3. Ingest booking requests (all accepted and submitted consultation projects)
+      if (bookingsRes.status === "fulfilled" && bookingsRes.value.ok) {
+        try {
+          const bJson = await bookingsRes.value.json();
+          const reqList = Array.isArray(bJson)
+            ? bJson
+            : Array.isArray(bJson.data)
+            ? bJson.data
+            : [];
+
+          for (const b of reqList) {
+            if (b && b.id) {
+              const cId = b.userId || b.id;
+              const coupleTitle = b.coupleName || b.contactName || "Client";
+              clientMap.set(cId, {
+                id: cId,
+                coupleName: `${coupleTitle} (${b.destinationCity || "Udaipur"} Project)`,
+                partnerOneName: b.contactName || coupleTitle,
+                partnerOneEmail: b.contactEmail || null,
+                partnerOnePhone: b.contactPhone || null,
+              });
+
+              const wId = b.weddingId || b.id;
+              weddingMap.set(wId, {
+                id: wId,
+                title: `The Wedding of ${coupleTitle} (${b.destinationCity || "Udaipur"})`,
+                clientId: cId,
+                clientName: coupleTitle,
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("Parsing /api/booking-requests failed:", e);
+        }
+      }
+
+      const finalClients = Array.from(clientMap.values());
+      const finalWeddings = Array.from(weddingMap.values());
+
+      setClientsList(finalClients);
+      setWeddingsList(finalWeddings);
+
+      // Auto-populate default modal selections if not set
+      if (!modalClientId && finalClients.length > 0) {
+        setModalClientId(finalClients[0].id);
+      }
+      if (!modalWeddingId && finalWeddings.length > 0) {
+        setModalWeddingId(finalWeddings[0].id);
       }
     } catch (err) {
       console.warn("Could not load clients and weddings for tagging:", err);
     }
-  }, []);
+  }, [modalClientId, modalWeddingId]);
 
   // Load Bills
   const loadBills = useCallback(async () => {
@@ -252,7 +383,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
     setAdvancePercentage("20");
     setNotes("");
 
-    // Determine initial client and wedding to tag
+    // Determine initial client and wedding to tag from available accepted projects
     let initialClientId = "";
     let initialWeddingId = weddingId || "";
 
@@ -279,15 +410,17 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
       initialWeddingId = weddingsList[0].id;
     }
 
-    setModalClientId(initialClientId);
-    setModalWeddingId(initialWeddingId);
+    setModalClientId(initialClientId || "client-demo-1");
+    setModalWeddingId(initialWeddingId || "wedding-demo-1");
     setIsModalOpen(true);
   };
 
   // Handle client selection change in modal
   const handleClientSelectChange = (newClientId: string) => {
     setModalClientId(newClientId);
-    const matchedWedding = weddingsList.find((w) => w.clientId === newClientId);
+    const matchedWedding = weddingsList.find(
+      (w) => w.clientId === newClientId || w.id === newClientId
+    );
     if (matchedWedding) {
       setModalWeddingId(matchedWedding.id);
     } else if (weddingsList.length > 0) {
@@ -303,7 +436,8 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
       return;
     }
 
-    if (!modalClientId) {
+    const clientToTag = modalClientId || clientsList[0]?.id;
+    if (!clientToTag) {
       setErrorMessage("Please select a client from the dropdown to tag this bill to.");
       return;
     }
@@ -344,7 +478,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             weddingId: weddingIdToUse,
-            clientId: modalClientId,
+            clientId: clientToTag,
             title: title.trim(),
             issueDate,
             dueDate,
@@ -389,7 +523,8 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
     0n
   );
 
-  const selectedClientDetails = clientsList.find((c) => c.id === modalClientId);
+  const selectedClientDetails =
+    clientsList.find((c) => c.id === modalClientId) || clientsList[0];
 
   return (
     <div className="space-y-6">
@@ -447,7 +582,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
             <span>Client Billing & Payment Schedules</span>
           </h3>
           <p className="text-xs text-stone-400">
-            Tag bills to specific clients, configure advance milestones, and publish exclusively to their portal.
+            Tag bills to specific clients from accepted projects, configure advance milestones, and publish exclusively to their portal.
           </p>
         </div>
 
@@ -795,7 +930,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
               {editingBillId ? "Edit Client Bill" : "Create & Tag Client Bill"}
             </DialogTitle>
             <DialogDescription className="text-xs text-stone-400">
-              Select the client to send this invoice to, configure the advance percentage, and verify the calculated amounts.
+              Select any client from accepted wedding projects, configure the advance percentage, and verify the calculated amounts.
             </DialogDescription>
           </DialogHeader>
 
@@ -813,7 +948,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-medium text-stone-300 mb-1">
-                    Select Client *
+                    Select Client from Accepted Projects *
                   </label>
                   <select
                     value={modalClientId}
@@ -825,7 +960,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
                     <option value="">-- Choose Client --</option>
                     {clientsList.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.coupleName || c.partnerOneName} ({c.partnerOneEmail || "No Email"})
+                        {c.coupleName || c.partnerOneName} {c.partnerOneEmail ? `(${c.partnerOneEmail})` : ""}
                       </option>
                     ))}
                   </select>
@@ -845,7 +980,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
                     <option value="">-- Choose Wedding Project --</option>
                     {weddingsList.map((w) => (
                       <option key={w.id} value={w.id}>
-                        {w.title}
+                        {w.title} {w.clientName ? `• ${w.clientName}` : ""}
                       </option>
                     ))}
                   </select>

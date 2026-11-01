@@ -5,6 +5,7 @@ import { weddings } from "@/lib/db/schema/weddings";
 import { clients } from "@/lib/db/schema/clients";
 import { isNull, desc, eq, and } from "drizzle-orm";
 import { successResponse, errorResponse } from "@/lib/errors/api-response";
+import { getFallbackBookingRequests } from "@/lib/booking-requests-fallback";
 import { z } from "zod";
 
 const createWeddingSchema = z.object({
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
       return successResponse(serialized);
     } catch (dbErr: unknown) {
       logDbFallbackWarning("Weddings API", dbErr);
-      const fallbackWeddings = [
+      const fallbackWeddings: any[] = [
         {
           id: "wedding-demo-1",
           clientId: "client-demo-1",
@@ -82,6 +83,27 @@ export async function GET(req: NextRequest) {
           clientPhone: "+91 98765 43210",
         },
       ];
+
+      const fallbackBookings = getFallbackBookingRequests();
+      for (const req of fallbackBookings) {
+        const cId = req.userId || req.id;
+        fallbackWeddings.push({
+          id: req.weddingId || `wedding-${req.id}`,
+          clientId: cId,
+          title: `The Wedding of ${req.coupleName} (${req.destinationCity || "Udaipur"})`,
+          city: req.destinationCity || "Udaipur",
+          venue: req.venueType || "Heritage Palace Resort",
+          startDate: req.preferredDate || "2026-12-15",
+          endDate: "2026-12-18",
+          budgetPaise: req.estimatedBudgetPaise?.toString() || "450000000",
+          lifecycleStatus: "PLANNING",
+          createdAt: req.createdAt,
+          clientName: req.coupleName,
+          clientEmail: req.contactEmail || "divya_saxena@srmap.edu.in",
+          clientPhone: req.contactPhone || "+91 98765 43210",
+        });
+      }
+
       if (clientIdParam) {
         return successResponse(fallbackWeddings.filter((w) => w.clientId === clientIdParam));
       }
