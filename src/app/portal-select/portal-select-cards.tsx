@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useClerk } from "@clerk/nextjs";
 import {
   Building2,
   Heart,
@@ -12,6 +13,7 @@ import {
   Lock,
   ShieldAlert,
   AlertTriangle,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +42,7 @@ export function PortalSelectCards({
   userEmail = "",
 }: PortalSelectCardsProps) {
   const router = useRouter();
+  const { signOut } = useClerk();
   const [loadingRole, setLoadingRole] = useState<string | null>(null);
   const [warningOpen, setWarningOpen] = useState(false);
 
@@ -117,11 +120,21 @@ export function PortalSelectCards({
             </p>
 
             {!isAdminAllowed && (
-              <div className="mb-6 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                <span>
-                  Admin access restricted. Only <strong>{PRIMARY_ADMIN_EMAIL}</strong> is authorized to enter.
-                </span>
+              <div className="mb-6 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-2">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    Admin access restricted. Only <strong>{PRIMARY_ADMIN_EMAIL}</strong> is authorized to enter.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => signOut({ redirectUrl: "/sign-in" })}
+                  className="inline-flex items-center gap-1 text-[11px] text-amber-900 hover:text-maroon font-semibold underline pl-6 transition-colors"
+                >
+                  <LogOut className="w-3 h-3" />
+                  Sign out to switch account
+                </button>
               </div>
             )}
 
@@ -269,26 +282,38 @@ export function PortalSelectCards({
           </DialogHeader>
 
           <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900">
-            Please proceed to the Client Portal to review your wedding consultations and proposals.
+            Please proceed to the Client Portal to review your wedding consultations and proposals, or sign in with an authorized admin account.
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+          <DialogFooter className="flex-col gap-2 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row gap-2 w-full justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setWarningOpen(false)}
+                className="w-full sm:w-auto text-xs"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setWarningOpen(false);
+                  handleSelectRole("CLIENT", clientDestination);
+                }}
+                className="w-full sm:w-auto bg-maroon hover:bg-maroon-deep text-white text-xs font-semibold"
+              >
+                <Sparkles className="w-3.5 h-3.5 mr-1.5 text-gold-light" />
+                Go to Client Portal
+              </Button>
+            </div>
+
             <Button
-              variant="outline"
-              onClick={() => setWarningOpen(false)}
-              className="w-full sm:w-auto text-xs"
+              variant="ghost"
+              size="sm"
+              onClick={() => signOut({ redirectUrl: "/sign-in" })}
+              className="w-full text-xs text-charcoal-500 hover:text-maroon underline mt-1"
             >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                setWarningOpen(false);
-                handleSelectRole("CLIENT", clientDestination);
-              }}
-              className="w-full sm:w-auto bg-maroon hover:bg-maroon-deep text-white text-xs font-semibold"
-            >
-              <Sparkles className="w-3.5 h-3.5 mr-1.5 text-gold-light" />
-              Go to Client Portal
+              <LogOut className="w-3.5 h-3.5 mr-1.5" />
+              Sign in with an authorized admin account
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { Crown, Sparkles } from "lucide-react";
+import { Crown } from "lucide-react";
 import { PortalSelectCards } from "./portal-select-cards";
+import { PortalUserHeader } from "./portal-user-header";
 import { db } from "@/lib/db";
 import { users, bookingRequests } from "@/lib/db/schema";
 import { eq, or, desc } from "drizzle-orm";
@@ -62,35 +63,44 @@ export default async function PortalSelectPage() {
         <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-maroon/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Top Brand Bar */}
-      <header className="relative z-10 max-w-7xl mx-auto w-full px-6 py-8 flex items-center justify-between">
+      {/* Top Brand Bar with Sign Out / User Controls */}
+      <header className="relative z-10 max-w-7xl mx-auto w-full px-6 py-6 sm:py-8 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">
           <div className="w-10 h-10 rounded-full bg-gold/15 flex items-center justify-center border border-gold/30 group-hover:scale-105 transition-transform">
             <Crown className="w-5 h-5 text-gold-600" />
           </div>
-          <span className="font-heading font-bold text-2xl text-maroon-deep tracking-tight">
-            Gathbandhan
-          </span>
+          <div>
+            <span className="font-heading font-bold text-2xl text-maroon-deep tracking-tight block leading-none">
+              Gathbandhan
+            </span>
+            <span className="text-[10px] text-gold uppercase tracking-widest font-semibold block pt-0.5">
+              Portal Directory
+            </span>
+          </div>
         </Link>
 
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 border border-gold/20 text-xs font-medium text-charcoal">
-            <Sparkles className="w-3.5 h-3.5 text-gold-600" />
-            <span>Authenticated Access</span>
-          </div>
-        </div>
+        {/* User Account Controls & Logout Button */}
+        <PortalUserHeader userEmail={primaryEmail} />
       </header>
 
       {/* Content Area */}
-      <section className="relative z-10 max-w-5xl mx-auto w-full px-6 py-6 flex-1 flex flex-col justify-center">
-        <div className="text-center space-y-3 mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold/10 border border-gold/25 text-xs font-semibold text-gold-800">
-            Welcome, {displayName}
+      <section className="relative z-10 max-w-5xl mx-auto w-full px-6 py-4 sm:py-6 flex-1 flex flex-col justify-center">
+        <div className="text-center space-y-3 mb-8 sm:mb-10">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gold/10 border border-gold/25 text-xs font-semibold text-gold-800">
+              Welcome, {displayName}
+            </div>
+            {!isAdminAllowed && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-[11px] font-medium text-amber-900">
+                <span>Account: <strong>{primaryEmail}</strong> (Client)</span>
+              </div>
+            )}
           </div>
+
           <h1 className="font-heading font-bold text-3xl sm:text-5xl text-maroon-deep tracking-tight">
             Select Your Destination
           </h1>
-          <p className="text-sm sm:text-base text-charcoal-500 max-w-xl mx-auto font-sans">
+          <p className="text-sm sm:text-base text-charcoal-500 max-w-xl mx-auto font-sans leading-relaxed">
             Choose whether to manage planning and operational workflows as an authorized organizer, or review bespoke proposals and guest itineraries as a client.
           </p>
         </div>
@@ -107,7 +117,7 @@ export default async function PortalSelectPage() {
 
       {/* Footer */}
       <footer className="relative z-10 max-w-7xl mx-auto w-full px-6 py-6 text-center text-xs text-charcoal-400">
-        <p>© 2026 Gathbandhan — The Operating System for Luxury Indian Weddings.</p>
+        <p>© 2026–2027 Gathbandhan — The Operating System for Luxury Indian Weddings.</p>
       </footer>
     </main>
   );
