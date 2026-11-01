@@ -185,6 +185,73 @@ function ClientPortalContent() {
     }
   }, [bookingData?.messages?.length, activeTab]);
 
+  // Dedicated silent message synchronization that doesn't touch other portal state
+  const syncMessagesSilently = useCallback(async () => {
+    if (!bookingData?.id) return;
+    try {
+      const res = await fetch(`/api/booking-requests/${bookingData.id}/messages`);
+      if (res.ok) {
+        const json = await res.json();
+        const incomingMessages = json.messages || [];
+        setBookingData((prev) => {
+          if (!prev) return prev;
+          const currentMsgs = prev.messages || [];
+          // Only update state if count changed or last message id changed
+          if (
+            incomingMessages.length !== currentMsgs.length ||
+            (incomingMessages.length > 0 &&
+              currentMsgs.length > 0 &&
+              incomingMessages[incomingMessages.length - 1]?.id !==
+                currentMsgs[currentMsgs.length - 1]?.id)
+          ) {
+            // Keep any optimistic pending messages if they haven't synced yet
+            const optimisticPending = currentMsgs.filter((m) => m.id?.startsWith("temp-"));
+            const combined = [...incomingMessages];
+            for (const opt of optimisticPending) {
+              if (!combined.some((m) => m.message === opt.message && m.senderRole === opt.senderRole)) {
+                combined.push(opt);
+              }
+            }
+            return {
+              ...prev,
+              messages: combined,
+            };
+          }
+          return prev;
+        });
+      }
+    } catch {
+      // Silent error suppression for polling
+    }
+  }, [bookingData?.id]);
+
+  // Background auto-polling for new incoming messages without page reload
+  useEffect(() => {
+    if (!bookingData?.id) return;
+
+    // Immediately sync on tab change or mount
+    syncMessagesSilently();
+
+    // Auto-fetch messages every 3 seconds silently without page reload
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        syncMessagesSilently();
+      }
+    }, 3000);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncMessagesSilently();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [bookingData?.id, activeTab, syncMessagesSilently]);
+
   // Sync Stage & Signature State from localStorage & booking data
   useEffect(() => {
     if (typeof window !== "undefined" && bookingData?.id) {
@@ -265,7 +332,8 @@ function ClientPortalContent() {
         }
         setFeedbackToast("Message sent to your wedding designer!");
         setTimeout(() => setFeedbackToast(null), 3000);
-        // Refresh silently in background without triggering full-page loading spinner
+        // Refresh messages and portal silently in background without triggering full-page loading spinner
+        syncMessagesSilently();
         fetchPortalData(true);
       } else {
         // Rollback optimistic message on failure
