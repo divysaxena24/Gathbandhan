@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, logDbFallbackWarning } from "@/lib/db";
 import { clients } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
-import { successResponse, errorResponse } from "@/lib/errors/api-response";
+import { successResponse, mutationResponse, errorResponse } from "@/lib/errors/api-response";
 
 export async function GET(_req: NextRequest) {
   try {
@@ -30,10 +30,7 @@ export async function GET(_req: NextRequest) {
 
       return successResponse(rows);
     } catch (dbErr: unknown) {
-      console.warn(
-        "Could not load clients from DB (database may be offline or starting):",
-        dbErr
-      );
+      logDbFallbackWarning("Clients API", dbErr);
       // Fallback demo client for local development or offline DB
       return successResponse([
         {
@@ -76,7 +73,7 @@ export async function POST(req: NextRequest) {
       })
       .returning();
 
-    return successResponse(created);
+    return mutationResponse(created, "Client created successfully");
   } catch (error) {
     return errorResponse(error);
   }

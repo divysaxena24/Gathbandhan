@@ -7,6 +7,7 @@ import {
 } from "@/modules/finance/services/bill-service";
 import { successResponse, errorResponse } from "@/lib/errors/api-response";
 import { ValidationError } from "@/lib/errors";
+import { logDbFallbackWarning } from "@/lib/db";
 
 function serializeBigInt<T>(obj: T): any {
   return JSON.parse(
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest) {
       throw new ValidationError("Either weddingId or clientId query parameter is required");
     } catch (dbErr: unknown) {
       if (dbErr instanceof ValidationError) throw dbErr;
-      console.warn("Could not load bills from DB (database may be offline or starting):", dbErr);
+      logDbFallbackWarning("Finance Bills API", dbErr);
       return successResponse([]);
     }
   } catch (error) {

@@ -1,5 +1,5 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { db } from "@/lib/db";
+import { db, logDbFallbackWarning } from "@/lib/db";
 import { users, weddingVendors, weddings } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { AuthError, ForbiddenError } from "@/lib/errors";
@@ -111,7 +111,7 @@ export async function getCurrentUser(): Promise<AppUser | null> {
       console.warn("Auto-syncing Clerk user in getCurrentUser failed:", err);
     }
   } catch (err: unknown) {
-    console.warn("Could not query database in getCurrentUser (database may be offline or starting):", err);
+    logDbFallbackWarning("Auth Service", err);
   }
 
   // Graceful fallback for local development or when database is offline

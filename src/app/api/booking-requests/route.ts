@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { db } from "@/lib/db";
+import { db, logDbFallbackWarning } from "@/lib/db";
 import {
   bookingRequests,
   bookingRequestMessages,
@@ -241,7 +241,7 @@ export async function POST(req: NextRequest) {
         });
       }
     } catch (dbErr) {
-      console.warn("Could not persist booking request to DB (database may be offline or starting):", dbErr);
+      logDbFallbackWarning("Booking Requests API", dbErr);
     }
 
     // Always keep fallback in-memory store synchronized (or as fallback when DB offline)
@@ -361,7 +361,7 @@ export async function GET(req: NextRequest) {
         }
       }
     } catch (dbErr) {
-      console.warn("Could not load booking requests from DB (database may be offline or starting):", dbErr);
+      logDbFallbackWarning("Booking Requests API", dbErr);
     }
 
     // 2. Fallback to in-memory store

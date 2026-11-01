@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, logDbFallbackWarning } from "@/lib/db";
 import { weddings } from "@/lib/db/schema/weddings";
 import { clients } from "@/lib/db/schema/clients";
 import { isNull, desc, eq } from "drizzle-orm";
@@ -58,7 +58,7 @@ export async function GET(_req: NextRequest) {
 
       return successResponse(serialized);
     } catch (dbErr: unknown) {
-      console.warn("Could not load weddings from DB (database may be offline or starting):", dbErr);
+      logDbFallbackWarning("Weddings API", dbErr);
       return successResponse([
         {
           id: "wedding-demo-1",

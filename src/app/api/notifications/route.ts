@@ -5,6 +5,7 @@ import {
   dispatchNotification,
 } from "@/modules/notifications/services/notification-service";
 import { successResponse, mutationResponse, errorResponse } from "@/lib/errors/api-response";
+import { logDbFallbackWarning } from "@/lib/db";
 import { z } from "zod";
 
 const createNotificationSchema = z.object({
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
       const notifications = await getUserNotifications(user.id, unreadOnly);
       return successResponse(notifications);
     } catch (dbErr: unknown) {
-      console.warn("Could not load notifications from DB (database may be offline or starting):", dbErr);
+      logDbFallbackWarning("Notifications API", dbErr);
       return successResponse([]);
     }
   } catch (error) {

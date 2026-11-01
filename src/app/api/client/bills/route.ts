@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, logDbFallbackWarning } from "@/lib/db";
 import { clients, weddings } from "@/lib/db/schema";
 import { eq, or } from "drizzle-orm";
 import {
@@ -17,33 +17,20 @@ function serializeBigInt<T>(obj: T): any {
   );
 }
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const user = await requireAuth();
-    const { searchParams } = new URL(req.url);
-    const weddingId = searchParams.get("weddingId");
-    const clientId = searchParams.get("clientId");
 
     try {
-      if (weddingId) {
-        const bills = await getBillsForWedding(weddingId);
-        return successResponse(serializeBigInt(bills));
-      }
-
-      if (clientId) {
-        const bills = await getBillsForClient(clientId);
-        return successResponse(serializeBigInt(bills));
-      }
-
-      // Try finding client for current user
+      // Find client profile linked to this user
       const [client] = await db
         .select({ id: clients.id })
         .from(clients)
         .where(
           or(
             eq(clients.portalUserId, user.id),
-            eq(clients.partnerOneEmail, user.email || ""),
-            eq(clients.partnerTwoEmail, user.email || "")
+            eq(clients.partnerOneEmail, user.email),
+            user.clerkId ? eq(clients.portalUserId, user.clerkId) : undefined
           )
         )
         .limit(1);
@@ -66,7 +53,7 @@ export async function GET(req: NextRequest) {
 
       return successResponse([]);
     } catch (dbErr: unknown) {
-      console.warn("Could not load client bills from DB (database may be offline or starting):", dbErr);
+      logDbFallbackWarning("Client Bills API", dbErr);
       return successResponse([]);
     }
   } catch (error) {

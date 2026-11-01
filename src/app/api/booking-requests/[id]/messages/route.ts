@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { db } from "@/lib/db";
+import { db, logDbFallbackWarning } from "@/lib/db";
 import { bookingRequestMessages, users } from "@/lib/db/schema";
 import { eq, or } from "drizzle-orm";
 import { addFallbackMessage } from "@/lib/booking-requests-fallback";
@@ -69,7 +69,7 @@ export async function POST(
 
       return NextResponse.json({ success: true, message: newMessage });
     } catch (dbErr) {
-      console.warn("Could not save booking message to DB (database may be offline or starting):", dbErr);
+      logDbFallbackWarning("Booking Messages API", dbErr);
     }
 
     // 2. Fallback in-memory save
