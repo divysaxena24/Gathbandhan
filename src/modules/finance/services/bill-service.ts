@@ -1,5 +1,14 @@
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
-import { db } from "@/lib/db";
+import crypto from "crypto";
+import { db, logDbFallbackWarning } from "@/lib/db";
+import {
+  getFallbackBills,
+  getFallbackBillById,
+  saveFallbackBill,
+  publishFallbackBill,
+  respondFallbackBill,
+  updateFallbackBill,
+} from "@/lib/bills-fallback";
 import {
   clientBills,
   clientBillItems,
@@ -220,7 +229,8 @@ export async function createBill(
     }
   }
 
-  // 4. Verify Wedding & Client exist
+  try {
+    // 4. Verify Wedding & Client exist in DB
   const [wedding] = await db
     .select({ id: weddings.id, clientId: weddings.clientId, title: weddings.title })
     .from(weddings)
@@ -331,6 +341,77 @@ export async function createBill(
       installments: insertedInstallments,
     };
   });
+  } catch (dbErr: any) {
+    if (dbErr instanceof ValidationError || dbErr instanceof ForbiddenError) {
+      throw dbErr;
+    }
+    logDbFallbackWarning("BillService.createBill", dbErr);
+
+    const billId = `bill-${crypto.randomUUID()}`;
+    const billNumber =
+      data.billNumber ||
+      `BILL-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const fallbackItems: ClientBillItemRecord[] = itemsToInsert.map((item, i) => ({
+      id: `item-${i + 1}-${crypto.randomUUID()}`,
+      billId,
+      description: item.description,
+      quantity: item.quantity ?? 1,
+      unitRatePaise: item.unitRatePaise,
+      totalPaise: item.unitRatePaise * BigInt(item.quantity ?? 1),
+      orderIndex: item.orderIndex ?? i,
+      createdAt: new Date(),
+    }));
+
+    const fallbackInstallments: ClientBillInstallmentRecord[] = finalInstallments.map((inst, i) => ({
+      id: `inst-${i + 1}-${crypto.randomUUID()}`,
+      billId,
+      title: inst.title,
+      percentage: Number(inst.percentage).toFixed(2),
+      amountPaise: inst.amountPaise,
+      paidPaise: 0n,
+      remainingPaise: inst.amountPaise,
+      dueAt: inst.dueAt,
+      status: "PENDING",
+      orderIndex: inst.orderIndex ?? i,
+      paidAt: null,
+      linkedMilestoneId: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+
+    const fallbackRecord: ClientBillRecord = {
+      id: billId,
+      weddingId: data.weddingId,
+      clientId: data.clientId,
+      billNumber,
+      title: data.title,
+      issueDate: data.issueDate,
+      dueDate: data.dueDate,
+      subtotalPaise: calculatedSubtotal,
+      taxPaise,
+      totalPaise,
+      paidPaise: 0n,
+      outstandingPaise: totalPaise,
+      advancePercentage: advancePercentageNum.toFixed(2),
+      advanceAmountPaise,
+      remainingBalancePaise,
+      balanceDueAt: balanceDueDate,
+      status: "DRAFT",
+      acceptedAt: null,
+      declinedAt: null,
+      declineReason: null,
+      publishedAt: null,
+      notes: data.notes || null,
+      createdBy: actorId || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      items: fallbackItems,
+      installments: fallbackInstallments,
+    };
+
+    return saveFallbackBill(fallbackRecord);
+  }
 }
 
 /**
@@ -742,262 +823,121 @@ export async function getBillById(billId: string): Promise<ClientBillRecord> {
 }
 
 export async function getBillsForWedding(weddingId: string): Promise<ClientBillRecord[]> {
-  const bills = await db
-    .select({
-      id: clientBills.id,
-      weddingId: clientBills.weddingId,
-      weddingTitle: weddings.title,
-      clientId: clientBills.clientId,
-      clientName: clients.coupleName,
-      billNumber: clientBills.billNumber,
-      title: clientBills.title,
-      issueDate: clientBills.issueDate,
-      dueDate: clientBills.dueDate,
-      subtotalPaise: clientBills.subtotalPaise,
-      taxPaise: clientBills.taxPaise,
-      totalPaise: clientBills.totalPaise,
-      paidPaise: clientBills.paidPaise,
-      advancePercentage: clientBills.advancePercentage,
-      advanceAmountPaise: clientBills.advanceAmountPaise,
-      balanceDueAt: clientBills.balanceDueAt,
-      status: clientBills.status,
-      acceptedAt: clientBills.acceptedAt,
-      declinedAt: clientBills.declinedAt,
-      declineReason: clientBills.declineReason,
-      publishedAt: clientBills.publishedAt,
-      notes: clientBills.notes,
-      createdBy: clientBills.createdBy,
-      createdByName: users.name,
-      createdAt: clientBills.createdAt,
-      updatedAt: clientBills.updatedAt,
-    })
-    .from(clientBills)
-    .leftJoin(weddings, eq(clientBills.weddingId, weddings.id))
-    .leftJoin(clients, eq(clientBills.clientId, clients.id))
-    .leftJoin(users, eq(clientBills.createdBy, users.id))
-    .where(eq(clientBills.weddingId, weddingId))
-    .orderBy(desc(clientBills.createdAt));
-
-  const billIds = bills.map((b) => b.id);
-  if (billIds.length === 0) return [];
-
-  const allItems = await db
-    .select()
-    .from(clientBillItems)
-    .where(inArray(clientBillItems.billId, billIds))
-    .orderBy(clientBillItems.orderIndex);
-
-  const allInstallments = await db
-    .select()
-    .from(clientBillInstallments)
-    .where(inArray(clientBillInstallments.billId, billIds))
-    .orderBy(clientBillInstallments.orderIndex);
-
-  return bills.map((b) => {
-    const items = allItems.filter((item) => item.billId === b.id);
-    const installments = allInstallments
-      .filter((inst) => inst.billId === b.id)
-      .map((inst) => ({
-        ...inst,
-        remainingPaise:
-          inst.amountPaise > inst.paidPaise
-            ? inst.amountPaise - inst.paidPaise
-            : 0n,
-      }));
-
-    const outstandingPaise =
-      b.totalPaise > b.paidPaise ? b.totalPaise - b.paidPaise : 0n;
-    const remainingBalancePaise =
-      b.totalPaise > b.advanceAmountPaise
-        ? b.totalPaise - b.advanceAmountPaise
-        : 0n;
-
-    return {
-      ...b,
-      status: b.status as BillStatus,
-      outstandingPaise,
-      remainingBalancePaise,
-      items,
-      installments,
-    };
-  });
+  return getAllBills({ weddingId });
 }
 
 export async function getBillsForClient(clientId: string): Promise<ClientBillRecord[]> {
-  const bills = await db
-    .select({
-      id: clientBills.id,
-      weddingId: clientBills.weddingId,
-      weddingTitle: weddings.title,
-      clientId: clientBills.clientId,
-      clientName: clients.coupleName,
-      billNumber: clientBills.billNumber,
-      title: clientBills.title,
-      issueDate: clientBills.issueDate,
-      dueDate: clientBills.dueDate,
-      subtotalPaise: clientBills.subtotalPaise,
-      taxPaise: clientBills.taxPaise,
-      totalPaise: clientBills.totalPaise,
-      paidPaise: clientBills.paidPaise,
-      advancePercentage: clientBills.advancePercentage,
-      advanceAmountPaise: clientBills.advanceAmountPaise,
-      balanceDueAt: clientBills.balanceDueAt,
-      status: clientBills.status,
-      acceptedAt: clientBills.acceptedAt,
-      declinedAt: clientBills.declinedAt,
-      declineReason: clientBills.declineReason,
-      publishedAt: clientBills.publishedAt,
-      notes: clientBills.notes,
-      createdBy: clientBills.createdBy,
-      createdByName: users.name,
-      createdAt: clientBills.createdAt,
-      updatedAt: clientBills.updatedAt,
-    })
-    .from(clientBills)
-    .leftJoin(weddings, eq(clientBills.weddingId, weddings.id))
-    .leftJoin(clients, eq(clientBills.clientId, clients.id))
-    .leftJoin(users, eq(clientBills.createdBy, users.id))
-    .where(eq(clientBills.clientId, clientId))
-    .orderBy(desc(clientBills.createdAt));
-
-  const billIds = bills.map((b) => b.id);
-  if (billIds.length === 0) return [];
-
-  const allItems = await db
-    .select()
-    .from(clientBillItems)
-    .where(inArray(clientBillItems.billId, billIds))
-    .orderBy(clientBillItems.orderIndex);
-
-  const allInstallments = await db
-    .select()
-    .from(clientBillInstallments)
-    .where(inArray(clientBillInstallments.billId, billIds))
-    .orderBy(clientBillInstallments.orderIndex);
-
-  return bills.map((b) => {
-    const items = allItems.filter((item) => item.billId === b.id);
-    const installments = allInstallments
-      .filter((inst) => inst.billId === b.id)
-      .map((inst) => ({
-        ...inst,
-        remainingPaise:
-          inst.amountPaise > inst.paidPaise
-            ? inst.amountPaise - inst.paidPaise
-            : 0n,
-      }));
-
-    const outstandingPaise =
-      b.totalPaise > b.paidPaise ? b.totalPaise - b.paidPaise : 0n;
-    const remainingBalancePaise =
-      b.totalPaise > b.advanceAmountPaise
-        ? b.totalPaise - b.advanceAmountPaise
-        : 0n;
-
-    return {
-      ...b,
-      status: b.status as BillStatus,
-      outstandingPaise,
-      remainingBalancePaise,
-      items,
-      installments,
-    };
-  });
+  return getAllBills({ clientId });
 }
-
 
 export async function getAllBills(options?: {
   weddingId?: string;
   clientId?: string;
 }): Promise<ClientBillRecord[]> {
-  let query = db
-    .select({
-      id: clientBills.id,
-      weddingId: clientBills.weddingId,
-      weddingTitle: weddings.title,
-      clientId: clientBills.clientId,
-      clientName: clients.coupleName,
-      billNumber: clientBills.billNumber,
-      title: clientBills.title,
-      issueDate: clientBills.issueDate,
-      dueDate: clientBills.dueDate,
-      subtotalPaise: clientBills.subtotalPaise,
-      taxPaise: clientBills.taxPaise,
-      totalPaise: clientBills.totalPaise,
-      paidPaise: clientBills.paidPaise,
-      advancePercentage: clientBills.advancePercentage,
-      advanceAmountPaise: clientBills.advanceAmountPaise,
-      balanceDueAt: clientBills.balanceDueAt,
-      status: clientBills.status,
-      acceptedAt: clientBills.acceptedAt,
-      declinedAt: clientBills.declinedAt,
-      declineReason: clientBills.declineReason,
-      publishedAt: clientBills.publishedAt,
-      notes: clientBills.notes,
-      createdBy: clientBills.createdBy,
-      createdByName: users.name,
-      createdAt: clientBills.createdAt,
-      updatedAt: clientBills.updatedAt,
-    })
-    .from(clientBills)
-    .leftJoin(weddings, eq(clientBills.weddingId, weddings.id))
-    .leftJoin(clients, eq(clientBills.clientId, clients.id))
-    .leftJoin(users, eq(clientBills.createdBy, users.id));
+  try {
+    let query = db
+      .select({
+        id: clientBills.id,
+        weddingId: clientBills.weddingId,
+        weddingTitle: weddings.title,
+        clientId: clientBills.clientId,
+        clientName: clients.coupleName,
+        billNumber: clientBills.billNumber,
+        title: clientBills.title,
+        issueDate: clientBills.issueDate,
+        dueDate: clientBills.dueDate,
+        subtotalPaise: clientBills.subtotalPaise,
+        taxPaise: clientBills.taxPaise,
+        totalPaise: clientBills.totalPaise,
+        paidPaise: clientBills.paidPaise,
+        advancePercentage: clientBills.advancePercentage,
+        advanceAmountPaise: clientBills.advanceAmountPaise,
+        balanceDueAt: clientBills.balanceDueAt,
+        status: clientBills.status,
+        acceptedAt: clientBills.acceptedAt,
+        declinedAt: clientBills.declinedAt,
+        declineReason: clientBills.declineReason,
+        publishedAt: clientBills.publishedAt,
+        notes: clientBills.notes,
+        createdBy: clientBills.createdBy,
+        createdByName: users.name,
+        createdAt: clientBills.createdAt,
+        updatedAt: clientBills.updatedAt,
+      })
+      .from(clientBills)
+      .leftJoin(weddings, eq(clientBills.weddingId, weddings.id))
+      .leftJoin(clients, eq(clientBills.clientId, clients.id))
+      .leftJoin(users, eq(clientBills.createdBy, users.id));
 
-  const conditions = [];
-  if (options?.weddingId) {
-    conditions.push(eq(clientBills.weddingId, options.weddingId));
+    const conditions = [];
+    if (options?.weddingId) {
+      conditions.push(eq(clientBills.weddingId, options.weddingId));
+    }
+    if (options?.clientId) {
+      conditions.push(eq(clientBills.clientId, options.clientId));
+    }
+
+    const bills =
+      conditions.length > 0
+        ? await query.where(and(...conditions)).orderBy(desc(clientBills.createdAt))
+        : await query.orderBy(desc(clientBills.createdAt));
+
+    const billIds = bills.map((b) => b.id);
+    const fallbackBills = getFallbackBills(options);
+
+    if (billIds.length === 0) {
+      return fallbackBills;
+    }
+
+    const allItems = await db
+      .select()
+      .from(clientBillItems)
+      .where(inArray(clientBillItems.billId, billIds))
+      .orderBy(clientBillItems.orderIndex);
+
+    const allInstallments = await db
+      .select()
+      .from(clientBillInstallments)
+      .where(inArray(clientBillInstallments.billId, billIds))
+      .orderBy(clientBillInstallments.orderIndex);
+
+    const mappedDbBills = bills.map((b) => {
+      const items = allItems.filter((item) => item.billId === b.id);
+      const installments = allInstallments
+        .filter((inst) => inst.billId === b.id)
+        .map((inst) => ({
+          ...inst,
+          remainingPaise:
+            inst.amountPaise > inst.paidPaise
+              ? inst.amountPaise - inst.paidPaise
+              : 0n,
+        }));
+
+      const outstandingPaise =
+        b.totalPaise > b.paidPaise ? b.totalPaise - b.paidPaise : 0n;
+      const remainingBalancePaise =
+        b.totalPaise > b.advanceAmountPaise
+          ? b.totalPaise - b.advanceAmountPaise
+          : 0n;
+
+      return {
+        ...b,
+        status: b.status as BillStatus,
+        outstandingPaise,
+        remainingBalancePaise,
+        items,
+        installments,
+      };
+    });
+
+    const map = new Map<string, ClientBillRecord>();
+    for (const b of mappedDbBills) map.set(b.id, b);
+    for (const fb of fallbackBills) {
+      if (!map.has(fb.id)) map.set(fb.id, fb);
+    }
+    return Array.from(map.values());
+  } catch (dbErr) {
+    logDbFallbackWarning('BillService.getAllBills', dbErr);
+    return getFallbackBills(options);
   }
-  if (options?.clientId) {
-    conditions.push(eq(clientBills.clientId, options.clientId));
-  }
-
-  const bills =
-    conditions.length > 0
-      ? await query.where(and(...conditions)).orderBy(desc(clientBills.createdAt))
-      : await query.orderBy(desc(clientBills.createdAt));
-
-  const billIds = bills.map((b) => b.id);
-  if (billIds.length === 0) return [];
-
-  const allItems = await db
-    .select()
-    .from(clientBillItems)
-    .where(inArray(clientBillItems.billId, billIds))
-    .orderBy(clientBillItems.orderIndex);
-
-  const allInstallments = await db
-    .select()
-    .from(clientBillInstallments)
-    .where(inArray(clientBillInstallments.billId, billIds))
-    .orderBy(clientBillInstallments.orderIndex);
-
-  return bills.map((b) => {
-    const items = allItems.filter((item) => item.billId === b.id);
-    const installments = allInstallments
-      .filter((inst) => inst.billId === b.id)
-      .map((inst) => ({
-        ...inst,
-        remainingPaise:
-          inst.amountPaise > inst.paidPaise
-            ? inst.amountPaise - inst.paidPaise
-            : 0n,
-      }));
-
-    const outstandingPaise =
-      b.totalPaise > b.paidPaise ? b.totalPaise - b.paidPaise : 0n;
-    const remainingBalancePaise =
-      b.totalPaise > b.advanceAmountPaise
-        ? b.totalPaise - b.advanceAmountPaise
-        : 0n;
-
-    return {
-      ...b,
-      status: b.status as BillStatus,
-      outstandingPaise,
-      remainingBalancePaise,
-      items,
-      installments,
-    };
-  });
 }

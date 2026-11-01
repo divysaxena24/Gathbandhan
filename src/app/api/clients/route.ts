@@ -6,6 +6,24 @@ import { desc, eq, isNull } from "drizzle-orm";
 import { successResponse, mutationResponse, errorResponse } from "@/lib/errors/api-response";
 import { getFallbackBookingRequests } from "@/lib/booking-requests-fallback";
 
+
+function cleanClientName(name: string): string {
+  return (name || "")
+    .replace(/\s*\([^)]*project[^)]*\)/gi, "")
+    .replace(/\s*\([^)]*wedding[^)]*\)/gi, "")
+    .trim();
+}
+
+function normalizeClientKey(email?: string | null, name?: string | null): string {
+  if (email && email.trim() && email.includes("@")) {
+    return email.trim().toLowerCase();
+  }
+  const clean = cleanClientName(name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  return clean || (name || "").toLowerCase().trim();
+}
+
 export async function GET(_req: NextRequest) {
   try {
     await requireAuth();
@@ -65,36 +83,57 @@ export async function GET(_req: NextRequest) {
         .leftJoin(clients, eq(weddings.clientId, clients.id))
         .where(isNull(weddings.deletedAt));
 
-      // Aggregate and deduplicate by ID, email, or coupleName
+      // Aggregate and canonically deduplicate clients
       const clientMap = new Map<string, any>();
+
+      const addCanonicalClient = (item: any) => {
+        const email = item.partnerOneEmail || item.contactEmail || item.clientEmail || null;
+        const name = cleanClientName(item.coupleName || item.partnerOneName || item.contactName || item.clientName || "Client");
+        const key = normalizeClientKey(email, name);
+        if (!key) return;
+
+        if (clientMap.has(key)) {
+          const existing = clientMap.get(key);
+          if (!existing.partnerOneEmail && email) existing.partnerOneEmail = email;
+          if (!existing.partnerOnePhone && (item.partnerOnePhone || item.contactPhone)) {
+            existing.partnerOnePhone = item.partnerOnePhone || item.contactPhone;
+          }
+        } else {
+          clientMap.set(key, {
+            ...item,
+            coupleName: name,
+            partnerOneName: cleanClientName(item.partnerOneName || name),
+            partnerOneEmail: email,
+            partnerOnePhone: item.partnerOnePhone || item.contactPhone || null,
+          });
+        }
+      };
+
       for (const row of rows) {
-        clientMap.set(row.id, row);
+        addCanonicalClient(row);
       }
 
       for (const booking of acceptedBookings) {
-        const key = booking.userId || booking.id;
-        if (!clientMap.has(key)) {
-          clientMap.set(key, {
-            id: key,
-            coupleName: booking.coupleName || booking.contactName,
-            partnerOneName: booking.contactName,
-            partnerOneEmail: booking.contactEmail,
-            partnerOnePhone: booking.contactPhone,
-            partnerTwoName: null,
-            partnerTwoEmail: null,
-            portalUserId: booking.userId,
-            address: booking.destinationCity || "Udaipur",
-            notes: `Accepted Booking Project (${booking.weddingType || "Custom"})`,
-            createdAt: booking.createdAt,
-            updatedAt: booking.updatedAt,
-          });
-        }
+        addCanonicalClient({
+          id: booking.userId || booking.id,
+          coupleName: booking.coupleName || booking.contactName,
+          partnerOneName: booking.contactName,
+          partnerOneEmail: booking.contactEmail,
+          partnerOnePhone: booking.contactPhone,
+          partnerTwoName: null,
+          partnerTwoEmail: null,
+          portalUserId: booking.userId,
+          address: booking.destinationCity || "Udaipur",
+          notes: `Accepted Booking Project (${booking.weddingType || "Custom"})`,
+          createdAt: booking.createdAt,
+          updatedAt: booking.updatedAt,
+        });
       }
 
       for (const w of weddingProjects) {
-        if (w.clientId && !clientMap.has(w.clientId)) {
-          clientMap.set(w.clientId, {
-            id: w.clientId,
+        if (w.clientId || w.clientName) {
+          addCanonicalClient({
+            id: w.clientId || `client-${w.id}`,
             coupleName: w.clientName || w.title,
             partnerOneName: w.clientName || w.title,
             partnerOneEmail: w.clientEmail,
@@ -115,10 +154,33 @@ export async function GET(_req: NextRequest) {
     } catch (dbErr: unknown) {
       logDbFallbackWarning("Clients API", dbErr);
 
-      // Offline / dev fallback: include base client + all accepted fallback projects
+      // Offline / dev fallback: canonically deduplicate base client + all accepted fallback projects
       const clientMap = new Map<string, any>();
 
-      clientMap.set("client-demo-1", {
+      const addFallbackClient = (item: any) => {
+        const email = item.partnerOneEmail || item.contactEmail || null;
+        const name = cleanClientName(item.coupleName || item.partnerOneName || item.contactName || "Client");
+        const key = normalizeClientKey(email, name);
+        if (!key) return;
+
+        if (clientMap.has(key)) {
+          const existing = clientMap.get(key);
+          if (!existing.partnerOneEmail && email) existing.partnerOneEmail = email;
+          if (!existing.partnerOnePhone && (item.partnerOnePhone || item.contactPhone)) {
+            existing.partnerOnePhone = item.partnerOnePhone || item.contactPhone;
+          }
+        } else {
+          clientMap.set(key, {
+            ...item,
+            coupleName: name,
+            partnerOneName: cleanClientName(item.partnerOneName || name),
+            partnerOneEmail: email,
+            partnerOnePhone: item.partnerOnePhone || item.contactPhone || null,
+          });
+        }
+      };
+
+      addFallbackClient({
         id: "client-demo-1",
         coupleName: "Divya & Knox",
         partnerOneName: "Divya Saxena",
@@ -135,23 +197,20 @@ export async function GET(_req: NextRequest) {
 
       const fallbackRequests = getFallbackBookingRequests();
       for (const req of fallbackRequests) {
-        const cId = req.userId || req.id;
-        if (!clientMap.has(cId)) {
-          clientMap.set(cId, {
-            id: cId,
-            coupleName: req.coupleName || req.contactName,
-            partnerOneName: req.contactName,
-            partnerOneEmail: req.contactEmail || "divya_saxena@srmap.edu.in",
-            partnerOnePhone: req.contactPhone || "+91 98765 43210",
-            partnerTwoName: null,
-            partnerTwoEmail: null,
-            portalUserId: req.userId,
-            address: req.destinationCity || "Udaipur",
-            notes: `Project: ${req.weddingType || "Bespoke Royal Wedding"} (${req.status})`,
-            createdAt: req.createdAt,
-            updatedAt: req.updatedAt,
-          });
-        }
+        addFallbackClient({
+          id: req.userId || req.id,
+          coupleName: req.coupleName || req.contactName,
+          partnerOneName: req.contactName,
+          partnerOneEmail: req.contactEmail || "divya_saxena@srmap.edu.in",
+          partnerOnePhone: req.contactPhone || "+91 98765 43210",
+          partnerTwoName: null,
+          partnerTwoEmail: null,
+          portalUserId: req.userId,
+          address: req.destinationCity || "Udaipur",
+          notes: `Project: ${req.weddingType || "Bespoke Royal Wedding"} (${req.status})`,
+          createdAt: req.createdAt,
+          updatedAt: req.updatedAt,
+        });
       }
 
       return successResponse(Array.from(clientMap.values()));

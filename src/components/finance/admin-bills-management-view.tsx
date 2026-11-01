@@ -84,10 +84,28 @@ interface ClientBillRecord {
 
 interface ClientOption {
   id: string;
+  aliasIds?: string[];
   coupleName: string;
   partnerOneName: string;
   partnerOneEmail?: string | null;
   partnerOnePhone?: string | null;
+}
+
+function cleanClientName(name: string): string {
+  return (name || "")
+    .replace(/\s*\([^)]*project[^)]*\)/gi, "")
+    .replace(/\s*\([^)]*wedding[^)]*\)/gi, "")
+    .trim();
+}
+
+function getCanonicalClientKey(email?: string | null, name?: string | null): string {
+  if (email && email.trim() && email.includes("@")) {
+    return email.trim().toLowerCase();
+  }
+  const clean = cleanClientName(name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  return clean || (name || "").toLowerCase().trim();
 }
 
 interface WeddingOption {
@@ -100,14 +118,8 @@ interface WeddingOption {
 const INITIAL_ACCEPTED_CLIENTS: ClientOption[] = [
   {
     id: "client-demo-1",
+    aliasIds: ["client-demo-1", "b908759d-f633-47a3-b5f7-66a7b744d2e1", "user_offline_client"],
     coupleName: "Divya & Knox",
-    partnerOneName: "Divya Saxena",
-    partnerOneEmail: "divya_saxena@srmap.edu.in",
-    partnerOnePhone: "+91 98765 43210",
-  },
-  {
-    id: "b908759d-f633-47a3-b5f7-66a7b744d2e1",
-    coupleName: "Divya & Knox (Udaipur Royal Rajputana Project)",
     partnerOneName: "Divya Saxena",
     partnerOneEmail: "divya_saxena@srmap.edu.in",
     partnerOnePhone: "+91 98765 43210",
@@ -186,7 +198,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
     };
   }, [totalAmountINR, advancePercentage]);
 
-  // Load clients and weddings from all accepted projects
+  // Load clients and weddings with deduplication
   const loadClientsAndWeddings = useCallback(async () => {
     try {
       const [clientsRes, weddingsRes, bookingsRes] = await Promise.allSettled([
@@ -198,8 +210,45 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
       const clientMap = new Map<string, ClientOption>();
       const weddingMap = new Map<string, WeddingOption>();
 
-      // Seed initial defaults so dropdowns are never empty
-      for (const c of INITIAL_ACCEPTED_CLIENTS) clientMap.set(c.id, c);
+      const addOrMergeClient = (
+        id: string,
+        rawName: string,
+        email?: string | null,
+        phone?: string | null
+      ) => {
+        if (!id && !rawName && !email) return;
+        const cleanedName = cleanClientName(rawName || "Client") || "Client";
+        const key = getCanonicalClientKey(email, cleanedName);
+        if (clientMap.has(key)) {
+          const existing = clientMap.get(key)!;
+          if (id && existing.aliasIds && !existing.aliasIds.includes(id)) {
+            existing.aliasIds.push(id);
+          }
+          if (!existing.partnerOneEmail && email) existing.partnerOneEmail = email;
+          if (!existing.partnerOnePhone && phone) existing.partnerOnePhone = phone;
+        } else {
+          clientMap.set(key, {
+            id: id || `client-${key}`,
+            aliasIds: id ? [id] : [],
+            coupleName: cleanedName,
+            partnerOneName: cleanedName,
+            partnerOneEmail: email || null,
+            partnerOnePhone: phone || null,
+          });
+        }
+      };
+
+      // Seed initial defaults
+      for (const c of INITIAL_ACCEPTED_CLIENTS) {
+        addOrMergeClient(c.id, c.coupleName, c.partnerOneEmail, c.partnerOnePhone);
+        if (c.aliasIds) {
+          const key = getCanonicalClientKey(c.partnerOneEmail, c.coupleName);
+          const item = clientMap.get(key);
+          if (item) {
+            item.aliasIds = Array.from(new Set([...(item.aliasIds || []), ...c.aliasIds]));
+          }
+        }
+      }
       for (const w of INITIAL_ACCEPTED_WEDDINGS) weddingMap.set(w.id, w);
 
       // 1. Ingest direct clients
@@ -209,13 +258,12 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
           if (Array.isArray(cJson.data)) {
             for (const c of cJson.data) {
               if (c && c.id) {
-                clientMap.set(c.id, {
-                  id: c.id,
-                  coupleName: c.coupleName || c.partnerOneName || "Client",
-                  partnerOneName: c.partnerOneName || c.coupleName || "Client",
-                  partnerOneEmail: c.partnerOneEmail || null,
-                  partnerOnePhone: c.partnerOnePhone || null,
-                });
+                addOrMergeClient(
+                  c.id,
+                  c.coupleName || c.partnerOneName || "Client",
+                  c.partnerOneEmail || null,
+                  c.partnerOnePhone || null
+                );
               }
             }
           }
@@ -224,7 +272,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
         }
       }
 
-      // 2. Ingest wedding projects and extract client details
+      // 2. Ingest wedding projects
       if (weddingsRes.status === "fulfilled" && weddingsRes.value.ok) {
         try {
           const wJson = await weddingsRes.value.json();
@@ -238,16 +286,13 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
                   clientName: w.clientName || null,
                 });
 
-                // Also add client if missing
-                const cId = w.clientId || `client-${w.id}`;
-                if (!clientMap.has(cId)) {
-                  clientMap.set(cId, {
-                    id: cId,
-                    coupleName: w.clientName || w.title,
-                    partnerOneName: w.clientName || w.title,
-                    partnerOneEmail: w.clientEmail || null,
-                    partnerOnePhone: w.clientPhone || null,
-                  });
+                if (w.clientId || w.clientName) {
+                  addOrMergeClient(
+                    w.clientId || `client-${w.id}`,
+                    w.clientName || w.title,
+                    w.clientEmail || null,
+                    w.clientPhone || null
+                  );
                 }
               }
             }
@@ -257,7 +302,7 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
         }
       }
 
-      // 3. Ingest booking requests (all accepted and submitted consultation projects)
+      // 3. Ingest booking requests
       if (bookingsRes.status === "fulfilled" && bookingsRes.value.ok) {
         try {
           const bJson = await bookingsRes.value.json();
@@ -271,20 +316,14 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
             if (b && b.id) {
               const cId = b.userId || b.id;
               const coupleTitle = b.coupleName || b.contactName || "Client";
-              clientMap.set(cId, {
-                id: cId,
-                coupleName: `${coupleTitle} (${b.destinationCity || "Udaipur"} Project)`,
-                partnerOneName: b.contactName || coupleTitle,
-                partnerOneEmail: b.contactEmail || null,
-                partnerOnePhone: b.contactPhone || null,
-              });
+              addOrMergeClient(cId, coupleTitle, b.contactEmail || null, b.contactPhone || null);
 
               const wId = b.weddingId || b.id;
               weddingMap.set(wId, {
                 id: wId,
-                title: `The Wedding of ${coupleTitle} (${b.destinationCity || "Udaipur"})`,
+                title: `The Wedding of ${cleanClientName(coupleTitle)} (${b.destinationCity || "Udaipur"})`,
                 clientId: cId,
-                clientName: coupleTitle,
+                clientName: cleanClientName(coupleTitle),
               });
             }
           }
@@ -299,7 +338,6 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
       setClientsList(finalClients);
       setWeddingsList(finalWeddings);
 
-      // Auto-populate default modal selections if not set
       if (!modalClientId && finalClients.length > 0) {
         setModalClientId(finalClients[0].id);
       }
@@ -503,11 +541,29 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
     }
   };
 
-  // Filter bills by tagged client if filter is selected
+  // Selected client for filtering
+  const selectedClient = useMemo(() => {
+    if (selectedFilterClientId === "ALL") return null;
+    return clientsList.find((c) => c.id === selectedFilterClientId) || null;
+  }, [clientsList, selectedFilterClientId]);
+
+  // Filter bills by tagged client with alias resolution
   const displayedBills = useMemo(() => {
-    if (selectedFilterClientId === "ALL") return bills;
-    return bills.filter((b) => b.clientId === selectedFilterClientId);
-  }, [bills, selectedFilterClientId]);
+    if (selectedFilterClientId === "ALL" || !selectedClient) return bills;
+    const matchingIds = [selectedClient.id, ...(selectedClient.aliasIds || [])];
+
+    return bills.filter((b) => {
+      if (matchingIds.includes(b.clientId)) return true;
+      if (
+        selectedClient.partnerOneEmail &&
+        b.clientName &&
+        cleanClientName(selectedClient.coupleName).toLowerCase() === cleanClientName(b.clientName).toLowerCase()
+      ) {
+        return true;
+      }
+      return false;
+    });
+  }, [bills, selectedFilterClientId, selectedClient]);
 
   // Financial KPI totals for displayed bills
   const totalBilledPaise = displayedBills.reduce(
@@ -536,81 +592,47 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
         </span>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-stone-900/60 border border-stone-800 rounded-xl p-4">
-          <div className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">
-            Total Billed
-          </div>
-          <div className="text-2xl font-black text-white mt-1">
-            {formatINR(totalBilledPaise)}
-          </div>
-          <div className="text-[11px] text-stone-500 mt-1">
-            Across {displayedBills.length} client invoice(s)
-          </div>
-        </div>
-
-        <div className="bg-stone-900/60 border border-stone-800 rounded-xl p-4">
-          <div className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">
-            Virtually Collected
-          </div>
-          <div className="text-2xl font-black text-emerald-400 mt-1">
-            {formatINR(totalCollectedPaise)}
-          </div>
-          <div className="text-[11px] text-stone-500 mt-1">
-            {totalBilledPaise > 0n
-              ? `${((Number(totalCollectedPaise) / Number(totalBilledPaise)) * 100).toFixed(1)}% recovery`
-              : "0% recovery"}
-          </div>
-        </div>
-
-        <div className="bg-stone-900/60 border border-stone-800 rounded-xl p-4">
-          <div className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">
-            Outstanding Balance
-          </div>
-          <div className="text-2xl font-black text-amber-400 mt-1">
-            {formatINR(totalOutstandingPaise)}
-          </div>
-          <div className="text-[11px] text-stone-500 mt-1">Due for collection</div>
-        </div>
-      </div>
-
-      {/* Header, Client Filter and Actions */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      {/* Top Section: Bill Generation Header, Client Filter, and Actions */}
+      <div className="bg-stone-900/70 border border-stone-800 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-base font-bold text-stone-100 flex items-center gap-2">
-            <span>Client Billing & Payment Schedules</span>
-          </h3>
-          <p className="text-xs text-stone-400">
-            Tag bills to specific clients from accepted projects, configure advance milestones, and publish exclusively to their portal.
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <FileText className="w-5 h-5 text-amber-400" />
+              <span>Bill Generation & Collections</span>
+            </h2>
+            <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[10px]">
+              Virtual Billing
+            </Badge>
+          </div>
+          <p className="text-xs text-stone-400 mt-1">
+            Generate client invoices, tag specific clients from accepted projects, and check paid vs due amounts.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          {/* Filter by Tagged Client Dropdown */}
-          {clientsList.length > 0 && (
-            <div className="flex items-center gap-1.5 bg-stone-900/80 border border-stone-800 rounded-lg px-2.5 py-1 text-xs">
-              <Filter className="w-3.5 h-3.5 text-stone-400" />
-              <span className="text-stone-400 text-[11px]">Client:</span>
-              <select
-                value={selectedFilterClientId}
-                onChange={(e) => setSelectedFilterClientId(e.target.value)}
-                className="bg-transparent text-stone-200 text-xs font-medium focus:outline-none cursor-pointer"
-              >
-                <option value="ALL" className="bg-stone-950 text-white">
-                  All Clients ({bills.length})
-                </option>
-                {clientsList.map((client) => {
-                  const clientBillCount = bills.filter((b) => b.clientId === client.id).length;
-                  return (
-                    <option key={client.id} value={client.id} className="bg-stone-950 text-white">
-                      {client.coupleName || client.partnerOneName} ({clientBillCount})
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-          )}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Filter by Specific Client Dropdown */}
+          <div className="flex items-center gap-1.5 bg-stone-950 border border-stone-800 rounded-lg px-3 py-1.5 text-xs shadow-inner">
+            <Filter className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="text-stone-400 text-[11px] font-medium">Client:</span>
+            <select
+              value={selectedFilterClientId}
+              onChange={(e) => setSelectedFilterClientId(e.target.value)}
+              className="bg-transparent text-amber-200 text-xs font-semibold focus:outline-none cursor-pointer pr-1"
+            >
+              <option value="ALL" className="bg-stone-950 text-white">
+                All Clients ({bills.length})
+              </option>
+              {clientsList.map((client) => {
+                const clientIds = [client.id, ...(client.aliasIds || [])];
+                const count = bills.filter((b) => clientIds.includes(b.clientId)).length;
+                return (
+                  <option key={client.id} value={client.id} className="bg-stone-950 text-white">
+                    {client.coupleName} ({count})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
 
           <Button
             variant="outline"
@@ -622,14 +644,68 @@ export function AdminBillsManagementView({ weddingId }: { weddingId?: string }) 
             <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
+
           <Button
             size="sm"
             onClick={openCreateModal}
-            className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs h-9"
+            className="bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs h-9 shadow-sm"
           >
             <Plus className="h-4 w-4 mr-1.5" />
             Create Client Bill
           </Button>
+        </div>
+      </div>
+
+      {/* KPI Cards: ONLY Paid Amount Section and Due Amount Section */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Paid Amount Section */}
+        <div className="bg-emerald-950/25 border border-emerald-500/30 rounded-xl p-4 relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Paid Amount Section
+            </span>
+            <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-medium">
+              Virtually Collected
+            </span>
+          </div>
+          <div className="text-3xl font-black text-emerald-400 mt-2 font-mono">
+            {formatINR(totalCollectedPaise)}
+          </div>
+          <div className="text-[11px] text-stone-400 mt-1 flex items-center justify-between">
+            <span>
+              {selectedClient ? `For ${selectedClient.coupleName}` : `Across ${displayedBills.length} client invoice(s)`}
+            </span>
+            <span className="text-emerald-400/90 font-mono">
+              {totalBilledPaise > 0n
+                ? `${((Number(totalCollectedPaise) / Number(totalBilledPaise)) * 100).toFixed(1)}% recovery`
+                : "0% recovery"}
+            </span>
+          </div>
+        </div>
+
+        {/* Due Amount Section */}
+        <div className="bg-amber-950/25 border border-amber-500/30 rounded-xl p-4 relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5" />
+              Due Amount Section
+            </span>
+            <span className="px-2 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">
+              Pending Collection
+            </span>
+          </div>
+          <div className="text-3xl font-black text-amber-400 mt-2 font-mono">
+            {formatINR(totalOutstandingPaise)}
+          </div>
+          <div className="text-[11px] text-stone-400 mt-1 flex items-center justify-between">
+            <span>
+              {selectedClient ? `For ${selectedClient.coupleName}` : `Across ${displayedBills.length} client invoice(s)`}
+            </span>
+            <span className="text-amber-400/90 font-medium">
+              Due for collection
+            </span>
+          </div>
         </div>
       </div>
 
